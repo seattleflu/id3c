@@ -1,0 +1,71 @@
+#!/bin/bash
+# usage: create-database [dbname]
+#
+# This script sets up the initial database and creates three roles with
+# different privilege levels, although does not configure how those roles may
+# be accessed by clients.
+#
+# It must be run as a Pg superuser.
+#
+# You may control the database name by passing your desired name as the first
+# argument or setting PGDATABASE.
+set -eu -o pipefail -o nounset
+
+base="$(dirname $0)/.."
+psql="psql --no-psqlrc --set ON_ERROR_STOP=1"
+
+main() {
+    case "${1:-}" in
+        -h|--help)
+            exec perl -ne '2 .. not s/^# *// ? print : exit 0' -- $0;;
+    esac
+
+    # Set default database to connect to if unspecified by the command line or PGDATABASE.
+    PGDATABASE=${1:-${PGDATABASE:-warehouse}}
+    export PGDATABASE
+
+    local owner="${PGDATABASE}_owner"
+    local rw_role="${PGDATABASE}_rw"
+    local ro_role="${PGDATABASE}_ro"
+
+    # First, ensure our desired roles exist.
+    #
+    # Configuring user authentication for these roles is left as an exercise
+    # for the reader: http://postgresql.org/docs/current/static/client-authentication.html
+    create-role-if-not-exists "$owner"
+    create-role-if-not-exists "$rw_role"
+    create-role-if-not-exists "$ro_role"
+
+    # Then, create the new database.
+    createdb -E UTF-8 -O "$owner" "$PGDATABASE" "Genomic epidemiology research data warehouse"
+
+    # Finally, run all our DDL in a single transaction.
+    $psql < <(cat sql.d/*.sql) \
+        --single-transaction \
+        --set owner="$owner" \
+        --set rw_role="$rw_role" \
+        --set ro_role="$ro_role"
+}
+
+create-role-if-not-exists() {
+    local role="$1"
+    if role-exists "$role"; then
+        echo "-- CREATE ROLE $role (exists)"
+    else
+        create-role "$role"
+        echo "CREATE ROLE $role"
+    fi
+}
+
+create-role() {
+    local role="$1"
+    createuser --no-login "$role"
+}
+
+role-exists() {
+    local role="$1"
+    local system_db="postgres"
+    $psql --set role="$role" -q $system_db <<<"SELECT pg_catalog.pg_has_role(:'role', 'usage')" >/dev/null 2>&1
+}
+
+main "$@"
