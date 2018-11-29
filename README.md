@@ -28,3 +28,26 @@ Initially aims to provide:
 
 * Administration via [pgAdmin4](https://www.pgadmin.org/) and standard
   command-line tools
+
+
+## Guidelines
+
+General principles to follow when developing the schema.
+
+* Columns should be maximally typed and constrained, unless there exists a
+  concrete use case for something less.
+
+* Consider if a column should ever be unknown (null).
+
+* Consider if a column should have a default.
+
+* Consider what constraints make sense at both a column- and table-level.
+  Would a `CHECK` constraint be useful to express domain logic?
+
+* Write a description for all schemas, tables, columns, etc.
+
+* Grant only the minimal privileges necessary to the read-only and read-write
+  roles.  For example, if the read-write role isn't expected to `UPDATE`
+  existing records, then only grant it `INSERT`.
+
+* Consider expected data access patterns and create indexes to match.
