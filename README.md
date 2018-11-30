@@ -5,6 +5,21 @@ Python 3 + [Flask](http://flask.pocoo.org)
 * Consumes and stores enrollment documents from the Audere backend systems
 
 
+## Dependencies
+
+Python dependencies are managed using [Pipenv](https://pipenv.readthedocs.io).
+
+Install all the (locked, known-good) dependencies by running:
+
+    pipenv sync
+
+Add new dependencies to `Pipfile`, run:
+
+    pipenv install <name>
+
+and then commit the changes to `Pipfile` and `Pipfile.lock`.
+
+
 ## Config
 
 * Database connection details are set entirely using the [standard libpq
