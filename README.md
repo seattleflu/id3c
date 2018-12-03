@@ -5,7 +5,9 @@ Python 3 + [Flask](http://flask.pocoo.org)
 * Consumes and stores enrollment documents from the Audere backend systems
 
 
-## Dependencies
+## Running
+
+### Dependencies
 
 Python dependencies are managed using [Pipenv](https://pipenv.readthedocs.io).
 
@@ -20,7 +22,7 @@ Add new dependencies to `Pipfile`, run:
 and then commit the changes to `Pipfile` and `Pipfile.lock`.
 
 
-## Config
+### Config
 
 * Database connection details are set entirely using the [standard libpq
   environment variables](https://www.postgresql.org/docs/current/libpq-envars.html),
@@ -28,3 +30,12 @@ and then commit the changes to `Pipfile` and `Pipfile.lock`.
 
 * The maximum accepted Content-Length defaults to 20MB.  You can override this
   by setting the environment variable `FLASK_MAX_CONTENT_LENGTH`.
+
+
+### Starting the server
+
+The commands `pipenv run python -m seattleflu.api` or `pipenv run flask run`
+will run the application's __development__ server.
+
+For production, a standard `wsgi.py` file is provided which can be used by any
+web server with WSGI support.
