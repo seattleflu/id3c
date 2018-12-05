@@ -39,3 +39,12 @@ will run the application's __development__ server.
 
 For production, a standard `wsgi.py` file is provided which can be used by any
 web server with WSGI support.
+
+
+## Usage
+
+### Authentication
+
+All endpoints require [HTTP Basic access
+authentication](https://en.wikipedia.org/wiki/Basic_access_authentication).
+Credentials should only ever be provided over HTTPS.

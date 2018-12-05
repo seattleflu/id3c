@@ -4,30 +4,76 @@ Datastore abstraction for our database.
 import logging
 import psycopg2
 from flask import jsonify
-from psycopg2 import DataError
+from psycopg2 import DataError, DatabaseError
+from typing import Any
 from werkzeug.exceptions import BadRequest
+from .exceptions import AuthenticationRequired
 from .utils import export
 
 
 LOG = logging.getLogger(__name__)
 
-# Connection details are controlled entirely by standard libpq environment
-# variables <https://www.postgresql.org/docs/current/libpq-envars.html>.
-LOG.debug("Connecting to PostgreSQL database")
-
-CONNECTION = psycopg2.connect("postgresql://")
+# Really psycopg2.extensions.connection, but avoiding annotating that so it
+# isn't relied upon.
+Session = Any
 
 
 @export
-def store_enrollment(document: str):
+def login(username: str, password: str) -> Session:
+    """
+    Creates a new database session authenticated as the given user.
+
+    Returns an opaque session object which other functions in this module
+    require.
+    """
+    # Connection details like host and database are controlled entirely by
+    # standard libpq environment variables:
+    #
+    #    https://www.postgresql.org/docs/current/libpq-envars.html
+    #
+    LOG.debug(f"Authenticating to PostgreSQL database as '{username}'")
+
+    try:
+        session = psycopg2.connect(user = username, password = password)
+    except DatabaseError as error:
+        LOG.error(f"Authentication failed: {error}")
+        raise AuthenticationRequired() from None
+
+    LOG.debug(f"Session created for {session_info(session)}")
+
+    return session
+
+
+def session_info(session) -> str:
+    """
+    Takes a *session* object and returns a concise string describing it.
+    """
+    info = [
+        "user",
+        "dbname",
+        "host",
+        "port",
+        "sslmode",
+    ]
+
+    params = session.get_dsn_parameters()
+
+    return " ".join(
+        f"{param}={params.get(param)}"
+            for param in info
+             if params.get(param))
+
+
+@export
+def store_enrollment(session: Session, document: str) -> None:
     """
     Store the given enrollment JSON *document* (a **string**) in the backing
-    database.
+    database using *session*.
 
     Raises a :class:`BadRequestDataError` exception if the given *document*
     isn't valid.
     """
-    with CONNECTION, CONNECTION.cursor() as cursor:
+    with session, session.cursor() as cursor:
         try:
             cursor.execute(
                 "INSERT INTO staging.enrollment (document) VALUES (%s)",

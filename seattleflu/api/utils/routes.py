@@ -5,7 +5,26 @@ from flask import request
 from functools import wraps
 from typing import Any, Callable, Iterable, Tuple, Union
 from werkzeug.exceptions import RequestEntityTooLarge, UnsupportedMediaType
+from ..exceptions import AuthenticationRequired
 from ..utils import prose_list, export
+
+
+@export
+def authentication_required(route):
+    """
+    Ensures requests have an ``Authorization`` header.
+
+    Raises a :class:`seattleflu.api.exceptions.AuthenticationRequired`
+    exception if the request doesn't provide an ``Authorization`` header.
+    """
+    @wraps(route)
+    def wrapped_route(*args, **kwargs):
+        if not request.authorization:
+            raise AuthenticationRequired()
+
+        return route(*args, **kwargs)
+
+    return wrapped_route
 
 
 @export
