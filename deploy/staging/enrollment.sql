@@ -1,13 +1,8 @@
--- SCHEMA
-create schema staging;
+-- Deploy seattleflu/schema:staging/enrollment to pg
+-- requires: staging/schema
 
-comment on schema staging is
-    'Staging area for non-relational data before it is transformed and loaded into the research schema';
+begin;
 
-grant usage on schema staging to :ro_role, :rw_role;
-
-
--- TABLES
 set search_path to staging;
 
 create table enrollment (
@@ -26,8 +21,4 @@ comment on column enrollment.document is 'Original JSON record';
 comment on column enrollment.received is 'When the document was received';
 comment on column enrollment.processed is 'When the document was loaded into the research schema, if not null.';
 
--- XXX TODO: index on processed is not null?
--- XXX TODO: index on id, revision, participant, … in document?
-
-grant select on enrollment to :ro_role, :rw_role;
-grant insert on enrollment to :rw_role;
+commit;

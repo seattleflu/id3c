@@ -1,5 +1,0 @@
-Files in this directory with the .sql extension are concatenated together in
-order and run within a single database transaction by the create-database
-program in this repository's bin/ directory.
-
-Multiple files are used solely for organizational purposes.

@@ -1,0 +1,8 @@
+%syntax-version=1.0.0
+%project=seattleflu/schema
+%uri=https://seattleflu.org
+
+roles/public 2018-12-05T22:19:45Z Thomas Sibley <tsibley@fredhutch.org> # Access for the standard pseudo-role "public"
+staging/schema 2018-12-05T22:54:03Z Thomas Sibley <tsibley@fredhutch.org> # Schema for staging data
+staging/enrollment [staging/schema] 2018-12-05T22:58:07Z Thomas Sibley <tsibley@fredhutch.org> # staging.enrollment table for enrollment documents
+roles/enroller [staging/enrollment] 2018-12-05T23:05:23Z Thomas Sibley <tsibley@fredhutch.org> # Access for clients which are enrolling study participants
