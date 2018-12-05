@@ -4,9 +4,9 @@ Datastore abstraction for our database.
 import logging
 import psycopg2
 from flask import jsonify
-from psycopg2 import DataError, DatabaseError
+from psycopg2 import DataError, DatabaseError, ProgrammingError
 from typing import Any
-from werkzeug.exceptions import BadRequest
+from werkzeug.exceptions import BadRequest, Forbidden
 from .exceptions import AuthenticationRequired
 from .utils import export
 
@@ -71,15 +71,23 @@ def store_enrollment(session: Session, document: str) -> None:
     database using *session*.
 
     Raises a :class:`BadRequestDataError` exception if the given *document*
-    isn't valid.
+    isn't valid and a :class:`Forbidden` exception if the database reports a
+    `permission denied` error.
     """
     with session, session.cursor() as cursor:
         try:
             cursor.execute(
                 "INSERT INTO staging.enrollment (document) VALUES (%s)",
                     (document,))
+
         except DataError as error:
             raise BadRequestDataError(error) from None
+
+        except ProgrammingError as error:
+            if error.diag.message_primary.startswith("permission denied"):
+                raise Forbidden()
+            else:
+                raise error from None
 
 
 @export
