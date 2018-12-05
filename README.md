@@ -51,3 +51,27 @@ General principles to follow when developing the schema.
   existing records, then only grant it `INSERT`.
 
 * Consider expected data access patterns and create indexes to match.
+
+
+## Deploying
+
+The database schema is deployed using [Sqitch](https://sqitch.org), a database
+change management tool that really shines.  You can install it a large number
+of ways, so pick the one that makes most sense to you.
+
+You'll also need a PostgreSQL server and superuser credentials for it.  The
+following commands assume the database server is running locally and your local
+user account maps directly to a database superuser.
+
+Create the database with a name of your choosing using the standard Pg tools.
+In this case, I've chosen `testing` as the name.
+
+    createdb --encoding=UTF-8 testing
+
+Then use `sqitch` to deploy to it.
+
+    sqitch deploy db:pg:testing
+
+Now you can connect to it for interactive use with:
+
+    psql testing
