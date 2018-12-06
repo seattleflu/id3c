@@ -85,6 +85,7 @@ def store_enrollment(session: Session, document: str) -> None:
 
         except ProgrammingError as error:
             if error.diag.message_primary.startswith("permission denied"):
+                LOG.error("Forbidden: %s", error)
                 raise Forbidden()
             else:
                 raise error from None
