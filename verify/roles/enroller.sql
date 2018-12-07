@@ -2,6 +2,7 @@
 
 begin;
 
+select 1/pg_catalog.has_database_privilege('enroller', :'DBNAME', 'connect')::int;
 select 1/pg_catalog.has_schema_privilege('enroller', 'staging', 'usage')::int;
 select 1/pg_catalog.has_column_privilege('enroller', 'staging.enrollment', 'document', 'insert')::int;
 

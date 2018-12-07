@@ -14,4 +14,14 @@ begin;
 -- schema.  Otherwise, it quietly does nothing!
 revoke create on schema public from public;
 
+-- Don't allow all roles to connect to this database.  We will allow just
+-- specific roles that privilege later.
+--
+-- By default, public has connection privileges on all databases.  This default
+-- does not appear to be alterable with ALTER DEFAULT PRIVILEGES or by revoking
+-- CONNECT from the template1 database before creation of this database.
+--
+-- The :DBNAME psql variable is documented to always be defined.
+revoke connect on database :"DBNAME" from public;
+
 commit;
