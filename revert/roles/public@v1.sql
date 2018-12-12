@@ -2,6 +2,6 @@
 
 begin;
 
-grant usage on schema sqitch to public;
+grant create on schema public to public;
 
 commit;

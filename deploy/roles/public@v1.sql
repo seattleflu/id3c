@@ -24,7 +24,4 @@ revoke create on schema public from public;
 -- The :DBNAME psql variable is documented to always be defined.
 revoke connect on database :"DBNAME" from public;
 
--- No one needs access to the sqitch schema.
-revoke usage on schema sqitch from public;
-
 commit;
