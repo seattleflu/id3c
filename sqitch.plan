@@ -9,3 +9,4 @@ roles/enroller [staging/enrollment] 2018-12-05T23:05:23Z Thomas Sibley <tsibley@
 roles/reporter [staging/schema] 2018-12-12T19:34:46Z Thomas Sibley <tsibley@fredhutch.org> # Access for clients doing reporting
 @v1 2018-12-12T20:20:54Z Thomas Sibley <tsibley@fredhutch.org> # version 1
 roles/public [roles/public@v1] 2018-12-12T20:21:22Z Thomas Sibley <tsibley@fredhutch.org> # Remove public access to sqitch schema
+citext 2018-12-15T09:55:11Z Thomas Sibley <tsibley@fredhutch.org> # Install citext extension
