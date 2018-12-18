@@ -4,6 +4,7 @@ Datastore abstraction for our database.
 import logging
 import psycopg2
 from flask import jsonify
+from functools import wraps
 from psycopg2 import DataError, DatabaseError, ProgrammingError
 from typing import Any
 from werkzeug.exceptions import BadRequest, Forbidden
@@ -16,6 +17,27 @@ LOG = logging.getLogger(__name__)
 # Really psycopg2.extensions.connection, but avoiding annotating that so it
 # isn't relied upon.
 Session = Any
+
+
+def catch_permission_denied(function):
+    """
+    Decorator to catch :class:`psycopg2.ProgrammingError` exceptions starting
+    with ``permission denied`` and rethrow them as
+    :class:`~werkzeug.exceptions.Forbidden` exceptions instead.
+    """
+    @wraps(function)
+    def decorated(*args, **kwargs):
+        try:
+            return function(*args, **kwargs)
+
+        except ProgrammingError as error:
+            if error.diag.message_primary.startswith("permission denied"):
+                LOG.error("Forbidden: %s", error)
+                raise Forbidden()
+            else:
+                raise error from None
+
+    return decorated
 
 
 @export
@@ -65,6 +87,7 @@ def session_info(session) -> str:
 
 
 @export
+@catch_permission_denied
 def store_enrollment(session: Session, document: str) -> None:
     """
     Store the given enrollment JSON *document* (a **string**) in the backing
@@ -82,13 +105,6 @@ def store_enrollment(session: Session, document: str) -> None:
 
         except DataError as error:
             raise BadRequestDataError(error) from None
-
-        except ProgrammingError as error:
-            if error.diag.message_primary.startswith("permission denied"):
-                LOG.error("Forbidden: %s", error)
-                raise Forbidden()
-            else:
-                raise error from None
 
 
 @export
