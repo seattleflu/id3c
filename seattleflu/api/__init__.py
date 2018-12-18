@@ -2,6 +2,7 @@
 Seattle Flu Study informatics API
 """
 import logging
+import os
 from flask import Flask
 from . import config
 from .router import blueprints
@@ -16,6 +17,11 @@ handler.setFormatter(
 
 LOG = logging.getLogger(__name__)
 LOG.addHandler(handler)
+
+LOG_LEVEL = os.environ.get("LOG_LEVEL")
+
+if LOG_LEVEL:
+    LOG.setLevel(LOG_LEVEL.upper())
 
 
 def create_app():
