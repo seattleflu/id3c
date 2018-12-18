@@ -16,7 +16,7 @@ blueprint = Blueprint("enrollment", __name__)
 @content_types_accepted(["application/json"])
 @check_content_length
 @authentication_required
-def create_sample():
+def receive_enrollment():
     """
     Receive a new enrollment document.
 
