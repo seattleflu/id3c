@@ -93,7 +93,7 @@ def store_enrollment(session: Session, document: str) -> None:
     Store the given enrollment JSON *document* (a **string**) in the backing
     database using *session*.
 
-    Raises a :class:`BadRequestDataError` exception if the given *document*
+    Raises a :class:`BadRequestDatabaseError` exception if the given *document*
     isn't valid and a :class:`Forbidden` exception if the database reports a
     `permission denied` error.
     """
@@ -104,22 +104,23 @@ def store_enrollment(session: Session, document: str) -> None:
                     (document,))
 
         except DataError as error:
-            raise BadRequestDataError(error) from None
+            raise BadRequestDatabaseError(error) from None
 
 
 @export
-class BadRequestDataError(BadRequest):
+class BadRequestDatabaseError(BadRequest):
     """
     Subclass of :class:`werkzeug.exceptions.BadRequest` which takes a
-    :class:`psycopg2.DataError` and forms a JSON response detailing the error.
+    :class:`psycopg2.DatabaseError` and forms a JSON response detailing the
+    error.
 
     This intentionally does not expose the query context itself, only the
     context related to the data handling.
     """
-    def __init__(self, error: DataError) -> None:
+    def __init__(self, error: DatabaseError) -> None:
         super().__init__()
 
-        LOG.error("BadRequestDataError: %s", error)
+        LOG.error("BadRequestDatabaseError: %s", error)
 
         self.response = jsonify({
             "error": error.diag.message_primary,
