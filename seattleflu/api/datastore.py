@@ -3,12 +3,11 @@ Datastore abstraction for our database.
 """
 import logging
 import psycopg2
-from flask import jsonify
 from functools import wraps
 from psycopg2 import DataError, DatabaseError, IntegrityError, ProgrammingError
 from typing import Any
-from werkzeug.exceptions import BadRequest, Forbidden
-from .exceptions import AuthenticationRequired
+from werkzeug.exceptions import Forbidden
+from .exceptions import AuthenticationRequired, BadRequest
 from .utils import export
 
 
@@ -154,7 +153,7 @@ def store_scan(session: Session, scan: dict) -> None:
 @export
 class BadRequestDatabaseError(BadRequest):
     """
-    Subclass of :class:`werkzeug.exceptions.BadRequest` which takes a
+    Subclass of :class:`seattleflu.api.exceptions.BadRequest` which takes a
     :class:`psycopg2.DatabaseError` and forms a JSON response detailing the
     error.
 
@@ -162,14 +161,10 @@ class BadRequestDatabaseError(BadRequest):
     context related to the data handling.
     """
     def __init__(self, error: DatabaseError) -> None:
-        super().__init__()
-
-        LOG.error("BadRequestDatabaseError: %s", error)
-
-        self.response = jsonify({
-            "error": error.diag.message_primary,
-            "detail": error.diag.message_detail,
-            "context": error.diag.context,
-        })
-
-        self.response.status_code = self.code
+        super().__init__(
+            error = error.diag.message_primary,
+            extra = {
+                "detail": error.diag.message_detail,
+                "context": error.diag.context,
+            }
+        )
