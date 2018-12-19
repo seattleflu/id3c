@@ -1,9 +1,10 @@
 """
 Blueprints for API routes.
 """
-from . import enrollment, scan
+from . import root, enrollment, scan
 
 routers = [
+    root,
     enrollment,
     scan,
 ]

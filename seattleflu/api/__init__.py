@@ -34,4 +34,7 @@ def create_app():
     if app.debug:
         LOG.setLevel("DEBUG")
 
+    LOG.debug(f"app root is {app.root_path}")
+    LOG.debug(f"app static directory is {app.static_folder}")
+
     return app

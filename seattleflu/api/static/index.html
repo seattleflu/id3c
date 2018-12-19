@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta name="viewport" content="width=device-width" />
+    <title>api documentation</title>
+    <link rel="stylesheet" href="https://unpkg.com/tachyons@4.10.0/css/tachyons.min.css">
+  </head>
+  <body class="sans-serif dark-gray ma0 pa4 measure-wide">
+    <h1 class="mt0">API</h1>
+
+    <h2>Authentication</h2>
+
+    <p>All routes require
+    <a href="https://en.wikipedia.org/wiki/Basic_access_authentication">Basic
+    access authentication</a> over HTTPS unless otherwise noted.
+
+    <h2>Request and response bodies</h2>
+
+    <p>All routes which receive request bodies expect a Content-Type of
+    <code>application/json</code> unless otherwise noted.
+
+    <p>All request bodies must be encoded with UTF-8.  All response bodies are
+    encoded with UTF-8 unless explicitly declared otherwise by a Content-Type
+    header.
+
+    <h2>Status codes</h2>
+
+    <p>All routes use standard HTTP status codes.
+
+    <p>If the Content-Type of a <code>400 Bad Request</code> response is
+    <code>application/json</code>, then the body will be a JSON object with at
+    least the key <code>error</code>.  Additional keys may provide more
+    details.
+
+    <h2>Routes</h2>
+
+    <h3 class="code">POST /enrollment</h3>
+    <p>Stores the request data as an enrollment document in a staging area of
+    the study database.
+
+    <h3 class="code">POST /scan</h3>
+    <p>Stores the request data as a barcode scan set in a staging area of the
+    study database.
+
+    <p>The body of the request must be a JSON object like the following:
+
+<pre>{
+  "collection": "d15ea5e",
+  "sample": "baddcafe",
+  "aliquots": [
+    14805225,
+    72056684,
+    26768058
+  ]
+}</pre>
+
+    <p>The <code>collection</code> key may be <code>null</code>, and the
+    <code>aliquots</code> array may be empty, but both keys must be present.
+  </body>
+</html>
