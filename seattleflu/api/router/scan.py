@@ -3,7 +3,6 @@ Routes for barcode scans during sample processing.
 """
 import logging
 from flask import Blueprint, request
-from typing import Callable
 from .. import datastore
 from ..utils.routes import authentication_required, content_types_accepted, check_content_length
 
