@@ -11,3 +11,4 @@ roles/reporter [staging/schema] 2018-12-12T19:34:46Z Thomas Sibley <tsibley@fred
 roles/public [roles/public@v1] 2018-12-12T20:21:22Z Thomas Sibley <tsibley@fredhutch.org> # Remove public access to sqitch schema
 citext 2018-12-15T09:55:11Z Thomas Sibley <tsibley@fredhutch.org> # Install citext extension
 staging/scan [staging/schema citext] 2018-12-14T23:24:05Z Thomas Sibley <tsibley@fredhutch.org> # staging tables for barcode scans
+staging/enrollment/document-constraint [staging/enrollment] 2019-01-30T00:59:54Z Thomas Sibley <tsibley@fredhutch.org> # Constrain staging.enrollment.document to be a JSON object
