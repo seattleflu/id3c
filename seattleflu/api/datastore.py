@@ -102,7 +102,7 @@ def store_enrollment(session: Session, document: str) -> None:
                 "INSERT INTO staging.enrollment (document) VALUES (%s)",
                     (document,))
 
-        except DataError as error:
+        except (DataError, IntegrityError) as error:
             raise BadRequestDatabaseError(error) from None
 
 
