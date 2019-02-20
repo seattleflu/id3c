@@ -44,7 +44,7 @@ General principles to follow when developing the schema.
 * Consider what constraints make sense at both a column- and table-level.
   Would a `CHECK` constraint be useful to express domain logic?
 
-* Write a description for all schemas, tables, columns, etc.
+* Write a description (comment) for all schemas, tables, columns, etc.
 
 * Grant only the minimal privileges necessary to the read-only and read-write
   roles.  For example, if the read-write role isn't expected to `UPDATE`
