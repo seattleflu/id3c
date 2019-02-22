@@ -53,6 +53,31 @@ General principles to follow when developing the schema.
 * Consider expected data access patterns and create indexes to match.
 
 
+## Integration with other data systems
+
+Although we're building our own data system, we want to design and create it
+with interoperability in mind.  To this extent, our system should adopt or
+parallel practices and terminology from other systems when appropriate.
+For example:
+
+* Nouns (tables, columns, etc) in our system should consider adopting the
+  equivalent terms used by [FHIR R4](http://www.hl7.org/implement/standards/fhir/)
+  resources.
+  
+  This will aid with producing FHIR documents in the future and provides a
+  consistent terminology on which to discuss concepts more broadly than our
+  group.  FHIR is a large specification and there is a lot to digest; it's
+  easy to be daunted or confused by it, so please don't hesitate to ask
+  questions.
+
+* Value vocabulary (specimen types, organism names, diagnostic tests, etc)
+  should consider using and/or referencing the preferred terms from an
+  appropriate ontology like
+  [SNOMED CT](https://www.snomed.org/snomed-ct/why-snomed-ct),
+  [LOINC](https://loinc.org),
+  or [GenEpiO](https://genepio.org/).
+
+
 ## Deploying
 
 The database schema is deployed using [Sqitch](https://sqitch.org), a database
