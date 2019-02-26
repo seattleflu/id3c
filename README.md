@@ -1,16 +1,21 @@
 # Seattle Flu Study database
 
-[PostgreSQL 11](https://www.postgresql.org/about/news/1894/),
-on [AWS](https://aws.amazon.com/rds/postgresql/)
-or [Azure](https://azure.microsoft.com/en-us/services/postgresql/).
+[PostgreSQL 10](https://www.postgresql.org/about/news/1786/)
+on [AWS](https://aws.amazon.com/rds/postgresql/), soon to be
+[Azure](https://azure.microsoft.com/en-us/services/postgresql/).
+
+Eventually upgrading to [PostgreSQL 11](https://www.postgresql.org/about/news/1894/)
+when it becomes available on our cloud provider.
 
 Initially aims to provide:
 
-* Access via SQL and REST APIs ([PostgREST](http://postgrest.org)) initially
-  (Python 3.7 and ES2018 web app to come later)
+* Access via SQL and REST APIs
+  ([seattleflu/api](https://github.com/seattleflu/api)
+  and maybe [PostgREST](http://postgrest.org) later)
+  initially (Python 3.7 and ES2018 web app to come later)
 
-* Metadata for participants (age, sex, address, etc.) and samples (tissue,
-  date, location, etc.)
+* De-identified metadata for participants (age, sex, address token, etc.) and
+  samples (tissue, date, location, etc.)
 
 * Sample diagnostic results (positive/negative for influenza, RSV, and more)
 
@@ -26,8 +31,8 @@ Initially aims to provide:
 
 * Encrypted at rest and TLS-only connections
 
-* Administration via [pgAdmin4](https://www.pgadmin.org/) and standard
-  command-line tools
+* Administration via standard command-line tools (and maybe later
+  [pgAdmin4](https://www.pgadmin.org/))
 
 
 ## Guidelines
