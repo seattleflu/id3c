@@ -1,4 +1,4 @@
-# Seattle Flu Study database schemas
+# Seattle Flu Study database
 
 [PostgreSQL 11](https://www.postgresql.org/about/news/1894/),
 on [AWS](https://aws.amazon.com/rds/postgresql/)
