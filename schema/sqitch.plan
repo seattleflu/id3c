@@ -12,3 +12,8 @@ roles/public [roles/public@v1] 2018-12-12T20:21:22Z Thomas Sibley <tsibley@fredh
 citext 2018-12-15T09:55:11Z Thomas Sibley <tsibley@fredhutch.org> # Install citext extension
 receiving/scan [receiving/schema citext] 2018-12-14T23:24:05Z Thomas Sibley <tsibley@fredhutch.org> # receiving tables for barcode scans
 receiving/enrollment/document-constraint [receiving/enrollment] 2019-01-30T00:59:54Z Thomas Sibley <tsibley@fredhutch.org> # Constrain receiving.enrollment.document to be a JSON object
+warehouse/schema 2019-02-25T20:13:13Z Thomas Sibley <tsibley@fredhutch.org> # Schema for warehoused data
+warehouse/assigned-sex [warehouse/schema] 2019-02-25T20:33:46Z Thomas Sibley <tsibley@fredhutch.org> # Domain for assigned sex type
+warehouse/individual [warehouse/assigned-sex] 2019-02-25T20:16:20Z Thomas Sibley <tsibley@fredhutch.org> # Table representing individual persons/participants/subjects
+warehouse/site [warehouse/schema] 2019-02-25T21:51:26Z Thomas Sibley <tsibley@fredhutch.org> # Table representing places individuals are encountered
+warehouse/encounter [warehouse/individual warehouse/site] 2019-02-26T00:52:10Z Thomas Sibley <tsibley@fredhutch.org> # Table respresenting an encounter with an individual at a site
