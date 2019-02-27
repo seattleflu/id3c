@@ -99,7 +99,7 @@ def store_enrollment(session: Session, document: str) -> None:
     with session, session.cursor() as cursor:
         try:
             cursor.execute(
-                "INSERT INTO staging.enrollment (document) VALUES (%s)",
+                "INSERT INTO receiving.enrollment (document) VALUES (%s)",
                     (document,))
 
         except (DataError, IntegrityError) as error:
@@ -128,22 +128,22 @@ def store_scan(session: Session, scan: dict) -> None:
         try:
             if collection:
                 cursor.execute(
-                    "insert into staging.collection (collection_barcode) values (%s)",
+                    "insert into receiving.collection (collection_barcode) values (%s)",
                         (collection,))
 
             cursor.execute("""
                 with new_scan as (
-                    insert into staging.scan_set default values
+                    insert into receiving.scan_set default values
                         returning scan_set_id
                 )
-                insert into staging.sample (sample_barcode, collection_barcode, scan_set_id)
+                insert into receiving.sample (sample_barcode, collection_barcode, scan_set_id)
                     values (%s, %s, (select scan_set_id from new_scan))
                 """,
                 (sample, collection or None))
 
             for aliquot in aliquots:
                 cursor.execute(
-                    "insert into staging.aliquot (aliquot_barcode, sample_barcode) values (%s, %s)",
+                    "insert into receiving.aliquot (aliquot_barcode, sample_barcode) values (%s, %s)",
                         (aliquot, sample))
 
         except (DataError, IntegrityError) as error:
