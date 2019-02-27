@@ -3,12 +3,12 @@
 %uri=https://seattleflu.org
 
 roles/public 2018-12-05T22:19:45Z Thomas Sibley <tsibley@fredhutch.org> # Access for the standard pseudo-role "public"
-staging/schema 2018-12-05T22:54:03Z Thomas Sibley <tsibley@fredhutch.org> # Schema for staging data
-staging/enrollment [staging/schema] 2018-12-05T22:58:07Z Thomas Sibley <tsibley@fredhutch.org> # staging.enrollment table for enrollment documents
-roles/enroller [staging/enrollment] 2018-12-05T23:05:23Z Thomas Sibley <tsibley@fredhutch.org> # Access for clients which are enrolling study participants
-roles/reporter [staging/schema] 2018-12-12T19:34:46Z Thomas Sibley <tsibley@fredhutch.org> # Access for clients doing reporting
+receiving/schema 2018-12-05T22:54:03Z Thomas Sibley <tsibley@fredhutch.org> # Schema for receiving data
+receiving/enrollment [receiving/schema] 2018-12-05T22:58:07Z Thomas Sibley <tsibley@fredhutch.org> # receiving.enrollment table for enrollment documents
+roles/enroller [receiving/enrollment] 2018-12-05T23:05:23Z Thomas Sibley <tsibley@fredhutch.org> # Access for clients which are enrolling study participants
+roles/reporter [receiving/schema] 2018-12-12T19:34:46Z Thomas Sibley <tsibley@fredhutch.org> # Access for clients doing reporting
 @v1 2018-12-12T20:20:54Z Thomas Sibley <tsibley@fredhutch.org> # version 1
 roles/public [roles/public@v1] 2018-12-12T20:21:22Z Thomas Sibley <tsibley@fredhutch.org> # Remove public access to sqitch schema
 citext 2018-12-15T09:55:11Z Thomas Sibley <tsibley@fredhutch.org> # Install citext extension
-staging/scan [staging/schema citext] 2018-12-14T23:24:05Z Thomas Sibley <tsibley@fredhutch.org> # staging tables for barcode scans
-staging/enrollment/document-constraint [staging/enrollment] 2019-01-30T00:59:54Z Thomas Sibley <tsibley@fredhutch.org> # Constrain staging.enrollment.document to be a JSON object
+receiving/scan [receiving/schema citext] 2018-12-14T23:24:05Z Thomas Sibley <tsibley@fredhutch.org> # receiving tables for barcode scans
+receiving/enrollment/document-constraint [receiving/enrollment] 2019-01-30T00:59:54Z Thomas Sibley <tsibley@fredhutch.org> # Constrain receiving.enrollment.document to be a JSON object

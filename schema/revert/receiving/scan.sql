@@ -1,8 +1,8 @@
--- Revert seattleflu/schema:staging/scan from pg
+-- Revert seattleflu/schema:receiving/scan from pg
 
 begin;
 
-set search_path to staging;
+set search_path to receiving;
 
 drop table aliquot;
 drop table sample;
