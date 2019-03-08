@@ -3,6 +3,7 @@ Process enrollment documents into the relational warehouse
 """
 import click
 import logging
+from datetime import datetime, timezone
 from operator import itemgetter
 from typing import Any
 from seattleflu.db.session import DatabaseSession
@@ -13,6 +14,15 @@ from . import etl
 LOG = logging.getLogger(__name__)
 
 
+# This revision number is stored in the processing_log of each enrollment
+# record when the enrollment is successfully processed by this ETL routine.
+# The routine finds new-to-it records to process by looking for enrollments
+# lacking this revision number in their log.  If a change to the ETL routine
+# necessitates re-processing all enrollments, this revision number should be
+# incremented.
+REVISION = 1
+
+
 @etl.command("enrollments", help = __doc__)
 
 @click.option("--commit/--dry-run",
@@ -21,6 +31,8 @@ LOG = logging.getLogger(__name__)
     show_default = True)
 
 def etl_enrollments(*, commit: bool):
+    LOG.debug(f"Starting the enrollment ETL routine, revision {REVISION}")
+
     db = DatabaseSession()
 
     # Fetch and iterate over enrollments that aren't processed
@@ -38,10 +50,10 @@ def etl_enrollments(*, commit: bool):
     enrollments.execute("""
         select enrollment_id as id, document
           from receiving.enrollment
-         where processed is null
+         where not processing_log @> %s
          order by received
            for update
-        """)
+        """, (Json([{ "revision": REVISION }]),))
 
     processed_without_error = None
 
@@ -228,12 +240,20 @@ def encounter_details(document: dict) -> Any:
 def mark_processed(db, enrollment_id: int) -> None:
     LOG.debug(f"Marking enrollment {enrollment_id} as processed")
 
+    data = {
+        "enrollment_id": enrollment_id,
+        "log_entry": Json({
+            "revision": REVISION,
+            "timestamp": datetime.now(timezone.utc),
+        }),
+    }
+
     with db.cursor() as cursor:
         cursor.execute("""
             update receiving.enrollment
-               set processed = now()
-             where enrollment_id = %s
-            """, (enrollment_id,))
+               set processing_log = processing_log || %(log_entry)s
+             where enrollment_id = %(enrollment_id)s
+            """, data)
 
 
 def response(question_id: str, document: dict) -> Any:
