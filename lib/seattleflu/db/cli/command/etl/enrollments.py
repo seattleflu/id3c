@@ -227,8 +227,9 @@ def encounter_details(document: dict) -> Any:
     the data dictionary.
     """
     return {
+        "age": document.get("age"),                 # XXX TODO: Model this relationally soon
         "collections": document["sampleCodes"],     # XXX TODO: Model this relationally soon
-        "household": document["household"],         # XXX TODO: Model this relationally soon
+        "locations": document["locations"],         # XXX TODO: Model this relationally soon
         "language": document["localeLanguageCode"],
         "responses": {
             response["question"]["token"]: decode_answer(response)
