@@ -51,7 +51,7 @@ def etl_enrollments(*, commit: bool):
         select enrollment_id as id, document
           from receiving.enrollment
          where not processing_log @> %s
-         order by received
+         order by id
            for update
         """, (Json([{ "revision": REVISION }]),))
 
