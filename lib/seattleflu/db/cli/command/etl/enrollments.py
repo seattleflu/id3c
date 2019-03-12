@@ -261,6 +261,12 @@ def response(question_id: str, document: dict) -> Any:
     Response value for *question_id* in the enrollment *document*.
 
     Returns a string, number, tuple of strings, or None.
+
+    Raises a :class:`NoSuchQuestionError` if *question_id* is not found in the
+    responses contained by *document*.
+
+    Raises a :class:`TooManyResponsesError` if the *question_id* is not unique
+    among responses contained by *document*.
     """
     responses = [
         response
@@ -268,10 +274,10 @@ def response(question_id: str, document: dict) -> Any:
              if response["question"]["token"] == question_id ]
 
     if not responses:
-        raise ValueError(f"No question with id/token '{question_id}'")
+        raise NoSuchQuestionError(f"No question with id/token '{question_id}' in document {document['id']}")
 
     if len(responses) > 1:
-        raise ValueError(f"Question id/token '{question_id}' is not unique")
+        raise TooManyResponsesError(f"Question id/token '{question_id}' is not unique in responses of document {document['id']}")
 
     return decode_answer(responses[0])
 
@@ -301,3 +307,18 @@ def decode_answer(response_data: dict) -> Any:
 
     else:
         raise ValueError(f"Unknown response answer type {answer['type']}")
+
+
+class NoSuchQuestionError(ValueError):
+    """
+    Raised by :function:`response` if its provided *question_id* is not found
+    in the set of responses.
+    """
+    pass
+
+class TooManyResponsesError(ValueError):
+    """
+    Raised by :function:`response` if its provided *question_id* is not unique
+    among the set of responses.
+    """
+    pass
