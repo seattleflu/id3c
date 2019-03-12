@@ -39,6 +39,14 @@ Initially aims to provide:
 
 General principles to follow when developing the schema.
 
+* Do the ~simplest thing that meets our immediate needs.  Aim for ease of
+  modification in the future rather than trying to guess future needs in
+  advance.
+  
+  It can be really hard to stick to this principle, but it turns out that the
+  best way to make something flexible for future needs is to make it as simple
+  as possible now so it can be modified later.
+
 * Columns should be maximally typed and constrained, unless there exists a
   concrete use case for something less.
 
