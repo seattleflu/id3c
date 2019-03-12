@@ -79,7 +79,7 @@ def etl_enrollments(*, commit: bool):
                 # corrections.
                 individual = upsert_individual(db,
                     identifier  = enrollment.document["participant"],
-                    sex         = response("AssignedSex", enrollment.document))
+                    sex         = assigned_sex(enrollment.document))
 
                 encounter = upsert_encounter(db,
                     identifier      = enrollment.document["id"],
@@ -254,6 +254,21 @@ def mark_processed(db, enrollment_id: int) -> None:
                set processing_log = processing_log || %(log_entry)s
              where enrollment_id = %(enrollment_id)s
             """, data)
+
+
+def assigned_sex(document: dict) -> Any:
+    """
+    Response value of one of the two questions about assigned sex, or None if
+    neither question is present in the *document* responses.
+    """
+    try:
+        return response("AssignedSex", document)
+    except NoSuchQuestionError:
+        try:
+            return response("AssignedSexAirport", document)
+        except NoSuchQuestionError:
+            LOG.warning(f"No assigned sex response found in document {document['id']}")
+            return None
 
 
 def response(question_id: str, document: dict) -> Any:
