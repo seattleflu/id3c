@@ -35,6 +35,41 @@ Initially aims to provide:
   [pgAdmin4](https://www.pgadmin.org/))
 
 
+## Design
+
+The database is designed as a [distribution center][] which receives data from
+external providers, repackages and stores it in a data warehouse, and ships
+data back out of the warehouse via views, web APIs, and other means.  Each of
+these three conceptual areas are organized into their own PostgreSQL schemas
+within a single database.
+
+The "receiving" area contains tables to accept minimally- or uncontrolled data
+from external providers.  The general expectation is that most tables here are
+logs ([in the journaling sense][the log]) and will be processed later in-order.  For
+example, participant enrollment documents from our consent and questionnaire
+app partner, Audere, are stored here when received by [our API][].
+
+The "warehouse" area contains a hybrid relational + document model utilizing
+standard relational tables that each have a JSON column for additional details.
+Data enters the warehouse primarily through extract-transform-load (ETL)
+routines which process received data and copy it into suitable warehouse rows
+and documents.  These ETL routines are run via `bin/db etl` subcommands, where
+they're defined in Python (though lean heavily on Pg itself).
+
+The "shipping" area is yet to come, but will almost certainly contain several
+views of the warehouse designed with specific data consumers and purposes in
+mind.
+
+While the receiving and shipping areas are expected to be fairly fluid and
+reactive to new and changing external requirements, the warehouse area is
+expected to change at a somewhat slower pace informed by longer-term vision for
+it.
+
+[distribution center]: https://en.wikipedia.org/wiki/Distribution_center
+[the log]: https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying
+[our API]: https://github.com/seattleflu/api
+
+
 ## Guidelines
 
 General principles to follow when developing the schema.
