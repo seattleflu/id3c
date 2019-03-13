@@ -43,11 +43,12 @@ data back out of the warehouse via views, web APIs, and other means.  Each of
 these three conceptual areas are organized into their own PostgreSQL schemas
 within a single database.
 
-The "receiving" area contains tables to accept minimally- or uncontrolled data
+The "receiving" area contains tables to accept minimally- or un-controlled data
 from external providers.  The general expectation is that most tables here are
-logs ([in the journaling sense][the log]) and will be processed later in-order.  For
-example, participant enrollment documents from our consent and questionnaire
-app partner, Audere, are stored here when received by [our API][].
+logs ([in the journaling sense][the log]) and will be processed later in
+sequential order.  For example, participant enrollment documents from our
+consent and questionnaire app partner, Audere, are stored here when received by
+[our API][].
 
 The "warehouse" area contains a hybrid relational + document model utilizing
 standard relational tables that each have a JSON column for additional details.
