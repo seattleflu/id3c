@@ -132,19 +132,34 @@ The database schema is deployed using [Sqitch](https://sqitch.org), a database
 change management tool that really shines.  You can install it a large number
 of ways, so pick the one that makes most sense to you.
 
-You'll also need a PostgreSQL server and superuser credentials for it.  The
-following commands assume the database server is running locally and your local
-user account maps directly to a database superuser.
+## Development
 
-Create the database with a name of your choosing using the standard Pg tools.
-In this case, I've chosen `testing` as the name.
+For development, you'll need a PostgreSQL server and superuser credentials for
+it.  The following commands assume the database server is running locally and
+your local user account maps directly to a database superuser.
 
-    createdb --encoding=UTF-8 testing
+Create a database named `seattleflu` using the standard Pg tools.  (You can use
+another name if you want, maybe to have different dev instances, but you'll
+need to adjust the [sqitch target][] you deploy to.)
 
-Then use `sqitch` to deploy to it.
+    createdb --encoding=UTF-8 seattleflu
 
-    sqitch deploy db:pg:testing
+Then use `sqitch` to deploy to it.  (`dev` is a [sqitch target][] configured in
+_sqitch.conf_ which points to a local database named `seattleflu`.)
+
+    sqitch deploy dev
 
 Now you can connect to it for interactive use with:
 
-    psql testing
+    psql seattleflu
+
+## Testing and production
+
+Our [testing and production databases][databases doc] are configured as
+`testing` and `production` sqitch targets.  When running sqitch against these
+targets, you'll need to provide a username via `PGUSER` and a password via an
+entry in _~/.pgpass_.
+
+
+[sqitch target]: https://metacpan.org/pod/distribution/App-Sqitch/lib/sqitch-target.pod
+[databases doc]: https://github.com/seattleflu/documentation/blob/master/infrastructure.md#databases-postgresql
