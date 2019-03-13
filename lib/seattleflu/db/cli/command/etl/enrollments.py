@@ -229,7 +229,7 @@ def upsert_encounter(db: DatabaseSession,
     return encounter
 
 
-def encounter_details(document: dict) -> Any:
+def encounter_details(document: dict) -> dict:
     """
     Describe encounter details in a simple data structure designed to be used
     from SQL.
