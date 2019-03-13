@@ -35,9 +35,53 @@ Initially aims to provide:
   [pgAdmin4](https://www.pgadmin.org/))
 
 
+## Design
+
+The database is designed as a [distribution center][] which receives data from
+external providers, repackages and stores it in a data warehouse, and ships
+data back out of the warehouse via views, web APIs, and other means.  Each of
+these three conceptual areas are organized into their own PostgreSQL schemas
+within a single database.
+
+The "receiving" area contains tables to accept minimally- or un-controlled data
+from external providers.  The general expectation is that most tables here are
+logs ([in the journaling sense][the log]) and will be processed later in
+sequential order.  For example, participant enrollment documents from our
+consent and questionnaire app partner, Audere, are stored here when received by
+[our API][].
+
+The "warehouse" area contains a hybrid relational + document model utilizing
+standard relational tables that each have a JSON column for additional details.
+Data enters the warehouse primarily through extract-transform-load (ETL)
+routines which process received data and copy it into suitable warehouse rows
+and documents.  These ETL routines are run via `bin/db etl` subcommands, where
+they're defined in Python (though lean heavily on Pg itself).
+
+The "shipping" area is yet to come, but will almost certainly contain several
+views of the warehouse designed with specific data consumers and purposes in
+mind.
+
+While the receiving and shipping areas are expected to be fairly fluid and
+reactive to new and changing external requirements, the warehouse area is
+expected to change at a somewhat slower pace informed by longer-term vision for
+it.
+
+[distribution center]: https://en.wikipedia.org/wiki/Distribution_center
+[the log]: https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying
+[our API]: https://github.com/seattleflu/api
+
+
 ## Guidelines
 
 General principles to follow when developing the schema.
+
+* Do the ~simplest thing that meets our immediate needs.  Aim for ease of
+  modification in the future rather than trying to guess future needs in
+  advance.
+  
+  It can be really hard to stick to this principle, but it turns out that the
+  best way to make something flexible for future needs is to make it as simple
+  as possible now so it can be modified later.
 
 * Columns should be maximally typed and constrained, unless there exists a
   concrete use case for something less.
@@ -89,19 +133,34 @@ The database schema is deployed using [Sqitch](https://sqitch.org), a database
 change management tool that really shines.  You can install it a large number
 of ways, so pick the one that makes most sense to you.
 
-You'll also need a PostgreSQL server and superuser credentials for it.  The
-following commands assume the database server is running locally and your local
-user account maps directly to a database superuser.
+## Development
 
-Create the database with a name of your choosing using the standard Pg tools.
-In this case, I've chosen `testing` as the name.
+For development, you'll need a PostgreSQL server and superuser credentials for
+it.  The following commands assume the database server is running locally and
+your local user account maps directly to a database superuser.
 
-    createdb --encoding=UTF-8 testing
+Create a database named `seattleflu` using the standard Pg tools.  (You can use
+another name if you want, maybe to have different dev instances, but you'll
+need to adjust the [sqitch target][] you deploy to.)
 
-Then use `sqitch` to deploy to it.
+    createdb --encoding=UTF-8 seattleflu
 
-    sqitch deploy db:pg:testing
+Then use `sqitch` to deploy to it.  (`dev` is a [sqitch target][] configured in
+_sqitch.conf_ which points to a local database named `seattleflu`.)
+
+    sqitch deploy dev
 
 Now you can connect to it for interactive use with:
 
-    psql testing
+    psql seattleflu
+
+## Testing and production
+
+Our [testing and production databases][databases doc] are configured as
+`testing` and `production` sqitch targets.  When running sqitch against these
+targets, you'll need to provide a username via `PGUSER` and a password via an
+entry in _~/.pgpass_.
+
+
+[sqitch target]: https://metacpan.org/pod/distribution/App-Sqitch/lib/sqitch-target.pod
+[databases doc]: https://github.com/seattleflu/documentation/blob/master/infrastructure.md#databases-postgresql
