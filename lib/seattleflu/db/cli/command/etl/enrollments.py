@@ -21,7 +21,7 @@ LOG = logging.getLogger(__name__)
 # lacking this revision number in their log.  If a change to the ETL routine
 # necessitates re-processing all enrollments, this revision number should be
 # incremented.
-REVISION = 1
+REVISION = 2
 
 
 @etl.command("enrollments", help = __doc__)
@@ -318,11 +318,14 @@ def assigned_sex(document: dict) -> Any:
     Response value of one of the two questions about assigned sex, or None if
     neither question is present in the *document* responses.
     """
+    def first_or_none(items):
+        return items[0] if items else None
+
     try:
-        return response("AssignedSex", document)
+        return first_or_none(response("AssignedSex", document))
     except NoSuchQuestionError:
         try:
-            return response("AssignedSexAirport", document)
+            return first_or_none(response("AssignedSexAirport", document))
         except NoSuchQuestionError:
             LOG.warning(f"No assigned sex response found in document {document['id']}")
             return None
@@ -372,7 +375,9 @@ def decode_answer(response_data: dict) -> Any:
             option["token"]
                 for option in response_data["options"] ]
 
-        return itemgetter(*chosen_options)(option_tokens)
+        return tuple(
+            option_tokens[chosen]
+                for chosen in chosen_options)
 
     elif answer["type"] == "Declined":
         return None
