@@ -26,12 +26,20 @@ REVISION = 1
 
 @etl.command("enrollments", help = __doc__)
 
-@click.option("--commit/--dry-run",
-    help = "Save changes to the database or only go through the motions",
-    default = False,
-    show_default = True)
+@click.option("--dry-run", "action",
+    help        = "Only go through the motions of changing the database (default)",
+    flag_value  = "rollback",
+    default     = True)
 
-def etl_enrollments(*, commit: bool):
+@click.option("--prompt", "action",
+    help        = "Ask if changes to the database should be saved",
+    flag_value  = "prompt")
+
+@click.option("--commit", "action",
+    help        = "Save changes to the database",
+    flag_value  = "commit")
+
+def etl_enrollments(*, action: str):
     LOG.debug(f"Starting the enrollment ETL routine, revision {REVISION}")
 
     db = DatabaseSession()
@@ -99,6 +107,15 @@ def etl_enrollments(*, commit: bool):
         processed_without_error = True
 
     finally:
+        if action == "prompt":
+            ask_to_commit = \
+                "Commit all changes?" if processed_without_error else \
+                "Commit successfully processed enrollments up to this point?"
+
+            commit = click.confirm(ask_to_commit)
+        else:
+            commit = action == "commit"
+
         if commit:
             LOG.info(
                 "Committing all changes" if processed_without_error else \
