@@ -65,13 +65,9 @@ def etl_enrollments(*, commit: bool):
                 # Most of the time we expect to see existing sites so a
                 # select-first approach makes the most sense to avoid useless
                 # updates.
-                #
-                # XXX TODO: Include the type of site (hospital, workplace,
-                # home, etc) when that information is added to the enrollment
-                # documents in the future.
-                #   -trs, 4 March 2019
                 site = find_or_create_site(db,
-                    identifier = enrollment.document["site"])
+                    identifier = enrollment.document["site"]["name"],
+                    details    = site_details(enrollment.document["site"]))
 
                 # Most of the time we expect to see new individuals and new
                 # encounters, so an insert-first approach makes more sense.
@@ -113,7 +109,7 @@ def etl_enrollments(*, commit: bool):
             db.rollback()
 
 
-def find_or_create_site(db: DatabaseSession, identifier: str) -> Any:
+def find_or_create_site(db: DatabaseSession, identifier: str, details: dict) -> Any:
     """
     Select enrollment site by *identifier*, or insert it if it doesn't exist.
     """
@@ -130,15 +126,30 @@ def find_or_create_site(db: DatabaseSession, identifier: str) -> Any:
     else:
         LOG.debug(f"Site «{identifier}» not found, adding")
 
+        data = {
+            "identifier": identifier,
+            "details": Json(details),
+        }
+
         site = db.fetch_row("""
-            insert into warehouse.site (identifier)
-                values (%s)
+            insert into warehouse.site (identifier, details)
+                values (%(identifier)s, %(details)s)
             returning site_id as id, identifier
-            """, (identifier,))
+            """, data)
 
         LOG.info(f"Created site {site.id} «{site.identifier}»")
 
     return site
+
+
+def site_details(site: dict) -> dict:
+    """
+    Describe site details in a simple data structure designed to be used from
+    SQL.
+    """
+    return {
+        "type": site["type"],
+    }
 
 
 def upsert_individual(db: DatabaseSession, identifier: str, sex: str = None) -> Any:
