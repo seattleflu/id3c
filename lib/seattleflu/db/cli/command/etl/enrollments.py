@@ -4,6 +4,7 @@ Process enrollment documents into the relational warehouse
 import click
 import logging
 from datetime import datetime, timezone
+from itertools import groupby
 from operator import itemgetter
 from typing import Any
 from seattleflu.db.session import DatabaseSession
@@ -240,12 +241,39 @@ def encounter_details(document: dict) -> dict:
     return {
         "age": document.get("age"),                 # XXX TODO: Model this relationally soon
         "collections": document["sampleCodes"],     # XXX TODO: Model this relationally soon
-        "locations": document["locations"],         # XXX TODO: Model this relationally soon
+        "locations": encounter_locations(document), # XXX TODO: Model this relationally soon
         "language": document["localeLanguageCode"],
         "responses": {
             response["question"]["token"]: decode_answer(response)
                 for response in document["responses"]
         },
+    }
+
+
+def encounter_locations(document: dict) -> dict:
+    """
+    Return the encounter *document*'s locations array as a dictionary keyed by
+    lowercase location use (``home``, ``work``, ``temp``).
+
+    Raises an :class:`AssertionError` if there's more than one location for a
+    use type.
+    """
+    locations = document["locations"]
+
+    use_of = itemgetter("use")
+
+    duplicate_uses = [
+        use for use, locations
+             in groupby(sorted(locations, key = use_of), key = use_of)
+             if len(list(locations)) > 1
+    ]
+
+    assert not duplicate_uses, \
+        f"Document {document['id']} contains more than one location for uses: {duplicate_uses}"
+
+    return {
+        location["use"].lower(): location
+            for location in locations
     }
 
 
