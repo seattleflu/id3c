@@ -71,6 +71,14 @@ def etl_enrollments(*, action: str):
             with db.savepoint():
                 LOG.info(f"Processing enrollment {enrollment.id}")
 
+                # Out of an abundance of caution, fail when the schema version
+                # of the enrollment document changes.  This ensures manual
+                # intervention happens on document structure changes.  After
+                # seeing how versions are handled over time, this restriction
+                # may be toned down a bit.
+                assert enrollment.document["schemaVersion"] == "1.0.0", \
+                    f"Document schema version {enrollment.document['schemaVersion']} is not 1.0.0"
+
                 # Most of the time we expect to see existing sites so a
                 # select-first approach makes the most sense to avoid useless
                 # updates.
