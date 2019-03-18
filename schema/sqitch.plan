@@ -18,3 +18,4 @@ warehouse/individual [warehouse/assigned-sex] 2019-02-25T20:16:20Z Thomas Sibley
 warehouse/site [warehouse/schema] 2019-02-25T21:51:26Z Thomas Sibley <tsibley@fredhutch.org> # Table representing places individuals are encountered
 warehouse/encounter [warehouse/individual warehouse/site] 2019-02-26T00:52:10Z Thomas Sibley <tsibley@fredhutch.org> # Table respresenting an encounter with an individual at a site
 receiving/enrollment/processing-log [receiving/enrollment] 2019-03-08T19:16:59Z Thomas Sibley <tsibley@fredhutch.org> # Change from a single "processed" timestamp to a JSON "processing_log"
+roles/enrollment-processor [receiving/enrollment/processing-log warehouse/schema] 2019-03-15T22:10:40Z Thomas Sibley <tsibley@fredhutch.org> # Role for ETL of enrollments
