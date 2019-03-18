@@ -19,3 +19,6 @@ warehouse/site [warehouse/schema] 2019-02-25T21:51:26Z Thomas Sibley <tsibley@fr
 warehouse/encounter [warehouse/individual warehouse/site] 2019-02-26T00:52:10Z Thomas Sibley <tsibley@fredhutch.org> # Table respresenting an encounter with an individual at a site
 receiving/enrollment/processing-log [receiving/enrollment] 2019-03-08T19:16:59Z Thomas Sibley <tsibley@fredhutch.org> # Change from a single "processed" timestamp to a JSON "processing_log"
 roles/enrollment-processor [receiving/enrollment/processing-log warehouse/schema] 2019-03-15T22:10:40Z Thomas Sibley <tsibley@fredhutch.org> # Role for ETL of enrollments
+roles/enrollment-processor/comment [roles/enrollment-processor] 2019-03-18T17:02:46Z Thomas Sibley <tsibley@fredhutch.org> # Describe the enrollment_processor role
+roles/reporter/comment [roles/reporter] 2019-03-18T17:13:34Z Thomas Sibley <tsibley@fredhutch.org> # Describe the reporter role
+roles/enroller/comment [roles/enroller] 2019-03-18T17:15:06Z Thomas Sibley <tsibley@fredhutch.org> # Describe the enroller role
