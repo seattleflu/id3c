@@ -174,7 +174,7 @@ def site_details(site: dict) -> dict:
     SQL.
     """
     return {
-        "type": site["type"],
+        "type": site.get("type"),
     }
 
 
