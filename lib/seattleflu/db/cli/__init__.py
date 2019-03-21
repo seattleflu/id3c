@@ -3,35 +3,41 @@ CLI setup
 """
 import logging
 import os
+from logging import StreamHandler
 
 
-# Setup logging for the whole CLI
-log_handler = logging.StreamHandler()
-
+# Setup root logger for this process.
+#
+# Filtering of messages by level is done at the handler level by using NOTSET
+# on the root logger to emit everything.  This lets us keep console output
+# readable while emitting verbose output to alternate handlers.
 root_logger = logging.getLogger()
-root_logger.addHandler(log_handler)
-
-LOG = logging.getLogger(__name__)
+root_logger.setLevel(logging.NOTSET)
 
 
-# Set logging level from environment if requested
-LOG_LEVEL = os.environ.get("LOG_LEVEL", "info")
+# Configure console logging, setting level to INFO or from the environment
+# variable LOG_LEVEL.
+console = StreamHandler()
+console.setLevel(logging.INFO)
+
+LOG_LEVEL = os.environ.get("LOG_LEVEL")
 
 if LOG_LEVEL:
-    root_logger.setLevel(LOG_LEVEL.upper())
-
+    console.setLevel(LOG_LEVEL.upper())
 
 # Default to timestamped messages, but include lots of useful debugging/tracing
 # info for lower priority levels than warning.
-if LOG.getEffectiveLevel() >= logging.INFO:
-    log_format = "[{asctime}] {message}"
+if console.level >= logging.INFO:
+    console_format = "[{asctime}] {message}"
 else:
-    log_format = "[{asctime}] [pid {process}] {name} {levelname}: {message}"
+    console_format = "[{asctime}] [pid {process}] {name} {levelname}: {message}"
 
-log_handler.setFormatter(
+console.setFormatter(
     logging.Formatter(
-        fmt     = log_format,
+        fmt     = console_format,
         datefmt = "%Y-%m-%d %H:%M:%S",
         style   = "{",
     )
 )
+
+root_logger.addHandler(console)
