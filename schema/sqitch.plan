@@ -26,3 +26,4 @@ shipping/schema 2019-04-01T22:35:46Z Thomas Sibley <tsibley@fredhutch.org> # Shi
 roles/incidence-modeler [shipping/schema] 2019-04-02T18:09:33Z Thomas Sibley <tsibley@fredhutch.org> # Role for the incidence modeling team/software to use
 functions/array_distinct 2019-04-01T23:27:58Z Thomas Sibley <tsibley@fredhutch.org> # A function to remove duplicate array elements while preserving order
 shipping/views [shipping/schema roles/incidence-modeler functions/array_distinct] 2019-04-01T22:40:57Z Thomas Sibley <tsibley@fredhutch.org> # Data views for external consumers
+roles/enrollment-processor/rename [roles/enrollment-processor] 2019-03-29T18:00:50Z Thomas Sibley <tsibley@fredhutch.org> # Rename enrollment_processor role to match sqitch change name
