@@ -22,3 +22,7 @@ roles/enrollment-processor [receiving/enrollment/processing-log warehouse/schema
 roles/enrollment-processor/comment [roles/enrollment-processor] 2019-03-18T17:02:46Z Thomas Sibley <tsibley@fredhutch.org> # Describe the enrollment_processor role
 roles/reporter/comment [roles/reporter] 2019-03-18T17:13:34Z Thomas Sibley <tsibley@fredhutch.org> # Describe the reporter role
 roles/enroller/comment [roles/enroller] 2019-03-18T17:15:06Z Thomas Sibley <tsibley@fredhutch.org> # Describe the enroller role
+shipping/schema 2019-04-01T22:35:46Z Thomas Sibley <tsibley@fredhutch.org> # Shipping schema
+roles/incidence-modeler [shipping/schema] 2019-04-02T18:09:33Z Thomas Sibley <tsibley@fredhutch.org> # Role for the incidence modeling team/software to use
+functions/array_distinct 2019-04-01T23:27:58Z Thomas Sibley <tsibley@fredhutch.org> # A function to remove duplicate array elements while preserving order
+shipping/views [shipping/schema roles/incidence-modeler functions/array_distinct] 2019-04-01T22:40:57Z Thomas Sibley <tsibley@fredhutch.org> # Data views for external consumers

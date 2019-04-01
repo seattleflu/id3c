@@ -57,9 +57,8 @@ routines which process received data and copy it into suitable warehouse rows
 and documents.  These ETL routines are run via `bin/db etl` subcommands, where
 they're defined in Python (though lean heavily on Pg itself).
 
-The "shipping" area is yet to come, but will almost certainly contain several
-views of the warehouse designed with specific data consumers and purposes in
-mind.
+The "shipping" area contains views of the warehouse designed with specific data
+consumers and purposes in mind, such as the incidence modeling team.
 
 While the receiving and shipping areas are expected to be fairly fluid and
 reactive to new and changing external requirements, the warehouse area is
