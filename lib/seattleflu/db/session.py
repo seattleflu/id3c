@@ -16,7 +16,6 @@ with warnings.catch_warnings():
     import psycopg2.extensions
 
 from contextlib import contextmanager
-from collections import namedtuple
 from psycopg2 import DatabaseError
 from psycopg2.extras import NamedTupleCursor
 from psycopg2.sql import SQL, Identifier
