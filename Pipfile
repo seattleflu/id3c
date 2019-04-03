@@ -8,6 +8,7 @@ verify_ssl = true
 [packages]
 click = ">=7.0"
 colorama = "*"
+flask = "*"
 psycopg2 = ">=2.7.7"
 
 [requires]
