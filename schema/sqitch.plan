@@ -1,0 +1,29 @@
+%syntax-version=1.0.0
+%project=seattleflu/schema
+%uri=https://seattleflu.org
+
+roles/public 2018-12-05T22:19:45Z Thomas Sibley <tsibley@fredhutch.org> # Access for the standard pseudo-role "public"
+receiving/schema 2018-12-05T22:54:03Z Thomas Sibley <tsibley@fredhutch.org> # Schema for receiving data
+receiving/enrollment [receiving/schema] 2018-12-05T22:58:07Z Thomas Sibley <tsibley@fredhutch.org> # receiving.enrollment table for enrollment documents
+roles/enroller [receiving/enrollment] 2018-12-05T23:05:23Z Thomas Sibley <tsibley@fredhutch.org> # Access for clients which are enrolling study participants
+roles/reporter [receiving/schema] 2018-12-12T19:34:46Z Thomas Sibley <tsibley@fredhutch.org> # Access for clients doing reporting
+@v1 2018-12-12T20:20:54Z Thomas Sibley <tsibley@fredhutch.org> # version 1
+roles/public [roles/public@v1] 2018-12-12T20:21:22Z Thomas Sibley <tsibley@fredhutch.org> # Remove public access to sqitch schema
+citext 2018-12-15T09:55:11Z Thomas Sibley <tsibley@fredhutch.org> # Install citext extension
+receiving/scan [receiving/schema citext] 2018-12-14T23:24:05Z Thomas Sibley <tsibley@fredhutch.org> # receiving tables for barcode scans
+receiving/enrollment/document-constraint [receiving/enrollment] 2019-01-30T00:59:54Z Thomas Sibley <tsibley@fredhutch.org> # Constrain receiving.enrollment.document to be a JSON object
+warehouse/schema 2019-02-25T20:13:13Z Thomas Sibley <tsibley@fredhutch.org> # Schema for warehoused data
+warehouse/assigned-sex [warehouse/schema] 2019-02-25T20:33:46Z Thomas Sibley <tsibley@fredhutch.org> # Domain for assigned sex type
+warehouse/individual [warehouse/assigned-sex] 2019-02-25T20:16:20Z Thomas Sibley <tsibley@fredhutch.org> # Table representing individual persons/participants/subjects
+warehouse/site [warehouse/schema] 2019-02-25T21:51:26Z Thomas Sibley <tsibley@fredhutch.org> # Table representing places individuals are encountered
+warehouse/encounter [warehouse/individual warehouse/site] 2019-02-26T00:52:10Z Thomas Sibley <tsibley@fredhutch.org> # Table respresenting an encounter with an individual at a site
+receiving/enrollment/processing-log [receiving/enrollment] 2019-03-08T19:16:59Z Thomas Sibley <tsibley@fredhutch.org> # Change from a single "processed" timestamp to a JSON "processing_log"
+roles/enrollment-processor [receiving/enrollment/processing-log warehouse/schema] 2019-03-15T22:10:40Z Thomas Sibley <tsibley@fredhutch.org> # Role for ETL of enrollments
+roles/enrollment-processor/comment [roles/enrollment-processor] 2019-03-18T17:02:46Z Thomas Sibley <tsibley@fredhutch.org> # Describe the enrollment_processor role
+roles/reporter/comment [roles/reporter] 2019-03-18T17:13:34Z Thomas Sibley <tsibley@fredhutch.org> # Describe the reporter role
+roles/enroller/comment [roles/enroller] 2019-03-18T17:15:06Z Thomas Sibley <tsibley@fredhutch.org> # Describe the enroller role
+shipping/schema 2019-04-01T22:35:46Z Thomas Sibley <tsibley@fredhutch.org> # Shipping schema
+roles/incidence-modeler [shipping/schema] 2019-04-02T18:09:33Z Thomas Sibley <tsibley@fredhutch.org> # Role for the incidence modeling team/software to use
+functions/array_distinct 2019-04-01T23:27:58Z Thomas Sibley <tsibley@fredhutch.org> # A function to remove duplicate array elements while preserving order
+shipping/views [shipping/schema roles/incidence-modeler functions/array_distinct] 2019-04-01T22:40:57Z Thomas Sibley <tsibley@fredhutch.org> # Data views for external consumers
+roles/enrollment-processor/rename [roles/enrollment-processor] 2019-03-29T18:00:50Z Thomas Sibley <tsibley@fredhutch.org> # Rename enrollment_processor role to match sqitch change name

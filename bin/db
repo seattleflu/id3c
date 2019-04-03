@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+from sys import argv, path, exit
+from pathlib import Path
+
+# Add our containing repo's lib directory to the Python module search path so
+# that we can load seattleflu.db.
+libpath = Path(__file__).parent.parent / "lib"
+assert libpath.is_dir()
+
+path.insert(0, str(libpath))
+
+from seattleflu.db.cli.__main__ import cli
+exit(cli(argv[1:]))
