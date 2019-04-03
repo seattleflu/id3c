@@ -15,6 +15,7 @@ with warnings.catch_warnings():
 
 from functools import wraps
 from psycopg2 import DataError, DatabaseError, IntegrityError, ProgrammingError
+from psycopg2.errorcodes import INSUFFICIENT_PRIVILEGE
 from typing import Any
 from werkzeug.exceptions import Forbidden
 from ..db.session import DatabaseSession
@@ -27,8 +28,8 @@ LOG = logging.getLogger(__name__)
 
 def catch_permission_denied(function):
     """
-    Decorator to catch :class:`psycopg2.ProgrammingError` exceptions starting
-    with ``permission denied`` and rethrow them as
+    Decorator to catch :class:`psycopg2.ProgrammingError` exceptions with the
+    ``INSUFFICIENT_PRIVILEGE`` error code and rethrow them as
     :class:`~werkzeug.exceptions.Forbidden` exceptions instead.
     """
     @wraps(function)
@@ -36,8 +37,11 @@ def catch_permission_denied(function):
         try:
             return function(*args, **kwargs)
 
+        # XXX TODO: In psycopg2 version 2.8 (still unreleased), this can be
+        # simplified to catch psycopg2.errors.InsufficientPrivilege only, see
+        # <http://initd.org/psycopg/docs/errors.html>.
         except ProgrammingError as error:
-            if error.diag.message_primary.startswith("permission denied"):
+            if error.pgcode == INSUFFICIENT_PRIVILEGE:
                 LOG.error("Forbidden: %s", error)
                 raise Forbidden()
             else:
