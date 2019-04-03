@@ -17,15 +17,12 @@ from functools import wraps
 from psycopg2 import DataError, DatabaseError, IntegrityError, ProgrammingError
 from typing import Any
 from werkzeug.exceptions import Forbidden
+from ..db.session import DatabaseSession
 from .exceptions import AuthenticationRequired, BadRequest
 from .utils import export
 
 
 LOG = logging.getLogger(__name__)
-
-# Really psycopg2.extensions.connection, but avoiding annotating that so it
-# isn't relied upon.
-Session = Any
 
 
 def catch_permission_denied(function):
@@ -50,54 +47,25 @@ def catch_permission_denied(function):
 
 
 @export
-def login(username: str, password: str) -> Session:
+def login(username: str, password: str) -> DatabaseSession:
     """
     Creates a new database session authenticated as the given user.
 
     Returns an opaque session object which other functions in this module
     require.
     """
-    # Connection details like host and database are controlled entirely by
-    # standard libpq environment variables:
-    #
-    #    https://www.postgresql.org/docs/current/libpq-envars.html
-    #
-    LOG.debug(f"Authenticating to PostgreSQL database as '{username}'")
+    LOG.debug(f"Logging into PostgreSQL database as '{username}'")
 
     try:
-        session = psycopg2.connect(user = username, password = password)
+        return DatabaseSession(username = username, password = password)
+
     except DatabaseError as error:
-        LOG.error(f"Authentication failed: {error}")
         raise AuthenticationRequired() from None
-
-    LOG.debug(f"Session created for {session_info(session)}")
-
-    return session
-
-
-def session_info(session) -> str:
-    """
-    Takes a *session* object and returns a concise string describing it.
-    """
-    info = [
-        "user",
-        "dbname",
-        "host",
-        "port",
-        "sslmode",
-    ]
-
-    params = session.get_dsn_parameters()
-
-    return " ".join(
-        f"{param}={params.get(param)}"
-            for param in info
-             if params.get(param))
 
 
 @export
 @catch_permission_denied
-def store_enrollment(session: Session, document: str) -> None:
+def store_enrollment(session: DatabaseSession, document: str) -> None:
     """
     Store the given enrollment JSON *document* (a **string**) in the backing
     database using *session*.
@@ -118,7 +86,7 @@ def store_enrollment(session: Session, document: str) -> None:
 
 @export
 @catch_permission_denied
-def store_scan(session: Session, scan: dict) -> None:
+def store_scan(session: DatabaseSession, scan: dict) -> None:
     """
     Store the given *scan* (a **dictionary**) in the backing database using
     *session*.

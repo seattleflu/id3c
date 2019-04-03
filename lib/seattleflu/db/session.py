@@ -29,28 +29,54 @@ LOG = logging.getLogger(__name__)
 class DatabaseSession:
     connection: psycopg2.extensions.connection
 
-    def __init__(self) -> None:
+    def __init__(self, *, username: str = None, password: str = None) -> None:
         """
         Connects to the database.
+
+        Connection details like host and database are controlled entirely by
+        `standard libpq environment variables`__.
+
+        __ https://www.postgresql.org/docs/current/libpq-envars.html
+
+        Credentials are provided by either
+
+        a. the environment, using PGUSER or a PGSERVICE definition and
+           PGPASSWORD or a PGPASSFILE, or
+
+        b. the optional keyword parameters *username* and *password*.
+
+        Keyword parameters override credentials from the environment.
         """
-        # Connection details like host and database are controlled entirely by
-        # standard libpq environment variables:
-        #
-        #    https://www.postgresql.org/docs/current/libpq-envars.html
-        #
         LOG.debug(f"Authenticating to PostgreSQL database using {pg_environment()}")
+
+        connect_params = {
+            "cursor_factory": NamedTupleCursor,
+
+            **({"user": username}     if username is not None else {}),
+            **({"password": password} if password is not None else {}),
+        }
 
         try:
             # connect() requires a DSN as the first arg even if the connection
             # details are fully-specified by the environment, but we don't need to
             # fill it with anything.
-            self.connection = psycopg2.connect("", cursor_factory = NamedTupleCursor)
+            self.connection = psycopg2.connect("", **connect_params)
         except DatabaseError as error:
             LOG.error(f"Authentication failed: {error}")
             raise error from None
 
         LOG.info(f"Connected to {self.session_info()}")
 
+
+    @property
+    def __enter__(self):
+        """Proxy for the underlying connection's ``__enter__`` method."""
+        return self.connection.__enter__
+
+    @property
+    def __exit__(self):
+        """Proxy for the underlying connection's ``__exit__`` method."""
+        return self.connection.__exit__
 
     @property
     def cursor(self) -> NamedTupleCursor:
