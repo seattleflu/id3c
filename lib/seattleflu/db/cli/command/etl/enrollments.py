@@ -68,7 +68,7 @@ def etl_enrollments(*, action: str):
 
     try:
         for enrollment in enrollments:
-            with db.savepoint():
+            with db.savepoint(f"enrollment {enrollment.id}"):
                 LOG.info(f"Processing enrollment {enrollment.id}")
 
                 # Out of an abundance of caution, fail when the schema version
