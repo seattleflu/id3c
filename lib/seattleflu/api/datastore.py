@@ -2,7 +2,17 @@
 Datastore abstraction for our database.
 """
 import logging
-import psycopg2
+import warnings
+
+# Ignore noisy warning
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore",
+        message = "The psycopg2 wheel package will be renamed from release 2\.8",
+        module  = "psycopg2")
+
+    import psycopg2
+
 from functools import wraps
 from psycopg2 import DataError, DatabaseError, IntegrityError, ProgrammingError
 from typing import Any
