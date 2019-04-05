@@ -16,7 +16,6 @@ when it becomes available on our cloud provider.
 Initially aims to provide:
 
 * Access via SQL and REST APIs
-  ([seattleflu/api](https://github.com/seattleflu/api)
   and maybe [PostgREST](http://postgrest.org) later)
   initially (Python 3.7 and ES2018 web app to come later)
 
@@ -54,7 +53,7 @@ from external providers.  The general expectation is that most tables here are
 logs ([in the journaling sense][the log]) and will be processed later in
 sequential order.  For example, participant enrollment documents from our
 consent and questionnaire app partner, Audere, are stored here when received by
-[our API][].
+our web API.
 
 The "warehouse" area contains a hybrid relational + document model utilizing
 standard relational tables that each have a JSON column for additional details.
@@ -73,7 +72,6 @@ it.
 
 [distribution center]: https://en.wikipedia.org/wiki/Distribution_center
 [the log]: https://engineering.linkedin.com/distributed-systems/log-what-every-software-engineer-should-know-about-real-time-datas-unifying
-[our API]: https://github.com/seattleflu/api
 
 
 ### Guidelines
