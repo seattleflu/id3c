@@ -11,6 +11,7 @@ click = ">=7.0"
 colorama = "*"
 flask = "*"
 psycopg2 = ">=2.8,<3"
+requests = "*"
 
 [requires]
 python_version = "3.6"
