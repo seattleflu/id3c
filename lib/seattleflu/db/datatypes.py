@@ -2,17 +2,8 @@
 Data type routines for going between Python and Postgres and back.
 """
 import json
-import warnings
+import psycopg2.extras
 from datetime import datetime
-
-# Ignore noisy warning
-with warnings.catch_warnings():
-    warnings.filterwarnings(
-        "ignore",
-        message = "The psycopg2 wheel package will be renamed from release 2\.8",
-        module  = "psycopg2")
-
-    import psycopg2.extras
 
 
 class Json(psycopg2.extras.Json):

@@ -2,20 +2,10 @@
 Datastore abstraction for our database.
 """
 import logging
-import warnings
-
-# Ignore noisy warning
-with warnings.catch_warnings():
-    warnings.filterwarnings(
-        "ignore",
-        message = "The psycopg2 wheel package will be renamed from release 2\.8",
-        module  = "psycopg2")
-
-    import psycopg2
-
+import psycopg2
 from functools import wraps
 from psycopg2 import DataError, DatabaseError, IntegrityError, ProgrammingError
-from psycopg2.errorcodes import INSUFFICIENT_PRIVILEGE
+from psycopg2.errors import InsufficientPrivilege
 from typing import Any
 from werkzeug.exceptions import Forbidden
 from ..db.session import DatabaseSession
@@ -37,15 +27,9 @@ def catch_permission_denied(function):
         try:
             return function(*args, **kwargs)
 
-        # XXX TODO: In psycopg2 version 2.8 (still unreleased), this can be
-        # simplified to catch psycopg2.errors.InsufficientPrivilege only, see
-        # <http://initd.org/psycopg/docs/errors.html>.
-        except ProgrammingError as error:
-            if error.pgcode == INSUFFICIENT_PRIVILEGE:
-                LOG.error("Forbidden: %s", error)
-                raise Forbidden()
-            else:
-                raise error from None
+        except InsufficientPrivilege as error:
+            LOG.error("Forbidden: %s", error)
+            raise Forbidden()
 
     return decorated
 

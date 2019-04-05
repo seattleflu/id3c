@@ -3,18 +3,8 @@ Database session creation and management.
 """
 import logging
 import os
-import warnings
-
-# Ignore noisy warning
-with warnings.catch_warnings():
-    warnings.filterwarnings(
-        "ignore",
-        message = "The psycopg2 wheel package will be renamed from release 2\.8",
-        module  = "psycopg2")
-
-    import psycopg2
-    import psycopg2.extensions
-
+import psycopg2
+import psycopg2.extensions
 from contextlib import contextmanager
 from psycopg2 import DatabaseError
 from psycopg2.extras import NamedTupleCursor
