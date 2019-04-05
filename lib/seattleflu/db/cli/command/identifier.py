@@ -4,6 +4,7 @@ Manage identifiers and barcodes.
 import click
 import logging
 import seattleflu.db as db
+from seattleflu import labelmaker
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.cli.__main__ import cli
 
@@ -21,9 +22,19 @@ def identifier():
 @click.argument("set_name", metavar = "<set name>")
 @click.argument("count", metavar = "<count>", type = int)
 
-def mint(set_name, count):
+@click.option("--labels",
+    help = "Generate barcode labels for the new identifiers and save them to the given file",
+    metavar = "<file.pdf>",
+    type = click.File("wb"))
+
+@click.option("--quiet", "-q",
+    help = "Suppress printing of new identifiers to stdout",
+    is_flag = True,
+    flag_value = True)
+
+def mint(set_name, count, *, labels, quiet):
     """
-    Mint new identifiers.
+    Mint new identifiers and make barcode labels.
 
     <set name> is an existing identifier set, e.g. as output by the `id3c
     identifier set ls` command.
@@ -33,8 +44,14 @@ def mint(set_name, count):
     session = DatabaseSession()
     minted = db.mint_identifiers(session, set_name, count)
 
-    for identifier in minted:
-        print(identifier.barcode, identifier.uuid, sep = "\t")
+    if not quiet:
+        for identifier in minted:
+            print(identifier.barcode, identifier.uuid, sep = "\t")
+
+    if labels:
+        layout = labelmaker.layout_identifiers(set_name, minted)
+        pdf = labelmaker.generate_pdf(layout)
+        labels.write(pdf)
 
 
 # Set subcommands
