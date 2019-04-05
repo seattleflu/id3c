@@ -59,7 +59,7 @@ The "warehouse" area contains a hybrid relational + document model utilizing
 standard relational tables that each have a JSON column for additional details.
 Data enters the warehouse primarily through extract-transform-load (ETL)
 routines which process received data and copy it into suitable warehouse rows
-and documents.  These ETL routines are run via `bin/db etl` subcommands, where
+and documents.  These ETL routines are run via `bin/id3c etl` subcommands, where
 they're defined in Python (though lean heavily on Pg itself).
 
 The "shipping" area contains views of the warehouse designed with specific data
