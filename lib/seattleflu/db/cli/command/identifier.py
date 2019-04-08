@@ -1,5 +1,24 @@
 """
 Manage identifiers and barcodes.
+
+ID3C can be a central identifier authority for studies through creation of
+pre-generated, error-resistant, human- and computer-friendly barcodes for
+tracking physical items, such as samples or kits.
+
+Identifiers are version 4 UUIDs which are shortened to 8-character barcodes
+while preserving a minimum substitution distance between all barcodes.  This
+method of barcode generation is described in the literature as CualID.¹
+
+Identifiers belong to named sets which serve to group identifiers by the kind
+of thing the identifier will label.  Sets also determine how batches of new
+barcodes are printed on physical labels (the label SKU and layout).
+
+\b
+¹ cual-id: Globally Unique, Correctable, and Human-Friendly Sample Identifiers
+  for Comparative Omics Studies. John H. Chase, Evan Bolyen, Jai Ram Rideout,
+  J. Gregory Caporaso mSystems Dec 2015, 1 (1) e00010-15;
+  DOI: 10.1128/mSystems.00010-15
+  <https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5069752/>
 """
 import click
 import logging
@@ -40,6 +59,13 @@ def mint(set_name, count, *, labels, quiet):
     identifier set ls` command.
 
     <count> is the number of new identifiers to mint.
+
+    If --labels are requested, a PDF of printable barcode labels is generated
+    using the Lab Labels¹ instance <https://backoffice.seattleflu.org/labels/>.
+    An alternative instance may be used by setting the LABEL_API environment
+    variable to the instance URL.
+
+    ¹ https://github.com/MullinsLab/Lab-Labels
     """
     session = DatabaseSession()
     minted = db.mint_identifiers(session, set_name, count)
