@@ -4,6 +4,7 @@ Seattle Flu Study database libraries
 import logging
 from psycopg2 import IntegrityError
 from psycopg2.errors import ExclusionViolation
+from statistics import median, mode
 from typing import Any
 from .session import DatabaseSession
 
@@ -96,6 +97,11 @@ def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
                 else:
                     LOG.debug("Retrying")
 
-    LOG.info(f"Minted {n} identifiers in {n + sum(failures.values())} tries")
+    failure_counts = list(failures.values())
+
+    LOG.info(f"Minted {n} identifiers in {n + sum(failure_counts)} tries ({sum(failure_counts)} retries)")
+
+    if failure_counts:
+        LOG.info(f"Failure distribution: max={max(failure_counts)} mode={mode(failure_counts)} median={median(failure_counts)}")
 
     return minted
