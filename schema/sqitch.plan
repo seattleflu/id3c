@@ -32,3 +32,4 @@ functions/hamming_distance 2019-03-27T22:11:50Z Thomas Sibley <tsibley@fredhutch
 warehouse/identifier [warehouse/schema uuid-ossp] 2019-03-29T18:17:42Z Thomas Sibley <tsibley@fredhutch.org> # Identifier and barcode management in the warehouse
 warehouse/identifier/triggers/barcode-default-from-uuid [warehouse/identifier] 2019-03-29T22:42:40Z Thomas Sibley <tsibley@fredhutch.org> # Default warehouse.identifier.barcode from uuid
 warehouse/identifier/triggers/barcode-distance-check [warehouse/identifier functions/hamming_distance] 2019-03-29T22:55:18Z Thomas Sibley <tsibley@fredhutch.org> # Exclude new identifiers with barcodes too close to existing barcodes
+receiving/presence-absence [receiving/schema] 2019-04-08T22:27:17Z Thomas Sibley <tsibley@fredhutch.org> # Receiving table for presence/absence calls
