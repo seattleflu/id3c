@@ -57,9 +57,8 @@ def receive_scan():
     """
     Receive a new set of scanned barcodes.
 
-    POST /scan with a standard form body or JSON body containing the keys
-    ``collection`` (optional, scalar), ``sample`` (required, scalar), and
-    ``aliquots`` (required, list).
+    POST /scan with a JSON body containing the keys ``collection`` (optional,
+    scalar), ``sample`` (required, scalar), and ``aliquots`` (required, list).
     """
     session = datastore.login(
         username = request.authorization.username,
