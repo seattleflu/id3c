@@ -54,7 +54,7 @@ def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
     # This is a guess at a threshold that indicates an "unreasonable" level of
     # effort to mint identifiers, but I don't know the chance of hitting it
     # stochastically.
-    max_consecutive_failures = 3
+    max_consecutive_failures = 10
 
     with session:
         # Lookup identifier set by name
