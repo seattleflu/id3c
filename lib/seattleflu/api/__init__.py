@@ -4,7 +4,7 @@ Seattle Flu Study informatics API
 import logging
 from flask import Flask
 from . import config
-from .router import blueprints
+from .routes import blueprints
 
 
 LOG = logging.getLogger(__name__)
