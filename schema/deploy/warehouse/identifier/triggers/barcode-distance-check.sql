@@ -12,9 +12,12 @@ create function warehouse.identifier_barcode_distance_check() returns trigger as
     declare
         minimum_distance integer := 3;
         conflicting_barcodes citext[];
+        old_barcode citext;
     begin
+        old_barcode := case TG_OP when 'UPDATE' then OLD.barcode end;
+
         raise debug 'Checking new barcode "%" is at least % substitutions away from existing barcodes (except old barcode "%")',
-            NEW.barcode, minimum_distance, OLD.barcode;
+            NEW.barcode, minimum_distance, old_barcode;
 
         -- Lock the table, ensuring that the set of existing identifiers is
         -- stable, in order to avoid race conditions that allow distance
@@ -27,7 +30,7 @@ create function warehouse.identifier_barcode_distance_check() returns trigger as
               from warehouse.identifier
              where hamming_distance_ci(barcode, NEW.barcode) < minimum_distance
             except
-            select OLD.barcode
+            select old_barcode
         ) x;
 
         if array_length(conflicting_barcodes, 1) > 0 then
@@ -59,13 +62,13 @@ $$ language plpgsql;
 create trigger identifier_barcode_distance_check_before_insert
     before insert on warehouse.identifier
     for each row
-        execute function warehouse.identifier_barcode_distance_check();
+        execute procedure warehouse.identifier_barcode_distance_check();
 
 create trigger identifier_barcode_distance_check_before_update
     before update of barcode on warehouse.identifier
     for each row
         when (NEW.barcode is distinct from OLD.barcode)
-            execute function warehouse.identifier_barcode_distance_check();
+            execute procedure warehouse.identifier_barcode_distance_check();
 
 comment on function warehouse.identifier_barcode_distance_check() is
     'Trigger function to exclude new identifiers with barcodes too close to existing barcodes';

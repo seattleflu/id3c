@@ -19,7 +19,7 @@ create trigger identifier_barcode_default_from_uuid
     before insert on warehouse.identifier
     for each row
         when (NEW.barcode is null)
-            execute function warehouse.identifier_barcode_default_from_uuid();
+            execute procedure warehouse.identifier_barcode_default_from_uuid();
 
 comment on function warehouse.identifier_barcode_default_from_uuid() is
     'Trigger function to default barcode from suffix of uuid (as defined by CualID)';
