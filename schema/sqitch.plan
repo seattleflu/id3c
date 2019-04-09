@@ -34,3 +34,4 @@ warehouse/identifier/triggers/barcode-default-from-uuid [warehouse/identifier] 2
 warehouse/identifier/triggers/barcode-distance-check [warehouse/identifier functions/hamming_distance] 2019-03-29T22:55:18Z Thomas Sibley <tsibley@fredhutch.org> # Exclude new identifiers with barcodes too close to existing barcodes
 receiving/presence-absence [receiving/schema] 2019-04-08T22:27:17Z Thomas Sibley <tsibley@fredhutch.org> # Receiving table for presence/absence calls
 functions/validate_json_schema 2019-04-08T23:49:59Z Thomas Sibley <tsibley@fredhutch.org> # Function to validate a JSON document using a JSON Schema
+receiving/presence-absence/document-validation [receiving/presence-absence functions/validate_json_schema] 2019-04-09T16:00:56Z Thomas Sibley <tsibley@fredhutch.org> # Validate presence/absence document with a JSON Schema
