@@ -7,12 +7,17 @@ from typing import Any, Callable, Iterable, Tuple, Union
 from werkzeug.exceptions import RequestEntityTooLarge, UnsupportedMediaType
 from ..exceptions import AuthenticationRequired
 from ..utils import prose_list, export
+from .. import datastore
 
 
 @export
-def authentication_required(route):
+def authenticated_datastore_session_required(route):
     """
-    Ensures requests have an ``Authorization`` header.
+    Requires requests have an ``Authorization`` header and uses it to login to
+    the :class:`~seattleflu.api.datastore`.
+
+    The logged in datastore *session* is provided as a keyword-argument to the
+    original route.
 
     Raises a :class:`seattleflu.api.exceptions.AuthenticationRequired`
     exception if the request doesn't provide an ``Authorization`` header.
@@ -22,7 +27,11 @@ def authentication_required(route):
         if not request.authorization:
             raise AuthenticationRequired()
 
-        return route(*args, **kwargs)
+        session = datastore.login(
+            username = request.authorization.username,
+            password = request.authorization.password)
+
+        return route(*args, **kwargs, session = session)
 
     return wrapped_route
 
