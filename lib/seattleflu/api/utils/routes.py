@@ -24,12 +24,14 @@ def authenticated_datastore_session_required(route):
     """
     @wraps(route)
     def wrapped_route(*args, **kwargs):
-        if not request.authorization:
+        auth = request.authorization
+
+        if not (auth and auth.username and auth.password):
             raise AuthenticationRequired()
 
         session = datastore.login(
-            username = request.authorization.username,
-            password = request.authorization.password)
+            username = auth.username,
+            password = auth.password)
 
         return route(*args, **kwargs, session = session)
 
