@@ -71,3 +71,50 @@ def receive_scan():
     datastore.store_scan(session, scan)
 
     return "", 204
+
+
+@api.route("/presence-absence", methods = ['POST'])
+@content_types_accepted(["application/json"])
+@check_content_length
+@authentication_required
+def receive_presence_absence():
+    """
+    Receive new presence/absence data for a set of samples and targets.
+
+    POST /presence-absence with a JSON body.
+    """
+    session = datastore.login(
+        username = request.authorization.username,
+        password = request.authorization.password)
+
+    document = request.get_data(as_text = True)
+
+    LOG.debug(f"Received presence/absence {document}")
+
+    datastore.store_presence_absence(session, document)
+
+    return "", 204
+
+
+@api.route("/sequence-read-set", methods = ['POST'])
+@content_types_accepted(["application/json"])
+@check_content_length
+@authentication_required
+def receive_sequence_read_set():
+    """
+    Receive references to new sequence reads for a source material.
+
+    POST /sequence-read-set with a JSON body containing an object with a
+    ``urls`` key that is an array of URLs (strings).
+    """
+    session = datastore.login(
+        username = request.authorization.username,
+        password = request.authorization.password)
+
+    document = request.get_data(as_text = True)
+
+    LOG.debug(f"Received sequence read set {document}")
+
+    datastore.store_sequence_read_set(session, document)
+
+    return "", 204
