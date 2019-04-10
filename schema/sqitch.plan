@@ -33,3 +33,4 @@ warehouse/identifier [warehouse/schema uuid-ossp] 2019-03-29T18:17:42Z Thomas Si
 warehouse/identifier/triggers/barcode-default-from-uuid [warehouse/identifier] 2019-03-29T22:42:40Z Thomas Sibley <tsibley@fredhutch.org> # Default warehouse.identifier.barcode from uuid
 warehouse/identifier/triggers/barcode-distance-check [warehouse/identifier functions/hamming_distance] 2019-03-29T22:55:18Z Thomas Sibley <tsibley@fredhutch.org> # Exclude new identifiers with barcodes too close to existing barcodes
 receiving/presence-absence [receiving/schema] 2019-04-08T22:27:17Z Thomas Sibley <tsibley@fredhutch.org> # Receiving table for presence/absence calls
+receiving/sequence-read-set [receiving/schema] 2019-04-09T23:31:36Z Thomas Sibley <tsibley@fredhutch.org> # Receiving table for sequence read set references
