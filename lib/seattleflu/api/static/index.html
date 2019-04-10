@@ -40,6 +40,53 @@
     <p>Stores the request data as an enrollment document in a receiving area of
     the study database.
 
+    <h3 class="code">POST /presence-absence</h3>
+    <p>Stores the request data as presence/absence calls in a receiving area of
+    the study database.
+
+    <p>By convention, the body of the request should be a JSON object like the
+    following:
+
+<pre>{
+  "calls": [
+    {
+      "source": {
+        "sample": "20e1d4a2",
+        "rack": "TS01143828",
+        "tube": "1183001056",
+        "well": "A:1",
+        ...
+      },
+      "target": {
+        "name": "RSVA",
+        "control": false,
+        ...
+      },
+      "present": true
+    },
+    ...
+  ]
+}</pre>
+
+    <h3 class="code">POST /sequence-read-set</h3>
+    <p>Stores the request data as a sequence read set document in a receiving
+    area of the study database.
+
+    <p>By convention, the body of the request should be a JSON object like the
+    following:
+
+<pre>{
+  "source": {
+    "sample": "20e1d4a2",
+    ...
+  },
+  "reads": [
+    "https://server/path/to/reads_L001_R1_001.fastq.gz",
+    "https://server/path/to/reads_L001_R2_001.fastq.gz",
+    ...
+  ]
+}</pre>
+
     <h3 class="code">POST /scan</h3>
     <p>Stores the request data as a barcode scan set in a receiving area of the
     study database.
