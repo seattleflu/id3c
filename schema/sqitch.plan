@@ -34,3 +34,5 @@ warehouse/identifier/triggers/barcode-default-from-uuid [warehouse/identifier] 2
 warehouse/identifier/triggers/barcode-distance-check [warehouse/identifier functions/hamming_distance] 2019-03-29T22:55:18Z Thomas Sibley <tsibley@fredhutch.org> # Exclude new identifiers with barcodes too close to existing barcodes
 receiving/presence-absence [receiving/schema] 2019-04-08T22:27:17Z Thomas Sibley <tsibley@fredhutch.org> # Receiving table for presence/absence calls
 receiving/sequence-read-set [receiving/schema] 2019-04-09T23:31:36Z Thomas Sibley <tsibley@fredhutch.org> # Receiving table for sequence read set references
+roles/diagnostic-lab [receiving/presence-absence] 2019-04-10T20:28:40Z Thomas Sibley <tsibley@fredhutch.org> # Role for reporting of diagnostic results
+roles/sequencing-lab [receiving/sequence-read-set] 2019-04-10T20:32:42Z Thomas Sibley <tsibley@fredhutch.org> # Role for reporting sequencing results
