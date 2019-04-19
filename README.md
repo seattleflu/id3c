@@ -15,9 +15,8 @@ when it becomes available on our cloud provider.
 
 Initially aims to provide:
 
-* Access via SQL and REST APIs
-  and maybe [PostgREST](http://postgrest.org) later)
-  initially (Python 3.7 and ES2018 web app to come later)
+* Access via SQL and [REST APIs](#web-api), with
+  [PostgREST](http://postgrest.org) and/or ES2018 web app to maybe come later
 
 * De-identified metadata for participants (age, sex, address token, etc.) and
   samples (tissue, date, location, etc.)
