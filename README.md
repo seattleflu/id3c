@@ -178,10 +178,17 @@ Python 3 + [Flask](http://flask.pocoo.org)
 
 * Database connection details are set entirely using the [standard libpq
   environment variables](https://www.postgresql.org/docs/current/libpq-envars.html),
-  such as `PGHOST`, `PGUSER`, and `PGDATABASE`.
+  such as `PGHOST` and `PGDATABASE`.
+  
+  User authentication is performed against the database for each request, so
+  you do not (and should not) provide a username and password when starting the
+  API server.
 
 * The maximum accepted Content-Length defaults to 20MB.  You can override this
   by setting the environment variable `FLASK_MAX_CONTENT_LENGTH`.
+
+* The `LOG_LEVEL` environment variable controls the level of terminal output.
+  Levels are strings: `debug`, `info`, `warning`, `error`.
 
 ### Starting the server
 
@@ -192,7 +199,27 @@ For production, a standard `api.wsgi` file is provided which can be used by any
 web server with WSGI support.
 
 
-## Dependencies
+## CLI
+
+Python 3 + [click](https://click.palletsprojects.com)
+
+Interact with the database on the command-line in your shell to:
+
+* Mint identifiers and barcodes
+
+* Run ETL routines, e.g. enrollments, to process received data into the
+  warehouse
+
+The `bin/id3c` command is the entry point.  It must be run within the project
+environment, for example by using `pipenv run bin/id3c`.
+
+The `LOG_LEVEL` environment variable controls the level of terminal output.
+Levels are strings: `debug`, `info`, `warning`, `error`.
+
+
+## Setup
+
+### Dependencies
 
 Python dependencies are managed using [Pipenv](https://pipenv.readthedocs.io).
 
@@ -205,3 +232,37 @@ Add new dependencies to `Pipfile`, run:
     pipenv install <name>
 
 and then commit the changes to `Pipfile` and `Pipfile.lock`.
+
+### Connection details
+
+Details for connecting to the ID3C database are by convention controlled
+entirely by the [standard libpq environment variables](https://www.postgresql.org/docs/current/libpq-envars.html),
+[service definitions](https://www.postgresql.org/docs/current/libpq-pgservice.html),
+and [password files](https://www.postgresql.org/docs/current/libpq-pgpass.html).
+
+For example, if you want to list the identifier sets available in the Seattle
+Flu Study testing database, you could create the following files:
+
+_~/.pg\_service.conf_
+
+    [seattleflu-testing]
+    host=testing.db.seattleflu.org
+    user=your_username
+    dbname=testing
+
+_~/.pgpass_
+
+    testing.db.seattleflu.org:5432:*:your_username:your_password
+
+Make sure the _~/.pgpass_ file is only readable by you since it contains your
+password:
+
+    chmod u=rw,og= ~/.pgpass
+
+and then run:
+
+    PGSERVICE=seattleflu-testing pipenv run bin/id3c identifier set ls
+
+These files will also allow you to connect using `psql`:
+
+    psql service=seattleflu-testing
