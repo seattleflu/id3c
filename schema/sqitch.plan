@@ -38,3 +38,4 @@ roles/diagnostic-lab [receiving/presence-absence] 2019-04-10T20:28:40Z Thomas Si
 roles/sequencing-lab [receiving/sequence-read-set] 2019-04-10T20:32:42Z Thomas Sibley <tsibley@fredhutch.org> # Role for reporting sequencing results
 @2019-04-19 2019-04-19T20:51:52Z Thomas Sibley <tsibley@fredhutch.org> # Deployed schema as of 19 April 2019
 shipping/views [shipping/views@2019-04-19] 2019-04-19T21:08:30Z Thomas Sibley <tsibley@fredhutch.org> # Add ISO week to incidence model observations
+roles/reporter/grant-select-on-sequences [roles/reporter receiving/enrollment] 2019-04-26T20:09:46Z Thomas Sibley <tsibley@fredhutch.org> # Allow reporters to select the current values of existing and future sequences
