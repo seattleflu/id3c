@@ -12,3 +12,6 @@ __pycache__/
 Icon?
 ehthumbs.db
 Thumbs.db
+
+# IDE files
+/.vscode
