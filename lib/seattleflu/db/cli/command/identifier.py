@@ -80,6 +80,78 @@ def mint(set_name, count, *, labels, quiet):
         labels.write(pdf)
 
 
+# Labels subcommand
+@identifier.command("labels")
+@click.argument("filename",
+    metavar = "<file.pdf>",
+    type = click.File("wb"))
+
+def labels(filename):
+    """
+    Make barcode labels for an existing batch of identifiers.
+
+    A PDF of printable barcode labels is generated using the Lab Labels¹
+    instance <https://backoffice.seattleflu.org/labels/>.  An alternative
+    instance may be used by setting the LABEL_API environment variable to the
+    instance URL.
+
+    The batch of identifiers to make labels for is selected interactively based
+    on the identifier set and time of original generation.
+
+    ¹ https://github.com/MullinsLab/Lab-Labels
+    """
+    session = DatabaseSession()
+
+    # Fetch batches of identifiers
+    with session.cursor() as cursor:
+        cursor.execute("""
+            select identifier_set.name as set_name,
+                   to_char(generated, 'FMDD Mon YYYY') as generated_date,
+                   generated,
+                   count(*)
+              from warehouse.identifier
+              join warehouse.identifier_set using (identifier_set_id)
+             group by generated, identifier_set.name
+             order by generated, identifier_set.name
+            """)
+
+        batches = list(cursor)
+
+    # Print batches for selection
+    click.echo("\nThe following batches of identifiers exist:\n")
+
+    for index, batch in enumerate(batches, 1):
+        click.secho(f"{index:2d}) ", bold = True, nl = False)
+        click.echo(f"{batch.generated_date:>11} — {batch.count:>5,} {batch.set_name}")
+
+    # Which batch do we want?
+    choice = click.prompt(
+        "\nFor which batch would you like to make labels",
+        prompt_suffix = "? ",
+        type = click.IntRange(1, len(batches)),
+        default = len(batches))
+
+    chosen_batch = batches[choice - 1]
+
+    # Fetch identifiers for the chosen batch
+    with session.cursor() as cursor:
+        cursor.execute("""
+            select uuid, barcode
+              from warehouse.identifier
+              join warehouse.identifier_set using (identifier_set_id)
+             where identifier_set.name = %s
+               and generated = %s
+            """, (chosen_batch.set_name, chosen_batch.generated))
+
+        identifiers = list(cursor)
+
+    assert len(identifiers) == chosen_batch.count
+
+    layout = labelmaker.layout_identifiers(chosen_batch.set_name, identifiers)
+    pdf = labelmaker.generate_pdf(layout)
+    filename.write(pdf)
+
+
 # Set subcommands
 @identifier.group("set")
 def set_():
