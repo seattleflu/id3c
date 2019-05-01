@@ -152,7 +152,6 @@ def generate_pdf(layout: LabelLayout, api: str = DEFAULT_LABEL_API) -> bytes:
     spec = json.dumps(layout.spec())
 
     LOG.info(f"Generating PDF using Lab Labels API at {api}")
-    LOG.debug(f"Label layout spec: {spec}")
 
     response = requests.post(f"{api}/stickers",
         headers = { "Content-Type": "application/json" },
