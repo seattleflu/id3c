@@ -42,3 +42,6 @@ roles/reporter/grant-select-on-sequences [roles/reporter receiving/enrollment] 2
 warehouse/sample [warehouse/encounter] 2019-04-22T21:15:44Z Jover Lee <joverlee@fredhutch.org> # Table representing a sample collect during an encounter
 warehouse/target [warehouse/schema] 2019-04-22T22:23:49Z Kairsten Fay <kairsten.fay@gmail.com> # Table representing specific targets (e.g. flu) tested for during presence/absence tests
 warehouse/presence_absence [warehouse/sample warehouse/target] 2019-04-22T22:54:28Z Kairsten Fay <kfay@fredhutch.org> # Table representing presence-absence test results linking individual samples with targets
+shipping/age-bin 2019-04-30T23:36:59Z Jover Lee <joverlee@fredhutch.org> # Table representing age bins for incidence model views
+@2019-05-01 2019-05-01T19:18:36Z Jover Lee <joverlee@fredhutch.org> # Deployed schema as of 01 May 2019
+shipping/views [shipping/views@2019-05-01] 2019-05-01T19:21:04Z Jover Lee <joverlee@fredhutch.org> # Add age bins to incidence model observations
