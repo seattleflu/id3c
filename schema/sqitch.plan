@@ -45,3 +45,4 @@ warehouse/presence_absence [warehouse/sample warehouse/target] 2019-04-22T22:54:
 shipping/age-bin 2019-04-30T23:36:59Z Jover Lee <joverlee@fredhutch.org> # Table representing age bins for incidence model views
 @2019-05-01 2019-05-01T19:18:36Z Jover Lee <joverlee@fredhutch.org> # Deployed schema as of 01 May 2019
 shipping/views [shipping/views@2019-05-01] 2019-05-01T19:21:04Z Jover Lee <joverlee@fredhutch.org> # Add age bins to incidence model observations
+roles/incidence-modeler/grant-select-on-age-bins [roles/incidence-modeler shipping/age-bin] 2019-05-02T23:29:20Z Thomas Sibley <tsibley@fredhutch.org> # Grant incidence modelers select on shipping.age_bin_*
