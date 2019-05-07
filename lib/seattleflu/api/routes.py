@@ -45,26 +45,6 @@ def receive_enrollment(*, session):
     return "", 204
 
 
-@api.route("/scan", methods = ['POST'])
-@content_types_accepted(["application/json"])
-@check_content_length
-@authenticated_datastore_session_required
-def receive_scan(*, session):
-    """
-    Receive a new set of scanned barcodes.
-
-    POST /scan with a JSON body containing the keys ``collection`` (optional,
-    scalar), ``sample`` (required, scalar), and ``aliquots`` (required, list).
-    """
-    scan = request.get_json(force = True)
-
-    LOG.debug(f"Received scan {scan}")
-
-    datastore.store_scan(session, scan)
-
-    return "", 204
-
-
 @api.route("/presence-absence", methods = ['POST'])
 @content_types_accepted(["application/json"])
 @check_content_length

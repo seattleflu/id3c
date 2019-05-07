@@ -49,3 +49,4 @@ roles/incidence-modeler/grant-select-on-age-bins [roles/incidence-modeler shippi
 @2019-05-03 2019-05-03T16:27:47Z Jover Lee <joverlee@fredhutch.org> # Deployed schema as of 03 May 2019
 shipping/views [shipping/views@2019-05-03] 2019-05-03T16:27:56Z Jover Lee <joverlee@fredhutch.org> # Update age bin joins
 roles/presence-absence-processor 2019-05-02T17:30:01Z Kairsten Fay <kfay@fredhutch.org> # Role for ETL of presence-absence
+receiving/scan [receiving/scan@2019-05-03] 2019-05-07T20:31:19Z Thomas Sibley <tsibley@fredhutch.org> # Revert the receiving/scan change in-place

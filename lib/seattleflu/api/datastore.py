@@ -74,50 +74,6 @@ def store_enrollment(session: DatabaseSession, document: str) -> None:
 
 @export
 @catch_permission_denied
-def store_scan(session: DatabaseSession, scan: dict) -> None:
-    """
-    Store the given *scan* (a **dictionary**) in the backing database using
-    *session*.
-
-    Raises a :class:`~werkzeug.exceptions.BadRequest` exception if the given
-    *scan* isn't valid and a :class:`~werkzeug.exceptions.Forbidden` exception
-    if the database reports a ``permission denied`` error.
-    """
-    try:
-        collection = scan["collection"]
-        sample     = scan["sample"]
-        aliquots   = scan["aliquots"]
-    except KeyError as error:
-        raise BadRequest(f"Required field {error} is missing from the scan document") from None
-
-    with session, session.cursor() as cursor:
-        try:
-            if collection:
-                cursor.execute(
-                    "insert into receiving.collection (collection_barcode) values (%s)",
-                        (collection,))
-
-            cursor.execute("""
-                with new_scan as (
-                    insert into receiving.scan_set default values
-                        returning scan_set_id
-                )
-                insert into receiving.sample (sample_barcode, collection_barcode, scan_set_id)
-                    values (%s, %s, (select scan_set_id from new_scan))
-                """,
-                (sample, collection or None))
-
-            for aliquot in aliquots:
-                cursor.execute(
-                    "insert into receiving.aliquot (aliquot_barcode, sample_barcode) values (%s, %s)",
-                        (aliquot, sample))
-
-        except (DataError, IntegrityError) as error:
-            raise BadRequestDatabaseError(error) from None
-
-
-@export
-@catch_permission_denied
 def store_presence_absence(session: DatabaseSession, document: str) -> None:
     """
     Store the given presence/absence *document* (a **string**) in the backing
