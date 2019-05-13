@@ -15,6 +15,7 @@ __all__ = [
     "enrollments",
     "manifest",
     "presence_absence",
+    "clinical"
 ]
 
 from . import *
