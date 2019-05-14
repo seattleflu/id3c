@@ -9,6 +9,7 @@ receiving schema of ID3C.
 import click
 import logging
 import os
+from math import ceil
 import pandas as pd
 import hashlib
 import seattleflu.db as db
@@ -75,9 +76,7 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file):
     columns_to_keep = ["PersonID", "Age", "LabDtTm", "identifier", "Sex", 
                        "Race", "Fac", "EthnicGroup", "fluvaccine",
                        "FinClass", "Barcode ID", "ZipCode"]# To be replaced w/ census tract  
-    columns = df.columns.tolist()
-    columns_to_drop = [col for col in columns if col not in columns_to_keep]
-    df = df.drop(columns=columns_to_drop, axis=1)
+    df = drop_columns(columns_to_keep, df)
 
     #Standardize column names
     df = df.rename(columns={'PersonID': 'individual', 
@@ -102,6 +101,17 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file):
     with session, session.cursor() as cursor:
         df.apply(lambda x: insert_clinical(x, cursor), axis=1)
 
+
+def drop_columns(columns_to_keep: list, df: pd.DataFrame):
+    """
+    Given a list of column names and a pandas DataFrame,
+    drop all columns in Dataframe that are not in list. 
+    """
+    columns = df.columns.tolist()
+    columns_to_drop = [col for col in columns if col not in columns_to_keep]
+    return df.drop(columns=columns_to_drop, axis=1)
+
+
 def generate_hash(identifier: str):
     """
     Generate hash for *identifier* that is linked to identifiable records. 
@@ -121,7 +131,7 @@ def insert_clinical(df: pd.DataFrame, cursor):
     receiving.clinical table 
     """
     
-    LOG.debug(f"Inserting clinical data for «{df['identifier']}» ")
+    LOG.debug(f"Inserting clinical data for barcode: «{df['barcode']}» ")
 
     document = df.to_json(date_format='iso')
 
@@ -129,3 +139,42 @@ def insert_clinical(df: pd.DataFrame, cursor):
         "insert into receiving.clinical (document) values (%s)",
         (document,)
     )
+
+@preprocess.command("sch-clinical")
+@click.argument("sch_filename", metavar = "<SCH Clinical Data filename>")
+
+def sch_clinical(sch_filename):
+    """
+    Process and insert clinical data from SCH.
+    """
+    df = pd.read_csv(sch_filename)
+    
+    # Drop unnecessary columns
+    columns_to_keep = ["study_id", "sample_date", "age", "sex"]
+    df = drop_columns(columns_to_keep, df)
+    
+    # Standardize column names
+    df = df.rename(columns={"study_id": "barcode",
+                            "sample_date": "encountered",
+                            "sex": "AssignedSex"})
+
+    # Convert to date time format
+    df["encountered"] = pd.to_datetime(df["encountered"])
+    #Convert age(float) to int
+    df["age"] = df["age"].apply(lambda x: ceil(x))
+
+    # Insert static value columns
+    df["site"] = "SCH"
+
+    # Placeholder columns for future data
+    df["FluShot"] = None
+    df["ZipCode"] = None
+    df["Race"] = None
+    df["HispanicLatino"] = None
+    df["MedicalInsurace"] = None
+    df["identifier"] = None
+    df["individual"] = None
+   
+    session = DatabaseSession()
+    with session, session.cursor() as cursor:
+        df.apply(lambda x: insert_clinical(x, cursor), axis=1)
