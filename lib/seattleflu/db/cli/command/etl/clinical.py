@@ -135,22 +135,26 @@ def site_identifier(site_name: str) -> str:
         "UWMC": "UWMedicalCenter", 
         "HMC": "Harborview", 
         "NWH":"Northwest",
-        "UWNC": "UWNeighborhoodClinic"  # TODO confirm this is true 
+        "UWNC": "UWNeighborhoodClinic",
+        "SCH": "ChildrensHospitalSeattle"
     }
     if site_name not in site_map:
         raise UnknownSiteError(f"Unknown site name «{site_name}»")
     
     return site_map[site_name]
 
-def sex(sex_name: str) -> str:
+def sex(sex_name) -> str:
     """
     Given a *sex_name*, returns its matching sex identifier.
     """
-    sex_name = sex_name.upper()
+    if type(sex_name) is str:
+        sex_name = sex_name.upper()
 
     sex_map = {
         "M": "male",
-        "F": "female"
+        "F": "female",
+        1.0: "male",
+        0.0: "female"
     }
 
     if sex_name not in sex_map:
