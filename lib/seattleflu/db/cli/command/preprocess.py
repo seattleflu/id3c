@@ -60,12 +60,6 @@ def uw_clinical(filename, uw_nwh_file, hmc_sch_file):
     df['identifier'] = (df['labMRN'] + df['LabAccNum']).str.lower()
     df = df.drop_duplicates(subset="identifier")
 
-    #Join with vaccine sheet to get flu shot response
-    try:  # Join on vaccines? TODO 
-        df = join_vaccines_sheet(df, filename)
-    except:
-        pass
-    
     #Add barcode using manifests
     master_ref = hmc_df.append([uw_df, nwh_df], ignore_index=True)
     # Convert all to lower case for matching purposes
@@ -79,7 +73,7 @@ def uw_clinical(filename, uw_nwh_file, hmc_sch_file):
     
     #Drop unnecessary columns
     columns_to_keep = ["PersonID", "Age", "LabDtTm", "identifier", "Sex", 
-                       "Race", "Fac", "RESULT_VAL", "EthnicGroup",
+                       "Race", "Fac", "EthnicGroup", "fluvaccine",
                        "FinClass", "Barcode ID", "ZipCode"]# To be replaced w/ census tract  
     columns = df.columns.tolist()
     columns_to_drop = [col for col in columns if col not in columns_to_keep]
@@ -92,7 +86,7 @@ def uw_clinical(filename, uw_nwh_file, hmc_sch_file):
                             'EthnicGroup': 'HispanicLatino',
                             'Sex': 'AssignedSex',
                             'Fac': 'site', 
-                            'RESULT_VAL': 'FluShot',
+                            'fluvaccine': 'FluShot',
                             'FinClass': 'MedicalInsurance',
                             'Barcode ID': 'barcode'})
 
@@ -107,22 +101,6 @@ def uw_clinical(filename, uw_nwh_file, hmc_sch_file):
     session = DatabaseSession()
     with session, session.cursor() as cursor:
         df.apply(lambda x: insert_clinical(x, cursor), axis=1)
-
-def join_vaccines_sheet(df: pd.DataFrame, filename):
-    """
-    Given a pandas DataFrame *df*, joins it on a one-to-one basis on the column 
-    'EID' with a second pandas DataFrame created from the given *filename* Excel 
-    document on the sheet named 'vaccine'.
-    """
-    vac = pd.read_excel(filename, sheet_name='vaccine')
-    
-    # While there are duplicates, arbitrarily keep only the first EID TODO 
-    vac = vac.drop_duplicates(subset='EID')
-
-    assert len(vac['EID'].unique()) == len(vac['EID']) 
-    df = df.merge(vac, how='left', on='EID', validate='one_to_one')
-
-    return df
 
 def generate_hash(identifier: str):
     """

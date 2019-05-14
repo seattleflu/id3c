@@ -239,10 +239,13 @@ def flu_shot(flu_shot_response: str) -> list:
     """
     Given a *flu_shot_response*, returns yes/no value for FluShot key.
     """
-    if not flu_shot_response:
+    if flu_shot_response is None:
         LOG.debug("No flu shot response found.")
         return [None]
+
     flu_shot_map = {
+        0.0 : "no",
+        1.0 : "yes"
     }
 
     if flu_shot_response not in flu_shot_map:
