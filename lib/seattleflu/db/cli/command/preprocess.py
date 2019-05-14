@@ -24,18 +24,18 @@ LOG = logging.getLogger(__name__)
 def preprocess():
     pass
 
-# Clinical subcommand
-@preprocess.command("uw_clinical")
-@click.argument("filename", metavar = "<Clinical Data filename>")
+# UW Clinical subcommand
+@preprocess.command("uw-clinical")
+@click.argument("uw_filename", metavar = "<UW Clinical Data filename>")
 @click.argument("uw_nwh_file", metavar="<UW/NWH filename>")
 @click.argument("hmc_sch_file", metavar="<HMC/SCH filename>")
 
 
-def uw_clinical(filename, uw_nwh_file, hmc_sch_file):
+def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file):
     """
     Process and insert clinical data from UW.
 
-    Given a *filename* to an Excel document, selects specific columns of 
+    Given a *uw_filename* to an Excel document, selects specific columns of 
     interest and inserts the queried data into the receiving.clinical table as 
     a JSON document.
 
@@ -48,7 +48,7 @@ def uw_clinical(filename, uw_nwh_file, hmc_sch_file):
     Hint: ~/Documents/Inpatient\ Clinical\ Data\ Pulls/Datasets/4.9.19.xlsx
         ~/Documents/Inpatient Clinical Data Pulls/Datasets/4.9.19.xlsx
     """
-    df = pd.read_excel(filename, sheet_name='pts')
+    df = pd.read_excel(uw_filename, sheet_name='pts')
     uw_df = pd.read_excel(uw_nwh_file,sheet_name='UWMC',keep_default_na=False,
                           usecols=['Barcode ID', 'MRN', 'Accession'])
     nwh_df = pd.read_excel(uw_nwh_file,sheet_name='NWH',keep_default_na=False,
