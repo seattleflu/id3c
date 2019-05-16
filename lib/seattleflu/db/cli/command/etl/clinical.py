@@ -175,7 +175,7 @@ def encounter_details(document: dict) -> dict:
             }, 
             "locations": {
                 "home": {
-                    "region": document.get("ZipCode"),  # TODO placeholder 
+                    "region": document.get("census_tract"), 
                 }
             },
             "responses": {

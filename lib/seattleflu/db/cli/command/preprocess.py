@@ -44,16 +44,25 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file):
     represents one encounter.
 
     Uses *uw_nwh_file* and *hmc_sch_file* to join clinical data to fill in
-    SFS barcodes. 
+    SFS barcodes. *uw_nwh_file* is the filepath to the data containing 
+    manifests of the barcodes from UWNC and NWH Samples. *hmc_sch_file* is the
+    filepath to the data containing manifests of the barcodes from SFS 
+    Retrospective Samples.
 
-    Hint: ~/Documents/Inpatient\ Clinical\ Data\ Pulls/Datasets/4.9.19.xlsx
-        ~/Documents/Inpatient Clinical Data Pulls/Datasets/4.9.19.xlsx
+    Declare your database connection when running this command be prefixing
+    with `PGDATABASE=seatteflu`.
     """
-    df = pd.read_excel(uw_filename, sheet_name='pts')
+    if uw_filename.endswith('.csv'):
+        df = pd.read_csv(uw_filename)
+    else:
+        df = pd.read_excel(uw_filename, sheet_name='pts')
+
     uw_df = pd.read_excel(uw_nwh_file,sheet_name='UWMC',keep_default_na=False,
-                          usecols=['Barcode ID', 'MRN', 'Accession'])
+                          usecols=['Barcode ID (Sample ID)', 'MRN', 'Accession'])
+    uw_df = uw_df.rename(columns={'Barcode ID (Sample ID)': 'Barcode ID'})
     nwh_df = pd.read_excel(uw_nwh_file,sheet_name='NWH',keep_default_na=False,
-                           usecols=['Barcode ID', 'MRN', 'Accession'])
+                           usecols=['Barcode ID (Sample ID)', 'MRN', 'Accession'])
+    nwh_df = nwh_df.rename(columns={'Barcode ID (Sample ID)': 'Barcode ID'})
     hmc_df = pd.read_excel(hmc_sch_file,sheet_name='HMC',keep_default_na=False,
                            usecols=['Barcode ID', 'MRN', 'Accession'])
     
@@ -63,6 +72,7 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file):
 
     #Add barcode using manifests
     master_ref = hmc_df.append([uw_df, nwh_df], ignore_index=True)
+
     # Convert all to lower case for matching purposes
     master_ref['MRN'] = master_ref['MRN'].str.lower()
     master_ref['Accession'] = master_ref['Accession'].str.lower()
@@ -75,7 +85,7 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file):
     #Drop unnecessary columns
     columns_to_keep = ["PersonID", "Age", "LabDtTm", "identifier", "Sex", 
                        "Race", "Fac", "EthnicGroup", "fluvaccine",
-                       "FinClass", "Barcode ID", "ZipCode"]# To be replaced w/ census tract  
+                       "FinClass", "Barcode ID", "census_tract"]
     df = drop_columns(columns_to_keep, df)
 
     #Standardize column names
