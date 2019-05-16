@@ -25,7 +25,7 @@ import logging
 import seattleflu.db as db
 from seattleflu import labelmaker
 from seattleflu.db.session import DatabaseSession
-from seattleflu.db.cli.__main__ import cli
+from seattleflu.db.cli import cli
 
 
 LOG = logging.getLogger(__name__)
