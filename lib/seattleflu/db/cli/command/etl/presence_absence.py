@@ -381,7 +381,7 @@ class SampleNotFoundError(ValueError):
 class UnknownControlStatusError(ValueError):
     """
     Raised by :function:`target_control` if its provided *control*
-    is not amont the set of expected values.
+    is not among the set of expected values.
     """
     pass
 
