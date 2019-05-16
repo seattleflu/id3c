@@ -1,6 +1,10 @@
 -- Deploy seattleflu/schema:roles/enrollment-processor/grants to pg
 -- requires: roles/enrollment-processor
 -- requires: roles/enrollment-processor/rename
+-- requires: warehouse/identifier
+-- requires: warehouse/sample
+-- requires: warehouse/sample/collection-identifier
+-- requires: warehouse/sample/encounter-fk
 
 begin;
 
@@ -21,10 +25,16 @@ grant update (processing_log)
    on receiving.enrollment
    to "enrollment-processor";
 
+grant select
+   on warehouse.identifier,
+      warehouse.identifier_set
+   to "enrollment-processor";
+
 grant select, insert, update
    on warehouse.site,
       warehouse.individual,
-      warehouse.encounter
+      warehouse.encounter,
+      warehouse.sample
    to "enrollment-processor";
 
 commit;

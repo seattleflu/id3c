@@ -51,3 +51,6 @@ shipping/views [shipping/views@2019-05-03] 2019-05-03T16:27:56Z Jover Lee <jover
 roles/presence-absence-processor 2019-05-02T17:30:01Z Kairsten Fay <kfay@fredhutch.org> # Role for ETL of presence-absence
 receiving/scan [receiving/scan@2019-05-03] 2019-05-07T20:31:19Z Thomas Sibley <tsibley@fredhutch.org> # Revert the receiving/scan change in-place
 roles/enrollment-processor/grants [roles/enrollment-processor roles/enrollment-processor/rename] 2019-05-18T17:52:42Z Thomas Sibley <tsibley@fredhutch.org> # Reworkable grant of privileges to enrollment-processor
+warehouse/sample/encounter-fk [warehouse/sample] 2019-05-07T19:25:15Z Thomas Sibley <tsibley@fredhutch.org> # Make encounter_id a foreign key
+warehouse/sample/collection-identifier [warehouse/sample] 2019-05-07T19:29:43Z Thomas Sibley <tsibley@fredhutch.org> # Track optional collection identifier for samples
+warehouse/sample/null-identifiers-constraint [warehouse/sample warehouse/sample/collection-identifier warehouse/sample/encounter-fk] 2019-05-07T23:26:59Z Thomas Sibley <tsibley@fredhutch.org> # Add a constraint on which identifiers can be null when
