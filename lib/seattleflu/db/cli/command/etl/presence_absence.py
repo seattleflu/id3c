@@ -267,13 +267,14 @@ def sample_identifier(db: DatabaseSession, barcode: str) -> str:
 
 def sample_details(document: dict) -> dict:
     """
-    Describe sample details in a simple data structure designed to be used
-    from SQL.
+    Capture details about the go/no-go sequencing call for this sample.
     """
-    return { 
-        "sample_comment": document['sampleComment'],
-        "initial_sequencing_call": document['initialProceedToSequencingCall'],
-        "final_sequencing_call": document["sampleProceedToSequencing"]
+    return {
+        "sequencing_call": {
+            "comment": document['sampleComment'],
+            "initial": document['initialProceedToSequencingCall'],
+            "final": document["sampleProceedToSequencing"],
+        },
     }
 
 def presence_absence_details(document: dict) -> dict:
