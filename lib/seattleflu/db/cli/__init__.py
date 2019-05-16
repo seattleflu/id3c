@@ -5,7 +5,7 @@ import click
 from typing import NoReturn
 
 
-# Invoked by bin/id3c
+# Base command for all other commands
 @click.group(help = __doc__)
 def cli() -> NoReturn:
     pass
