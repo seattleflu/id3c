@@ -8,6 +8,10 @@ from logging import StreamHandler
 from logging.handlers import SysLogHandler
 
 
+if not __debug__:
+    raise Exception("Asserts are used for validation and integrity.  Please turn off optimization!")
+
+
 # Setup root logger for this process.
 #
 # Filtering of messages by level is done at the handler level by using NOTSET
