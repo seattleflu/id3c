@@ -19,6 +19,7 @@ import click
 import logging
 from datetime import datetime, timezone
 from typing import Any
+from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
 from . import etl
@@ -245,6 +246,7 @@ def find_or_create_sample(db: DatabaseSession, identifier: str,
 
     return sample
 
+
 def sample_identifier(db: DatabaseSession, barcode: str) -> str:
     """
     Find corresponding UUID for scanned sample barcode within
@@ -253,26 +255,13 @@ def sample_identifier(db: DatabaseSession, barcode: str) -> str:
     TODO determine course of action if barcode not found
     within warehouse.identifier.
     """
+    identifier = find_identifier(db, barcode)
 
-    LOG.debug(f"Looking up sample barcode {barcode} to find UUID")
+    if identifier:
+        assert identifier.set_name == "samples", \
+            f"Identifier found in set «{identifier.set_name}», not «samples»"
 
-    uuid = db.fetch_row("""
-        select uuid, name
-          from warehouse.identifier
-          join warehouse.identifier_set using (identifier_set_id)
-         where barcode = %s
-        """, (barcode,))
-    if uuid:
-        #Check Identifier_Set
-        if uuid.name == "samples":
-            LOG.info(f"Found sample UUID {uuid.uuid}")
-            return uuid.uuid
-        else:
-            raise IncorrectIdentifierSetError(f"Found sample UUID {uuid.uuid}, \
-                but UUID is of the incorrect identifier set «{uuid.name}»")
-    else:
-        LOG.warning(f"No corresponding UUID found for barcode «{barcode}»")
-        return barcode
+    return str(identifier.uuid) if identifier else barcode
 
 
 def sample_details(document: dict) -> dict:
@@ -379,13 +368,6 @@ def mark_processed(db, group_id: int) -> None:
                set processing_log = processing_log || %(log_entry)s
              where presence_absence_id = %(group_id)s
             """, data)
-
-class IncorrectIdentifierSetError(ValueError):
-    """
-    Raised by :function:`sample_identifier` if its provided *barcode* 
-    matches a UUID that is of the incorrect identifier set.
-    """
-    pass
 
 class UnknownControlStatusError(ValueError):
     """

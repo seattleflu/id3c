@@ -5,7 +5,7 @@ import logging
 from psycopg2 import IntegrityError
 from psycopg2.errors import ExclusionViolation
 from statistics import median, mode
-from typing import Any
+from typing import Any, NamedTuple
 from .session import DatabaseSession
 
 
@@ -105,3 +105,27 @@ def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
         LOG.info(f"Failure distribution: max={max(failure_counts)} mode={mode(failure_counts)} median={median(failure_counts)}")
 
     return minted
+
+
+def find_identifier(db: DatabaseSession, barcode: str) -> NamedTuple:
+    """
+    Lookup a known identifier by *barcode*.
+    """
+    LOG.debug(f"Looking up barcode {barcode}")
+
+    identifier = db.fetch_row("""
+        select uuid,
+               barcode,
+               generated,
+               identifier_set.name as set_name
+          from warehouse.identifier
+          join warehouse.identifier_set using (identifier_set_id)
+         where barcode = %s
+        """, (barcode,))
+
+    if identifier:
+        LOG.info(f"Found {identifier.set_name} identifier {identifier.uuid}")
+        return identifier
+    else:
+        LOG.warning(f"No identifier found for barcode «{barcode}»")
+        return None
