@@ -2,7 +2,7 @@
 Run ETL routines
 """
 import click
-from seattleflu.db.cli.__main__ import cli
+from seattleflu.db.cli import cli
 
 
 @cli.group("etl", help = __doc__)

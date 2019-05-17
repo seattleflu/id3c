@@ -1,13 +1,22 @@
-#!/usr/bin/env python3
-from sys import argv, path, exit
-from pathlib import Path
+#!/bin/bash
+set -euo pipefail
 
-# Add our containing repo's lib directory to the Python module search path so
-# that we can load seattleflu.db.
-libpath = Path(__file__).parent.parent / "lib"
-assert libpath.is_dir()
+# Find our project root.
+root="$(cd "$(dirname "$0")/.." && pwd)"
 
-path.insert(0, str(libpath))
+# Add our lib dir to the module search path so we can load seattleflu.db.
+locallib="$root/lib"
+test -d "$locallib"
+export PYTHONPATH="$locallib"
 
-from seattleflu.db.cli.__main__ import cli
-exit(cli(argv[1:]))
+if [[ -n ${PIPENV_ACTIVE:-} ]]; then
+    # We are already running under `pipenv run` or `pipenv shell`.
+    exec python3 -m seattleflu.db.cli "$@"
+else
+    # We need to run under pipenv, so find our Pipfile.
+    pipfile="$root/Pipfile"
+    test -e "$pipfile"
+    export PIPENV_PIPFILE="$pipfile"
+
+    exec pipenv run python3 -m seattleflu.db.cli "$@"
+fi
