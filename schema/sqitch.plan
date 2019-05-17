@@ -54,3 +54,8 @@ roles/enrollment-processor/grants [roles/enrollment-processor roles/enrollment-p
 warehouse/sample/encounter-fk [warehouse/sample] 2019-05-07T19:25:15Z Thomas Sibley <tsibley@fredhutch.org> # Make encounter_id a foreign key
 warehouse/sample/collection-identifier [warehouse/sample] 2019-05-07T19:29:43Z Thomas Sibley <tsibley@fredhutch.org> # Track optional collection identifier for samples
 warehouse/sample/null-identifiers-constraint [warehouse/sample warehouse/sample/collection-identifier warehouse/sample/encounter-fk] 2019-05-07T23:26:59Z Thomas Sibley <tsibley@fredhutch.org> # Add a constraint on which identifiers can be null when
+receiving/manifest [receiving/schema] 2019-05-08T23:16:54Z Thomas Sibley <tsibley@fredhutch.org> # Receiving table for sample manifest records
+roles/manifest-uploader/create 2019-05-20T16:14:57Z Thomas Sibley <tsibley@fredhutch.org> # Upload manifests into receiving
+roles/manifest-uploader/grants [roles/manifest-uploader/create receiving/manifest] 2019-05-20T16:16:47Z Thomas Sibley <tsibley@fredhutch.org> # Grants to manifest-uploader
+roles/manifest-processor/create 2019-05-20T16:06:52Z Thomas Sibley <tsibley@fredhutch.org> # Create manifest-processor role
+roles/manifest-processor/grants [roles/manifest-processor/create receiving/manifest warehouse/sample warehouse/identifier] 2019-05-20T16:10:13Z Thomas Sibley <tsibley@fredhutch.org> # Grants to manifest-processor
