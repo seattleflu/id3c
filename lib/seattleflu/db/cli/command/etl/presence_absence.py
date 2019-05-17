@@ -115,6 +115,12 @@ def etl_presence_absence(*, action: str):
                         # presence_absence tests, so an insert-first approach makes more sense.
                         # Presence-absence tests we see more than once are presumed to be
                         # corrections.
+
+                        # Guard against bad data pushes we've seen from NWGC.
+                        # This isn't great, but it's better than processing the
+                        # data as-sent.
+                        assert test_result["id"] > 0, "bogus targetResult id"
+
                         upsert_presence_absence(db,
                             identifier = test_result["id"],
                             sample_id  = sample.id,
