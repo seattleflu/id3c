@@ -76,8 +76,10 @@ def etl_enrollments(*, action: str):
                 # intervention happens on document structure changes.  After
                 # seeing how versions are handled over time, this restriction
                 # may be toned down a bit.
-                assert enrollment.document["schemaVersion"] == "1.0.0", \
-                    f"Document schema version {enrollment.document['schemaVersion']} is not 1.0.0"
+                known_versions = {"1.1.0", "1.0.0"}
+
+                assert enrollment.document["schemaVersion"] in known_versions, \
+                    f"Document schema version {enrollment.document['schemaVersion']} is not in {known_versions}"
 
                 # Most of the time we expect to see existing sites so a
                 # select-first approach makes the most sense to avoid useless
@@ -378,7 +380,7 @@ def decode_answer(response_data: dict) -> Any:
         return answer["value"]
 
     elif answer["type"] == "Option":
-        chosen_options = answer["chosenOptions"]
+        chosen_options = map(int, answer["chosenOptions"])
         option_tokens = [
             option["token"]
                 for option in response_data["options"] ]
