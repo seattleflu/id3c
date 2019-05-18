@@ -50,3 +50,4 @@ roles/incidence-modeler/grant-select-on-age-bins [roles/incidence-modeler shippi
 shipping/views [shipping/views@2019-05-03] 2019-05-03T16:27:56Z Jover Lee <joverlee@fredhutch.org> # Update age bin joins
 roles/presence-absence-processor 2019-05-02T17:30:01Z Kairsten Fay <kfay@fredhutch.org> # Role for ETL of presence-absence
 receiving/scan [receiving/scan@2019-05-03] 2019-05-07T20:31:19Z Thomas Sibley <tsibley@fredhutch.org> # Revert the receiving/scan change in-place
+roles/enrollment-processor/grants [roles/enrollment-processor roles/enrollment-processor/rename] 2019-05-18T17:52:42Z Thomas Sibley <tsibley@fredhutch.org> # Reworkable grant of privileges to enrollment-processor
