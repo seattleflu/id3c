@@ -115,4 +115,26 @@ grant select
    on shipping.incidence_model_observation_v1
    to "incidence-modeler";
 
+create view shipping.presence_absence_result_v1 as
+
+    select sample.identifier as sample,
+           target.identifier as target,
+           present
+
+    from warehouse.sample
+    join warehouse.presence_absence using (sample_id)
+    join warehouse.target using (target_id)
+    where target.control = false;
+
+comment on view shipping.presence_absence_result_v1 is
+    'View of warehoused presence-absence results for modeling and viz teams';
+
+revoke all
+    on shipping.presence_absence_result_v1
+  from "incidence-modeler";
+  
+grant select
+    on shipping.presence_absence_result_v1
+    to "incidence-modeler";
+    
 commit;
