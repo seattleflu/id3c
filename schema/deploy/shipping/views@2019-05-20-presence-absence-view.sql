@@ -115,6 +115,4 @@ grant select
    on shipping.incidence_model_observation_v1
    to "incidence-modeler";
 
-drop view shipping.presence_absence_result_v1;
-
 commit;
