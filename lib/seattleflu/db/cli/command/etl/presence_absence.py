@@ -78,7 +78,18 @@ def etl_presence_absence(*, action: str):
             with db.savepoint(f"presence_absence group {group.id}"):
                 LOG.info(f"Processing presence_absence group {group.id}")
 
-                for received_sample in group.document["store"]["items"]:
+                # I'm not sure why, but there are two kinds of documents we get
+                # from Samplify: initial data pushes and updates.  Both use the
+                # same internal structure, but the outer container varies.
+                # This sort of thing should go away when we can convince
+                # Samplify to send us data in a format we'd prefer.
+                #   -trs, 17 May 2019
+                try:
+                    received_samples = group.document["store"]["items"]
+                except KeyError:
+                    received_samples = group.document["Update"]
+
+                for received_sample in received_samples:
                     received_sample_id = received_sample["investigatorId"]
                     LOG.info(f"Processing sample «{received_sample_id}»")
 
@@ -104,6 +115,12 @@ def etl_presence_absence(*, action: str):
                         # presence_absence tests, so an insert-first approach makes more sense.
                         # Presence-absence tests we see more than once are presumed to be
                         # corrections.
+
+                        # Guard against bad data pushes we've seen from NWGC.
+                        # This isn't great, but it's better than processing the
+                        # data as-sent.
+                        assert test_result["id"] > 0, "bogus targetResult id"
+
                         upsert_presence_absence(db,
                             identifier = test_result["id"],
                             sample_id  = sample.id,
