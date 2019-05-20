@@ -13,7 +13,8 @@ def etl():
 # Load all ETL subcommands.
 __all__ = [
     "enrollments",
-    "presence_absence"
+    "manifest",
+    "presence_absence",
 ]
 
 from . import *

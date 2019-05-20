@@ -49,3 +49,15 @@ roles/incidence-modeler/grant-select-on-age-bins [roles/incidence-modeler shippi
 @2019-05-03 2019-05-03T16:27:47Z Jover Lee <joverlee@fredhutch.org> # Deployed schema as of 03 May 2019
 shipping/views [shipping/views@2019-05-03] 2019-05-03T16:27:56Z Jover Lee <joverlee@fredhutch.org> # Update age bin joins
 roles/presence-absence-processor 2019-05-02T17:30:01Z Kairsten Fay <kfay@fredhutch.org> # Role for ETL of presence-absence
+receiving/scan [receiving/scan@2019-05-03] 2019-05-07T20:31:19Z Thomas Sibley <tsibley@fredhutch.org> # Revert the receiving/scan change in-place
+roles/enrollment-processor/grants [roles/enrollment-processor roles/enrollment-processor/rename] 2019-05-18T17:52:42Z Thomas Sibley <tsibley@fredhutch.org> # Reworkable grant of privileges to enrollment-processor
+warehouse/sample/encounter-fk [warehouse/sample] 2019-05-07T19:25:15Z Thomas Sibley <tsibley@fredhutch.org> # Make encounter_id a foreign key
+warehouse/sample/collection-identifier [warehouse/sample] 2019-05-07T19:29:43Z Thomas Sibley <tsibley@fredhutch.org> # Track optional collection identifier for samples
+warehouse/sample/null-identifiers-constraint [warehouse/sample warehouse/sample/collection-identifier warehouse/sample/encounter-fk] 2019-05-07T23:26:59Z Thomas Sibley <tsibley@fredhutch.org> # Add a constraint on which identifiers can be null when
+receiving/manifest [receiving/schema] 2019-05-08T23:16:54Z Thomas Sibley <tsibley@fredhutch.org> # Receiving table for sample manifest records
+roles/manifest-uploader/create 2019-05-20T16:14:57Z Thomas Sibley <tsibley@fredhutch.org> # Upload manifests into receiving
+roles/manifest-uploader/grants [roles/manifest-uploader/create receiving/manifest] 2019-05-20T16:16:47Z Thomas Sibley <tsibley@fredhutch.org> # Grants to manifest-uploader
+roles/manifest-processor/create 2019-05-20T16:06:52Z Thomas Sibley <tsibley@fredhutch.org> # Create manifest-processor role
+roles/manifest-processor/grants [roles/manifest-processor/create receiving/manifest warehouse/sample warehouse/identifier] 2019-05-20T16:10:13Z Thomas Sibley <tsibley@fredhutch.org> # Grants to manifest-processor
+@2019-05-20-manifests 2019-05-20T17:30:05Z Thomas Sibley <tsibley@fredhutch.org> # manifests work as of 2019-05-20
+shipping/views [shipping/views@2019-05-20-manifests warehouse/sample/encounter-fk] 2019-05-20T17:30:34Z Thomas Sibley <tsibley@fredhutch.org> # Add sample identifier to the modeling view

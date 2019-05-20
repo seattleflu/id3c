@@ -87,23 +87,5 @@
   ]
 }</pre>
 
-    <h3 class="code">POST /scan</h3>
-    <p>Stores the request data as a barcode scan set in a receiving area of the
-    study database.
-
-    <p>The body of the request must be a JSON object like the following:
-
-<pre>{
-  "collection": "d15ea5e",
-  "sample": "baddcafe",
-  "aliquots": [
-    14805225,
-    72056684,
-    26768058
-  ]
-}</pre>
-
-    <p>The <code>collection</code> key may be <code>null</code>, and the
-    <code>aliquots</code> array may be empty, but both keys must be present.
   </body>
 </html>

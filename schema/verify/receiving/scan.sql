@@ -2,9 +2,17 @@
 
 begin;
 
-select pg_catalog.has_table_privilege('receiving.scan_set', 'select');
-select pg_catalog.has_table_privilege('receiving.collection', 'select');
-select pg_catalog.has_table_privilege('receiving.sample', 'select');
-select pg_catalog.has_table_privilege('receiving.aliquot', 'select');
+do $$
+    declare
+        existing_tables int;
+    begin
+        select into existing_tables count(*)
+          from information_schema.tables
+         where table_schema = 'receiving'
+           and table_name in ('scan_set', 'collection', 'sample', 'aliquot');
+
+        assert existing_tables = 0;
+    end
+$$;
 
 rollback;

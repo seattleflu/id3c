@@ -210,6 +210,8 @@ Interact with the database on the command-line in your shell to:
 * Run ETL routines, e.g. enrollments, to process received data into the
   warehouse
 
+* Parse, diff, and upload sample manifests.
+
 The `bin/id3c` command is the entry point.  It must be run within the project
 environment, for example by using `pipenv run bin/id3c`.
 

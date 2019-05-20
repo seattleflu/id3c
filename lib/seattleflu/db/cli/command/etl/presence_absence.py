@@ -19,6 +19,7 @@ import click
 import logging
 from datetime import datetime, timezone
 from typing import Any
+from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
 from . import etl
@@ -33,7 +34,7 @@ LOG = logging.getLogger(__name__)
 # presence-absence tests lacking this revision number in their log.  If a 
 # change to the ETL routine necessitates re-processing all presence-absence tests, 
 # this revision number should be incremented.
-REVISION = 1
+REVISION = 2
 
 
 @etl.command("presence-absence", help = __doc__)
@@ -93,11 +94,15 @@ def etl_presence_absence(*, action: str):
                     received_sample_id = received_sample["investigatorId"]
                     LOG.info(f"Processing sample «{received_sample_id}»")
 
-                    # Eventually, we will want to convert the external identifier
-                    # (e.g. barcode) to the original uuid.
-                    sample = find_or_create_sample(db,
-                        identifier  = sample_identifier(db, received_sample_id), 
-                        details = sample_details(received_sample))
+                    received_sample_identifier = sample_identifier(db, received_sample_id)
+
+                    if not received_sample_identifier:
+                        LOG.warning(f"Skipping results for sample without a known identifier «{received_sample_id}»")
+                        continue
+
+                    sample = update_sample(db,
+                        identifier = received_sample_identifier,
+                        additional_details = sample_details(received_sample))
 
                     for test_result in received_sample["targetResults"]:
                         test_result_target_id = test_result["geneTarget"]
@@ -204,12 +209,17 @@ def target_control(control: str) -> bool:
     return control == "PositiveControl"
 
 
-def find_or_create_sample(db: DatabaseSession, identifier: str,
-                          details: dict) -> Any:
+def update_sample(db: DatabaseSession,
+                  identifier: str,
+                  additional_details: dict) -> Any:
     """
-    Select sample by *identifier*, or insert it if it doesn't exist.
+    Find sample by *identifier* and update with any *additional_details*.
 
-    TODO: find sample and error if it is not found. Do not create new samples.
+    The provided *additional_details* are merged (at the top-level only) into
+    the existing sample details, if any.
+
+    Raises an :class:`SampleNotFoundError` if there is no sample known by
+    *identifier*.
     """
     LOG.debug(f"Looking up sample «{identifier}»")
 
@@ -217,73 +227,54 @@ def find_or_create_sample(db: DatabaseSession, identifier: str,
         select sample_id as id, identifier
           from warehouse.sample
          where identifier = %s
+           for update
         """, (identifier,))
 
-    if sample:
-        LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
-    else:
-        LOG.debug(f"Sample «{identifier}» not found, adding")
+    if not sample:
+        LOG.error(f"No sample with identifier «{identifier}» found")
+        raise SampleNotFoundError(identifier)
 
-        data = {
-            "identifier": identifier,
-            "details": Json(details)
-        }
+    LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
+
+    if additional_details:
+        LOG.info(f"Updating sample {sample.id} «{sample.identifier}» details")
 
         sample = db.fetch_row("""
-            insert into warehouse.sample (
-                identifier, 
-                details)
-                
-                values (
-                    %(identifier)s, 
-                    %(details)s)
-                    
+            update warehouse.sample
+               set details = coalesce(details, '{}') || %s
+             where sample_id = %s
             returning sample_id as id, identifier
-            """, data)
+            """, (Json(additional_details), sample.id))
 
-        LOG.info(f"Created sample {sample.id} «{sample.identifier}»")
+        assert sample.id, "Updating details affected no rows!"
 
     return sample
+
 
 def sample_identifier(db: DatabaseSession, barcode: str) -> str:
     """
     Find corresponding UUID for scanned sample barcode within
     warehouse.identifier.
-    
-    TODO determine course of action if barcode not found
-    within warehouse.identifier.
     """
+    identifier = find_identifier(db, barcode)
 
-    LOG.debug(f"Looking up sample barcode {barcode} to find UUID")
+    if identifier:
+        assert identifier.set_name == "samples", \
+            f"Identifier found in set «{identifier.set_name}», not «samples»"
 
-    uuid = db.fetch_row("""
-        select uuid, name
-          from warehouse.identifier
-          join warehouse.identifier_set using (identifier_set_id)
-         where barcode = %s
-        """, (barcode,))
-    if uuid:
-        #Check Identifier_Set
-        if uuid.name == "samples":
-            LOG.info(f"Found sample UUID {uuid.uuid}")
-            return uuid.uuid
-        else:
-            raise IncorrectIdentifierSetError(f"Found sample UUID {uuid.uuid}, \
-                but UUID is of the incorrect identifier set «{uuid.name}»")
-    else:
-        LOG.warning(f"No corresponding UUID found for barcode «{barcode}»")
-        return barcode
+    return str(identifier.uuid) if identifier else None
 
 
 def sample_details(document: dict) -> dict:
     """
-    Describe sample details in a simple data structure designed to be used
-    from SQL.
+    Capture details about the go/no-go sequencing call for this sample.
     """
-    return { 
-        "sample_comment": document['sampleComment'],
-        "initial_sequencing_call": document['initialProceedToSequencingCall'],
-        "final_sequencing_call": document["sampleProceedToSequencing"]
+    return {
+        "sequencing_call": {
+            "comment": document['sampleComment'],
+            "initial": document['initialProceedToSequencingCall'],
+            "final": document["sampleProceedToSequencing"],
+        },
     }
 
 def presence_absence_details(document: dict) -> dict:
@@ -380,17 +371,17 @@ def mark_processed(db, group_id: int) -> None:
              where presence_absence_id = %(group_id)s
             """, data)
 
-class IncorrectIdentifierSetError(ValueError):
+class SampleNotFoundError(ValueError):
     """
-    Raised by :function:`sample_identifier` if its provided *barcode* 
-    matches a UUID that is of the incorrect identifier set.
+    Raised when :func:``update_sample`` is unable to find an existing
+    sample with the given identifier.
     """
     pass
 
 class UnknownControlStatusError(ValueError):
     """
     Raised by :function:`target_control` if its provided *control*
-    is not amont the set of expected values.
+    is not among the set of expected values.
     """
     pass
 
