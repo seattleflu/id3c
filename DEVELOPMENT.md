@@ -58,6 +58,11 @@ To process `enrollments`, run
 PGDATABASE=seattleflu pipenv run ./bin/id3c etl enrollments --prompt
 ```
 
+To process `clinical` run 
+```sh
+PGDATABASE=seattleflu pipenv run ./bin/id3c etl clinical --prompt
+```
+
 If you don't have `LOG_LEVEL=debug` turned on, your logs should be available on your system via
 ```sh
 grep seattleflu /var/log/syslog
