@@ -121,7 +121,11 @@ def etl_enrollments(*, action: str):
                 # lab will usually be loaded later and fill in the rest of the
                 # sample record.
                 for sample in enrollment.document["sampleCodes"]:
-                    barcode = sample["code"]
+                    barcode = sample.get("code")
+
+                    if not barcode:
+                        LOG.warning(f"Skipping collected sample with no barcode")
+                        continue
 
                     # XXX TODO: Stop hardcoding this and handle other types.
                     # ScannedSelfSwab and ManualSelfSwabbed are kit barcodes,
