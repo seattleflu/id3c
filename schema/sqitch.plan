@@ -59,3 +59,5 @@ roles/manifest-uploader/create 2019-05-20T16:14:57Z Thomas Sibley <tsibley@fredh
 roles/manifest-uploader/grants [roles/manifest-uploader/create receiving/manifest] 2019-05-20T16:16:47Z Thomas Sibley <tsibley@fredhutch.org> # Grants to manifest-uploader
 roles/manifest-processor/create 2019-05-20T16:06:52Z Thomas Sibley <tsibley@fredhutch.org> # Create manifest-processor role
 roles/manifest-processor/grants [roles/manifest-processor/create receiving/manifest warehouse/sample warehouse/identifier] 2019-05-20T16:10:13Z Thomas Sibley <tsibley@fredhutch.org> # Grants to manifest-processor
+@2019-05-20-manifests 2019-05-20T17:30:05Z Thomas Sibley <tsibley@fredhutch.org> # manifests work as of 2019-05-20
+shipping/views [shipping/views@2019-05-20-manifests warehouse/sample/encounter-fk] 2019-05-20T17:30:34Z Thomas Sibley <tsibley@fredhutch.org> # Add sample identifier to the modeling view

@@ -39,12 +39,7 @@ create view shipping.incidence_model_observation_v1 as
            end as age,
 
            age_bin_fine.range as age_range_fine,
-           lower(age_bin_fine.range) as age_range_fine_lower,
-           upper(age_bin_fine.range) as age_range_fine_upper,
-
            age_bin_coarse.range as age_range_coarse,
-           lower(age_bin_coarse.range) as age_range_coarse_lower,
-           upper(age_bin_coarse.range) as age_range_coarse_upper,
 
            -- XXX TODO: This will be pre-processed out of the JSON in the future.
            case (encounter.details->'locations'->'temp') is not null
@@ -64,8 +59,8 @@ create view shipping.incidence_model_observation_v1 as
       from warehouse.encounter
       join warehouse.individual using (individual_id)
       join warehouse.site using (site_id)
-      left join shipping.age_bin_fine on age_bin_fine.range @> cast(encounter.details->'age'->>'value' as int)
-      left join shipping.age_bin_coarse on age_bin_coarse.range @> cast(encounter.details->'age'->>'value' as int),
+      join shipping.age_bin_fine on age_bin_fine.range @> cast(encounter.details->'age'->>'value' as int)
+      join shipping.age_bin_coarse on age_bin_coarse.range @> cast(encounter.details->'age'->>'value' as int),
 
       lateral (
           -- XXX TODO: The data in this subquery will be modeled better in the

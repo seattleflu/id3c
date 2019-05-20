@@ -59,7 +59,9 @@ create view shipping.incidence_model_observation_v1 as
            encounter_responses.flu_shot,
            encounter_responses.symptoms,
            encounter_responses.race,
-           encounter_responses.hispanic_or_latino
+           encounter_responses.hispanic_or_latino,
+
+           encounter_sample.sample
 
       from warehouse.encounter
       join warehouse.individual using (individual_id)
@@ -92,7 +94,13 @@ create view shipping.incidence_model_observation_v1 as
                   "Symptoms" text[],
                   "Race" text[],
                   "HispanicLatino" text[]))
-        as encounter_responses
+        as encounter_responses,
+
+      lateral (
+        select first_value(sample.identifier) over (order by sample_id) as sample
+          from warehouse.sample
+         where sample.encounter_id = encounter.encounter_id)
+        as encounter_sample
 
      order by encountered;
 
