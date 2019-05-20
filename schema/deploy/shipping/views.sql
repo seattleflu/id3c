@@ -77,7 +77,7 @@ create view shipping.incidence_model_observation_v1 as
 
           select -- XXX FIXME: Remove use of nullif() when we're no longer
                  -- dealing with raw response values.
-                 nullif(responses."FluShot"[1], 'doNotKnow')::bool as flu_shot,
+                 nullif(nullif(responses."FluShot"[1], 'doNotKnow'), 'dontKnow')::bool as flu_shot,
 
                  -- XXX FIXME: Remove duplicate value collapsing when we're no
                  -- longer affected by this known Audere data quality issue.
