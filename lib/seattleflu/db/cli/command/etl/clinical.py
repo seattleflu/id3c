@@ -3,7 +3,6 @@ Process clinical documents into the relational warehouse.
 """
 import click
 import logging
-import re
 from math import ceil
 from datetime import datetime, timezone
 from typing import Any
@@ -68,10 +67,27 @@ def etl_clinical(*, action: str):
         for record in clinical:
             with db.savepoint(f"clinical record {record.id}"):
                 LOG.info(f"Processing clinical record {record.id}")
-                if re.match(r'FLU[0-9]{3}',record.document["barcode"]):
+
+                # Check validity of barcode
+                received_sample_identifier = sample_identifier(db, 
+                    record.document["barcode"])
+
+                # Skip row if no matching identifier found
+                if received_sample_identifier is None:
                     LOG.info("Skipping due to unknown barcode" + \
                               f"{record.document['barcode']}")
                     continue
+                
+                # Check sample exists in database
+                sample = find_sample(db, 
+                    identifier = received_sample_identifier)
+
+                # Skip row if sample does not exist
+                if sample is None:
+                    LOG.info("Skipping due to missing sample with identifier" + \
+                                f"{received_sample_identifier}")
+                    continue
+
                 # Most of the time we expect to see existing sites so a
                 # select-first approach makes the most sense to avoid useless
                 # updates.
@@ -95,11 +111,8 @@ def etl_clinical(*, action: str):
                     site_id         = site.id,
                     details         = encounter_details(record.document))
 
-                received_sample_identifier = sample_identifier(db, 
-                    record.document["barcode"])
-
                 sample = update_sample(db,
-                    identifier = received_sample_identifier,
+                    sample = sample,
                     encounter_id = encounter.id)
 
                 mark_processed(db, record.id)
@@ -318,11 +331,9 @@ def sample_identifier(db: DatabaseSession, barcode: str) -> str:
     return str(identifier.uuid) if identifier else None
 
 
-def update_sample(db: DatabaseSession, 
-                  identifier: str, 
-                  encounter_id: int) -> Any:
+def find_sample(db: DatabaseSession, identifier: str) -> Any:
     """
-    Find sample by *identifier* and update the encounter_id.
+    Find sample by *identifier* and return sample.
     """
     LOG.debug(f"Looking up sample «{identifier}»")
 
@@ -336,10 +347,18 @@ def update_sample(db: DatabaseSession,
 
     if not sample:
         LOG.error(f"No sample with identifier «{identifier}» found")
-        raise SampleNotFoundError(identifier)
+        return None
 
     LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
+    return sample
 
+
+def update_sample(db: DatabaseSession, 
+                  sample, 
+                  encounter_id: int) -> Any:
+    """
+    Update sample's encounter_id.
+    """
     if sample.encounter_id:
         assert sample.encounter_id == encounter_id, \
             f"Sample already linked to another encounter {sample.encounter_id}"
