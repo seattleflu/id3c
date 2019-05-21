@@ -3,6 +3,7 @@ Process clinical documents into the relational warehouse.
 """
 import click
 import logging
+from math import ceil
 from datetime import datetime, timezone
 from typing import Any
 from seattleflu.db.session import DatabaseSession
@@ -187,10 +188,14 @@ def encounter_details(document: dict) -> dict:
             },
         }
 
-def age(age: int) -> dict:
+def age(age: float) -> dict:
     """
     Given an *age*, return a dict containing its 'value' and a boolean for 
     'ninetyOrAbove'.
+
+    Currently applys math.ceil() to age to match the age from Audere.
+    This may change in the future as we push to report age in months for
+    participants less than 1 year old.
 
     If no value is given for *age*, then will just retun None.
     """
@@ -198,8 +203,8 @@ def age(age: int) -> dict:
         return None
 
     return {
-        "value": age,
-        "ninetyOrAbove": age >= 90
+        "value": ceil(age),
+        "ninetyOrAbove": ceil(age) >= 90
     }
 
 def race(race_name: str) -> list:
