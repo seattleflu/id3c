@@ -1,10 +1,10 @@
 """
 Pre-process clinical data.
 
-Clinical data will contain PII(personally identifiable information) and 
-unnecessary information that do not need to be stored. This process will only
-pull out specific columns of interest that will then be stored in the
-receiving schema of ID3C.
+Clinical data will contain PII (personally identifiable information) and
+unnecessary information that does not need to be stored. This process will only
+pull out specific columns of interest that will then be stored in the receiving
+schema of ID3C.
 """
 import click
 import logging
