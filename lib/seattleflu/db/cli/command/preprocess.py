@@ -37,18 +37,18 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
     """
     Process and insert clinical data from UW.
 
-    Given a *uw_filename* to an Excel document, selects specific columns of 
-    interest and inserts the queried data into the receiving.clinical table as 
-    a JSON document.
+    Given a <UW Clinical Data filename> of an Excel document, selects specific 
+    columns of interest and inserts the queried data into the 
+    receiving.clinical table as a JSON document.
 
-    Specifically looks for a sheet named 'pts' and assumes that each row
-    represents one encounter.
+    Uses <UW/NWH filename> and <HMC/SCH filename> to join clinical data to fill
+    in SFS barcodes. 
 
-    Uses *uw_nwh_file* and *hmc_sch_file* to join clinical data to fill in
-    SFS barcodes. *uw_nwh_file* is the filepath to the data containing 
-    manifests of the barcodes from UWMC and NWH Samples. *hmc_sch_file* is the
-    filepath to the data containing manifests of the barcodes from SFS 
-    Retrospective Samples.
+    <UW/NWH filename> is the filepath to the data containing 
+    manifests of the barcodes from UWMC and NWH Samples. 
+
+    <HMC/SCH filename> is the filepath to the data containing manifests of the 
+    barcodes from HMC and SCH Retrospective Samples.
 
     """
     df, uw_df, nwh_df, hmc_df = load_data(uw_filename, uw_nwh_file, hmc_sch_file)
@@ -87,7 +87,7 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
     }
 
     df = df.rename(columns=column_map)
-    df = drop_columns(column_map.values(), df)
+    df = df[column_map.values()]
 
     # Subset df to drop missing barcodes
     # Handle these missing barcodes separately 
@@ -253,15 +253,13 @@ def print_problem_barcodes(problem_barcodes: pd.DataFrame, output: str):
 def sch_clinical(sch_filename):
     """
     Process and insert clinical data from SCH.
-
-    TODO add hashing of SCH identifier.
     """
     df = pd.read_csv(sch_filename)
     
     # Drop unnecessary columns
     columns_to_keep = ["pat_id", "study_id", "sample_date", 
                        "pat_age", "pat_sex"]
-    df = drop_columns(columns_to_keep, df)
+    df = df[columns_to_keep]
     
     # Standardize column names
     df = df.rename(columns={"pat_id": "individual",
