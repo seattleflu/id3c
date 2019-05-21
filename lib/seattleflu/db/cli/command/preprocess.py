@@ -12,7 +12,6 @@ import os
 import pandas as pd
 import hashlib
 import seattleflu.db as db
-from seattleflu import labelmaker
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.cli import cli
 
