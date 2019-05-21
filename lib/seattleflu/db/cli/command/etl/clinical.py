@@ -74,8 +74,9 @@ def etl_clinical(*, action: str):
 
                 # Skip row if no matching identifier found
                 if received_sample_identifier is None:
-                    LOG.info("Skipping due to unknown barcode" + \
+                    LOG.info("Skipping due to unknown barcode " + \
                               f"{record.document['barcode']}")
+                    mark_skipped(db, record.id)
                     continue
                 
                 # Check sample exists in database
@@ -86,6 +87,7 @@ def etl_clinical(*, action: str):
                 if sample is None:
                     LOG.info("Skipping due to missing sample with identifier" + \
                                 f"{received_sample_identifier}")
+                    mark_skipped(db, record.id)
                     continue
 
                 # Most of the time we expect to see existing sites so a
@@ -115,7 +117,7 @@ def etl_clinical(*, action: str):
                     sample = sample,
                     encounter_id = encounter.id)
 
-                mark_processed(db, record.id)
+                mark_processed(db, record.id, {"status": "processed"})
 
                 LOG.info(f"Finished processing clinical record {record.id}")
 
@@ -377,12 +379,19 @@ def update_sample(db: DatabaseSession,
 
     return sample
 
-def mark_processed(db, clinical_id: int) -> None:
+
+def mark_skipped(db, clinical_id: int) -> None:
+    LOG.debug(f"Marking clinical record {clinical_id} as skipped")
+    mark_processed(db, clinical_id, { "status": "skipped" })
+
+
+def mark_processed(db, clinical_id: int, entry: {}) -> None:
     LOG.debug(f"Marking clinical document {clinical_id} as processed")
 
     data = {
         "clinical_id": clinical_id,
         "log_entry": Json({
+            **entry,
             "revision": REVISION,
             "timestamp": datetime.now(timezone.utc),
         }),
