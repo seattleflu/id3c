@@ -7,11 +7,12 @@ pull out specific columns of interest that will then be stored in the receiving
 schema of ID3C.
 """
 import click
+import hashlib
 import logging
 import os
 import pandas as pd
-import hashlib
 import seattleflu.db as db
+from math import ceil
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.cli import cli
 
