@@ -3,13 +3,16 @@ Process clinical documents into the relational warehouse.
 """
 import click
 import logging
+import re
 from math import ceil
 from datetime import datetime, timezone
 from typing import Any
+from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
 from . import etl
 from .enrollments import find_or_create_site, upsert_individual, upsert_encounter
+from .presence_absence import SampleNotFoundError
 
 
 LOG = logging.getLogger(__name__)
@@ -65,7 +68,10 @@ def etl_clinical(*, action: str):
         for record in clinical:
             with db.savepoint(f"clinical record {record.id}"):
                 LOG.info(f"Processing clinical record {record.id}")
-
+                if re.match(r'FLU[0-9]{3}',record.document["barcode"]):
+                    LOG.info("Skipping due to unknown barcode" + \
+                              f"{record.document['barcode']}")
+                    continue
                 # Most of the time we expect to see existing sites so a
                 # select-first approach makes the most sense to avoid useless
                 # updates.
@@ -88,6 +94,13 @@ def etl_clinical(*, action: str):
                     individual_id   = individual.id,
                     site_id         = site.id,
                     details         = encounter_details(record.document))
+
+                received_sample_identifier = sample_identifier(db, 
+                    record.document["barcode"])
+
+                sample = update_sample(db,
+                    identifier = received_sample_identifier,
+                    encounter_id = encounter.id)
 
                 mark_processed(db, record.id)
 
@@ -290,6 +303,64 @@ def insurance(insurance_response: str) -> list:
     if insurance_response not in insurance_map:
         return [None]
     return [insurance_map[insurance_response]]
+
+
+def sample_identifier(db: DatabaseSession, barcode: str) -> str:
+    """
+    Find corresponding UUID for scanned sample or collection barcode within
+    warehouse.identifier.
+
+    Will be sample barcode if from UW and collection barcode if from SCH.
+    """
+    identifier = find_identifier(db, barcode)
+
+    if identifier:
+        assert identifier.set_name == "samples" or \
+            identifier.set_name == "collections-seattleflu.org", \
+            f"Identifier found in set «{identifier.set_name}», not «samples»"
+
+    return str(identifier.uuid) if identifier else None
+
+
+def update_sample(db: DatabaseSession, 
+                  identifier: str, 
+                  encounter_id: int) -> Any:
+    """
+    Find sample by *identifier* and update the encounter_id.
+    """
+    LOG.debug(f"Looking up sample «{identifier}»")
+
+    sample = db.fetch_row("""
+        select sample_id as id, identifier, encounter_id
+          from warehouse.sample
+         where identifier = %s or 
+               collection_identifier = %s
+           for update
+        """, (identifier,identifier,))
+
+    if not sample:
+        LOG.error(f"No sample with identifier «{identifier}» found")
+        raise SampleNotFoundError(identifier)
+
+    LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
+
+    if sample.encounter_id:
+        assert sample.encounter_id == encounter_id, \
+            f"Sample already linked to another encounter {sample.encounter_id}"
+        return 
+    
+    LOG.info(f"Updating sample {sample.id}")
+
+    sample = db.fetch_row("""
+        update warehouse.sample
+            set encounter_id = %s
+        where sample_id = %s
+        returning sample_id as id, identifier
+        """, (encounter_id, sample.id))
+    
+    assert sample.id, "Updating encounter_id affected no rows!"
+
+    return sample
 
 def mark_processed(db, clinical_id: int) -> None:
     LOG.debug(f"Marking clinical document {clinical_id} as processed")
