@@ -183,10 +183,6 @@ def encounter_details(document: dict) -> dict:
     """
     return {
             "age": age(document.get("age")),      
-            "collections": {
-                "code": document.get("barcode"),
-                "type": "RetrospectiveSample"
-            }, 
             "locations": {
                 "home": {
                     "region": document.get("census_tract"), 
