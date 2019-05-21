@@ -162,7 +162,7 @@ def site_identifier(site_name: str) -> str:
         "UWMC": "UWMedicalCenter", 
         "HMC": "Harborview", 
         "NWH":"Northwest",
-        "UWNC": "UWNeighborhoodClinic",
+        "UWNC": "UWMedicalCenter",
         "SCH": "ChildrensHospitalSeattle"
     }
     if site_name not in site_map:
