@@ -70,22 +70,24 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
     df = df.merge(master_ref, how='left', 
                   on=['MRN', 'Accession', 'Collection date'])
 
-    #Drop unnecessary columns
-    columns_to_keep = ["PersonID", "Age", "LabDtTm", "identifier", "Sex", 
-                       "Race", "Fac", "EthnicGroup", "fluvaccine",
-                       "FinClass", "Barcode ID", "census_tract"]
-    df = drop_columns(columns_to_keep, df)
+    # Standardize column names and drop all other columns
+    column_map = {
+        'Age': 'age',
+        'Barcode ID': 'barcode',
+        'EthnicGroup': 'HispanicLatino',
+        'Fac': 'site',
+        'FinClass': 'MedicalInsurance',
+        'LabDtTm': 'encountered',
+        'PersonID': 'individual',
+        'Race': 'Race',
+        'Sex': 'AssignedSex',
+        'census_tract': 'census_tract',
+        'fluvaccine': 'FluShot',
+        'identifier': 'identifier',
+    }
 
-    #Standardize column names
-    df = df.rename(columns={'PersonID': 'individual', 
-                            'Age': 'age', 
-                            'LabDtTm': 'encountered',
-                            'EthnicGroup': 'HispanicLatino',
-                            'Sex': 'AssignedSex',
-                            'Fac': 'site', 
-                            'fluvaccine': 'FluShot',
-                            'FinClass': 'MedicalInsurance',
-                            'Barcode ID': 'barcode'})
+    df = df.rename(columns=column_map)
+    df = drop_columns(column_map.values(), df)
 
     # Subset df to drop missing barcodes
     # Handle these missing barcodes separately 
