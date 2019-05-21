@@ -227,7 +227,7 @@ def age(age: float) -> dict:
         return None
 
     return {
-        "value": ceil(age),
+        "value": min(ceil(age), 90),
         "ninetyOrAbove": ceil(age) >= 90
     }
 
