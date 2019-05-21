@@ -93,7 +93,7 @@ def etl_clinical(*, action: str):
                 # updates.
                 site = find_or_create_site(db,
                     identifier = site_identifier(record.document["site"]),
-                    details    = {"type": "hospital"})
+                    details    = {"type": "retrospective"})
 
 
                 # Most of the time we expect to see new individuals and new
@@ -159,11 +159,11 @@ def site_identifier(site_name: str) -> str:
     site_name = site_name.upper()
 
     site_map = {
-        "UWMC": "UWMedicalCenter", 
-        "HMC": "Harborview", 
-        "NWH":"Northwest",
-        "UWNC": "UWMedicalCenter",
-        "SCH": "ChildrensHospitalSeattle"
+        "UWMC": "RetrospectiveUWMedicalCenter", 
+        "HMC": "RetrospectiveHarborview", 
+        "NWH":"RetrospectiveNorthwest",
+        "UWNC": "RetrospectiveUWMedicalCenter",
+        "SCH": "RetrospectiveChildrensHospitalSeattle"
     }
     if site_name not in site_map:
         raise UnknownSiteError(f"Unknown site name «{site_name}»")
