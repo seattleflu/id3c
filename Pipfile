@@ -5,6 +5,7 @@ verify_ssl = true
 
 [dev-packages]
 mypy = "*"
+pylint = "*"
 
 [packages]
 click = ">=7.0"

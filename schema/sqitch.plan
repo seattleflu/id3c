@@ -63,3 +63,4 @@ roles/manifest-processor/grants [roles/manifest-processor/create receiving/manif
 shipping/views [shipping/views@2019-05-20-manifests warehouse/sample/encounter-fk] 2019-05-20T17:30:34Z Thomas Sibley <tsibley@fredhutch.org> # Add sample identifier to the modeling view
 @2019-05-20-presence-absence-view 2019-05-20T21:41:21Z Jover Lee <joverlee@fredhutch.org> # Deployed schema as of 20 May 2019
 shipping/views [shipping/views@2019-05-20-presence-absence-view] 2019-05-20T21:42:23Z Jover Lee <joverlee@fredhutch.org> # Add presence/absence result view to shipping schema
+receiving/clinical [receiving/schema] 2019-05-03T19:08:29Z Kairsten Fay <kfay@fredhutch.org> # Receiving table for clinical data

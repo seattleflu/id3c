@@ -212,6 +212,8 @@ Interact with the database on the command-line in your shell to:
 
 * Parse, diff, and upload sample manifests.
 
+* Preprocess clinical data and upload it into receiving.
+
 The `bin/id3c` command is the entry point.  It must be run within the project
 environment, for example by using `pipenv run bin/id3c`.
 
