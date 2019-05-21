@@ -9,7 +9,6 @@ receiving schema of ID3C.
 import click
 import logging
 import os
-from math import ceil
 import pandas as pd
 import hashlib
 import seattleflu.db as db
@@ -135,7 +134,7 @@ def load_uw_metadata(uw_filename: str) -> pd.DataFrame:
     if uw_filename.endswith('.csv'):
         df = pd.read_csv(uw_filename)
     else:
-        df = pd.read_excel(uw_filename, sheet_name='pts')
+        df = pd.read_excel(uw_filename)
     return df
 
 def load_uw_manifest_data(uw_nwh_file: str) -> pd.DataFrame:
@@ -258,30 +257,38 @@ def sch_clinical(sch_filename):
     df = pd.read_csv(sch_filename)
     
     # Drop unnecessary columns
-    columns_to_keep = ["study_id", "sample_date", "age", "sex"]
+    columns_to_keep = ["pat_id", "study_id", "sample_date", 
+                       "pat_age", "pat_sex"]
     df = drop_columns(columns_to_keep, df)
     
     # Standardize column names
-    df = df.rename(columns={"study_id": "barcode",
+    df = df.rename(columns={"pat_id": "individual",
+                            "study_id": "barcode",
                             "sample_date": "encountered",
-                            "sex": "AssignedSex"})
+                            "pat_age": "age",
+                            "pat_sex": "AssignedSex"})
 
     # Convert to date time format
     df["encountered"] = pd.to_datetime(df["encountered"])
-    #Convert age(float) to int
-    df["age"] = df["age"].apply(lambda x: ceil(x))
 
     # Insert static value columns
     df["site"] = "SCH"
 
+    #Create encounter identifier(individual+encountered)
+    df["identifier"] = (df["individual"] + \
+                        df["encountered"].astype(str)).str.lower()
+
+    #Hash individual and encounter identifiers
+    df["individual"] = df["individual"].apply(generate_hash)
+    df["identifier"] = df["identifier"].apply(generate_hash)
+
+
     # Placeholder columns for future data
     df["FluShot"] = None
-    df["ZipCode"] = None
     df["Race"] = None
     df["HispanicLatino"] = None
     df["MedicalInsurace"] = None
-    df["identifier"] = None
-    df["individual"] = None
+    df["census_tract"] = None
    
     session = DatabaseSession()
     with session, session.cursor() as cursor:
