@@ -212,6 +212,10 @@ def race(race_name: str) -> list:
     Given a *race_name*, returns the matching race identifier found in Audere 
     survey data.
     """
+    if race_name is None:
+        LOG.debug("No race response found.")
+        return [None]
+
     race_map = {
         "American Indian or Alaska Native": "americanIndianOrAlaskaNative",
         "Asian": "asian",
@@ -232,6 +236,10 @@ def hispanic_latino(ethnic_group: str) -> list:
     """
     Given an *ethnic_group*, returns yes/no value for HispanicLatino key.
     """
+    if ethnic_group is None:
+        LOG.debug("No ethnic group response found.")
+        return [None]
+
     ethnic_map = {
         "Not Hispanic or Latino": "no",
         "Hispanic or Latino": "yes",
@@ -268,6 +276,10 @@ def insurance(insurance_response: str) -> list:
     Given an *insurance_response*, returns corresponding insurance
     identifier.
     """
+    if insurance_response is None:
+        LOG.debug("No insurance response found.")
+        return [None]
+
     insurance_map = {
         "Commercial": "privateInsurance",
         "Medicaid": "government",
