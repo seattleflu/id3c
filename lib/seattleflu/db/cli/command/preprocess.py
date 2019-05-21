@@ -52,7 +52,7 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
     Retrospective Samples.
 
     """
-    df, uw_df, nwh_df, hmc_df = read_in_data(uw_filename, uw_nwh_file, hmc_sch_file)
+    df, uw_df, nwh_df, hmc_df = load_data(uw_filename, uw_nwh_file, hmc_sch_file)
 
     df = create_unique_identifier(df)
 
@@ -67,8 +67,9 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
     # temp = master_ref[['MRN', 'Accession']]
     # duplicated_refs = temp.duplicated(subset=['MRN', 'Accession'])
 
-    #Join on MRN and Accession
-    df = df.merge(master_ref, how='left', on=['MRN','Accession'])
+    #Join on MRN, Accession and Collection date
+    df = df.merge(master_ref, how='left', 
+                  on=['MRN', 'Accession', 'Collection date'])
 
     #Drop unnecessary columns
     columns_to_keep = ["PersonID", "Age", "LabDtTm", "identifier", "Sex", 
@@ -87,10 +88,6 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
                             'FinClass': 'MedicalInsurance',
                             'Barcode ID': 'barcode'})
 
-    # Convert datatype in 'age' column because
-    # Pandas does not support NaNs with normal type 'int'
-    df['age'] = df['age'].astype(pd.Int64Dtype())
-
     # Subset df to drop missing barcodes
     # Handle these missing barcodes separately 
     missing_barcodes = missing_barcode(df)
@@ -98,10 +95,11 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
     
     problem_barcodes = pd.concat([missing_barcodes, duplicated_barcode(df)], 
                                  ignore_index=True)
+    print_problem_barcodes(problem_barcodes, output)
 
     # Subset to drop duplicate barcodes, keeping first instance
-    df = df.drop_duplicates(subset='barcode')
-    assert len(df) == len(df.barcode.unique())
+    # df = df.drop_duplicates(subset='barcode')
+    assert len(df) == len(df.barcode.unique()), "You have duplicated barcodes"
 
     # Hash PersonID and encounter identifier(MRN+Accession)
     df['individual'] = df['individual'].apply(generate_hash)
@@ -111,37 +109,59 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
     with session, session.cursor() as cursor:
         df.apply(lambda x: insert_clinical(x, cursor), axis=1)
 
-    print_problem_barcodes(problem_barcodes, output)
 
-def read_in_data(uw_filename, uw_nwh_file, hmc_sch_file):
+def load_data(uw_filename, uw_nwh_file, hmc_sch_file):
     """ """
+    df = load_uw_metadata(uw_filename)
+    df = df.rename(columns={'Collection.Date': 'Collection date'})
+    df['Collection date'] = pd.to_datetime(df['Collection date'])
+    # Convert datatype in 'age' column because
+    # Pandas does not support NaNs with normal type 'int'
+    df['Age'] = df['Age'].astype(pd.Int64Dtype())
+
+    uw_df = load_uw_manifest_data(uw_nwh_file)
+    uw_df = uw_df.rename(columns={'Barcode ID (Sample ID)': 'Barcode ID',
+                                  'Collection Date': 'Collection date'})
+
+    nwh_df = load_nwh_manifest_data(uw_nwh_file)
+    nwh_df = nwh_df.rename(columns={'Barcode ID (Sample ID)': 'Barcode ID',
+                                    'Collection Date (per tube)': 'Collection date'})
+
+    hmc_df = load_hmc_manifest_data(hmc_sch_file)
+
+    return df, uw_df, nwh_df, hmc_df
+
+def load_uw_metadata(uw_filename: str) -> pd.DataFrame:
     if uw_filename.endswith('.csv'):
         df = pd.read_csv(uw_filename)
     else:
         df = pd.read_excel(uw_filename, sheet_name='pts')
+    return df
 
-    uw_df = pd.read_excel(uw_nwh_file,sheet_name='UWMC',keep_default_na=False,
-                          usecols=['Barcode ID (Sample ID)', 'MRN', 'Accession'],
-                          na_values=['NA', ''])
-    uw_df = uw_df.rename(columns={'Barcode ID (Sample ID)': 'Barcode ID'})
+def load_uw_manifest_data(uw_nwh_file: str) -> pd.DataFrame:
+    return pd.read_excel(uw_nwh_file, sheet_name='UWMC', keep_default_na=False,
+                         usecols=['Barcode ID (Sample ID)', 'MRN', 
+                                  'Collection Date', 'Accession'],
+                         na_values=['NA', ''])
 
-    nwh_df = pd.read_excel(uw_nwh_file,sheet_name='NWH',keep_default_na=False,
-                           usecols=['Barcode ID (Sample ID)', 'MRN', 'Accession'],
-                           na_values=['NA', ''])
-    nwh_df = nwh_df.rename(columns={'Barcode ID (Sample ID)': 'Barcode ID'})
+def load_nwh_manifest_data(uw_nwh_file: str) -> pd.DataFrame:
+    return pd.read_excel(uw_nwh_file,sheet_name='NWH',keep_default_na=False,
+                         usecols=['Barcode ID (Sample ID)', 'MRN', 
+                                  'Collection Date (per tube)', 'Accession'],
+                         na_values=['NA', ''])
 
-    hmc_df = pd.read_excel(hmc_sch_file,sheet_name='HMC',keep_default_na=False,
-                           usecols=['Barcode ID', 'MRN', 'Accession'],
-                           na_values=['NA', ''])
-
-    return df, uw_df, nwh_df, hmc_df
-
+def load_hmc_manifest_data(hmc_sch_file: str) -> pd.DataFrame:
+    return pd.read_excel(hmc_sch_file,sheet_name='HMC',keep_default_na=False,
+                         usecols=['Barcode ID', 'MRN', 'Accession', 
+                                  'Collection date'], 
+                         na_values=['NA', ''])
 
 def create_unique_identifier(df: pd.DataFrame): 
     """Generate a unique identifier for each encounter and drop duplicates"""
-    df['identifier'] = (df['labMRN'] + df['LabAccNum']).str.lower()
-    df = df.drop_duplicates(subset="identifier")
-    return df 
+    df['identifier'] = (df['labMRN'] + df['LabAccNum'] + \
+                        df['Collection date'].astype(str)
+                        ).str.lower()
+    return df.drop_duplicates(subset="identifier") 
 
 
 def standardize_identifiers(df: pd.DataFrame) -> pd.DataFrame:
@@ -157,7 +177,7 @@ def drop_columns(columns_to_keep: list, df: pd.DataFrame):
     Given a list of column names and a pandas DataFrame,
     drop all columns in Dataframe that are not in list. 
     """
-    columns = df.columns.tolist()
+    columns = list(df.columns)
     columns_to_drop = [col for col in columns if col not in columns_to_keep]
     return df.drop(columns=columns_to_drop, axis=1)
 
@@ -168,8 +188,11 @@ def missing_barcode(df: pd.DataFrame):
     missing_barcodes['problem'] = 'Missing barcode'
     return generate_problem_barcode_columns(missing_barcodes)
 
+
 def generate_problem_barcode_columns(df: pd.DataFrame):
-    """ TODO """ 
+    """ TODO Should we just carry over MRN, Accession and Date instead of 
+        doing it this way? 
+    """ 
     df.loc[:, 'MRN'] = df['identifier'].str[:8]
     df.loc[:, 'Accession'] = df['identifier'].str[8:]
     return df[['MRN', 'Accession', 'barcode', 'problem']]
