@@ -193,13 +193,16 @@ def _parse(*,
     LOG.debug(f"Column map: {column_map}")
 
     # Select just our columns of interest (renamed to our mapped output names),
-    # drop rows with null sample values, and replace missing values (numpy's
-    # NaN) with None so it is converted to null in JSON.
+    # strip leading/trailing spaces from values, replace missing values
+    # (numpy's NaN) and empty strings (possibly from stripping) with None so
+    # they are converted to null in JSON, and drop rows with null sample values
+    # (which may be introduced by stripping).
     manifest = manifest \
         .filter(items = column_map.keys()) \
         .rename(columns = column_map) \
-        .dropna(subset = ["sample"]) \
-        .replace({ pandas.np.nan: None })
+        .apply(lambda column: column.str.strip()) \
+        .replace({ pandas.np.nan: None, "": None }) \
+        .dropna(subset = ["sample"])
 
     # Combine individual aliquot columns into one list-valued column
     if aliquot_columns:
