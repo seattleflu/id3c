@@ -64,3 +64,7 @@ shipping/views [shipping/views@2019-05-20-manifests warehouse/sample/encounter-f
 @2019-05-20-presence-absence-view 2019-05-20T21:41:21Z Jover Lee <joverlee@fredhutch.org> # Deployed schema as of 20 May 2019
 shipping/views [shipping/views@2019-05-20-presence-absence-view] 2019-05-20T21:42:23Z Jover Lee <joverlee@fredhutch.org> # Add presence/absence result view to shipping schema
 receiving/clinical [receiving/schema] 2019-05-03T19:08:29Z Kairsten Fay <kfay@fredhutch.org> # Receiving table for clinical data
+roles/clinical-uploader/create 2019-05-23T22:07:37Z Kairsten Fay <kfay@fredhutch.org> # Upload clinical records into receiving
+roles/clinical-uploader/grants [receiving/clinical roles/clinical-uploader/create] 2019-05-23T22:17:07Z Kairsten Fay <kfay@fredhutch.org> # Grants to clinical-uploader
+roles/clinical-processor/create 2019-05-23T22:23:30Z Kairsten Fay <kfay@fredhutch.org> # Create clinical-processor role
+roles/clinical-processor/grants [receiving/clinical roles/clinical-processor/create] 2019-05-23T22:26:30Z Kairsten Fay <kfay@fredhutch.org> # Grants to clinical-processor

@@ -186,10 +186,7 @@ def sex(sex_name) -> str:
         0.0: "female"
     }
 
-    if sex_name not in sex_map:
-        return "other"
-
-    return sex_map[sex_name]
+    return sex_map.get(sex_name, "other")
 
 def encounter_details(document: dict) -> dict:
     """
@@ -311,9 +308,8 @@ def insurance(insurance_response: str) -> list:
         "Tricare": "government",
         "Other": "other"
     }
-    if insurance_response not in insurance_map:
-        return [None]
-    return [insurance_map[insurance_response]]
+
+    return [insurance_map.get(insurance_response, None)]
 
 
 def sample_identifier(db: DatabaseSession, barcode: str) -> str:
