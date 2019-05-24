@@ -34,7 +34,7 @@ LOG = logging.getLogger(__name__)
 # presence-absence tests lacking this revision number in their log.  If a 
 # change to the ETL routine necessitates re-processing all presence-absence tests, 
 # this revision number should be incremented.
-REVISION = 2
+REVISION = 3
 
 
 @etl.command("presence-absence", help = __doc__)
@@ -267,9 +267,11 @@ def sample_identifier(db: DatabaseSession, barcode: str) -> str:
 
 def sample_details(document: dict) -> dict:
     """
+    Capture NWGC sample ID.
     Capture details about the go/no-go sequencing call for this sample.
     """
     return {
+        "nwgc_id": document['sampleId'],
         "sequencing_call": {
             "comment": document['sampleComment'],
             "initial": document['initialProceedToSequencingCall'],
