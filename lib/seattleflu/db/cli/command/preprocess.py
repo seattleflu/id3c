@@ -247,16 +247,16 @@ def sch_clinical(sch_filename):
     df = pd.read_csv(sch_filename)
 
     # Drop unnecessary columns
-    columns_to_keep = ["pat_id", "study_id", "sample_date", 
-                       "pat_age", "pat_sex"]
+    columns_to_keep = ["pat_id2", "study_id", "drawndate",
+                       "age", "sex", "census_tract"]
     df = df[columns_to_keep]
 
     # Standardize column names
-    df = df.rename(columns={"pat_id": "individual",
+    df = df.rename(columns={"pat_id2": "individual",
                             "study_id": "barcode",
-                            "sample_date": "encountered",
-                            "pat_age": "age",
-                            "pat_sex": "AssignedSex"})
+                            "drawndate": "encountered",
+                            "age": "age",
+                            "sex": "AssignedSex"})
 
     # Convert to date time format
     df["encountered"] = pd.to_datetime(df["encountered"])
@@ -278,7 +278,6 @@ def sch_clinical(sch_filename):
     df["Race"] = None
     df["HispanicLatino"] = None
     df["MedicalInsurace"] = None
-    df["census_tract"] = None
 
     session = DatabaseSession()
     with session, session.cursor() as cursor:
