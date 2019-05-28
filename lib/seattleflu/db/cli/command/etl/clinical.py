@@ -18,10 +18,10 @@ LOG = logging.getLogger(__name__)
 
 
 # This revision number is stored in the processing_log of each clinical
-# record when the clinical record is successfully processed by this ETL 
+# record when the clinical record is successfully processed by this ETL
 # routine. The routine finds new-to-it records to process by looking for
-# clinical records lacking this revision number in their log.  If a 
-# change to the ETL routine necessitates re-processing all clinical records, 
+# clinical records lacking this revision number in their log.  If a
+# change to the ETL routine necessitates re-processing all clinical records,
 # this revision number should be incremented.
 REVISION = 1
 
@@ -69,7 +69,7 @@ def etl_clinical(*, action: str):
                 LOG.info(f"Processing clinical record {record.id}")
 
                 # Check validity of barcode
-                received_sample_identifier = sample_identifier(db, 
+                received_sample_identifier = sample_identifier(db,
                     record.document["barcode"])
 
                 # Skip row if no matching identifier found
@@ -78,9 +78,9 @@ def etl_clinical(*, action: str):
                               f"{record.document['barcode']}")
                     mark_skipped(db, record.id)
                     continue
-                
+
                 # Check sample exists in database
-                sample = find_sample(db, 
+                sample = find_sample(db,
                     identifier = received_sample_identifier)
 
                 # Skip row if sample does not exist
@@ -156,20 +156,20 @@ def site_identifier(site_name: str) -> str:
     """
     if not site_name:
         LOG.debug("No site name found")
-        return "Unknown"  # TODO 
+        return "Unknown"  # TODO
 
     site_name = site_name.upper()
 
     site_map = {
-        "UWMC": "RetrospectiveUWMedicalCenter", 
-        "HMC": "RetrospectiveHarborview", 
+        "UWMC": "RetrospectiveUWMedicalCenter",
+        "HMC": "RetrospectiveHarborview",
         "NWH":"RetrospectiveNorthwest",
         "UWNC": "RetrospectiveUWMedicalCenter",
         "SCH": "RetrospectiveChildrensHospitalSeattle"
     }
     if site_name not in site_map:
         raise UnknownSiteError(f"Unknown site name «{site_name}»")
-    
+
     return site_map[site_name]
 
 def sex(sex_name) -> str:
@@ -194,10 +194,10 @@ def encounter_details(document: dict) -> dict:
     from SQL.
     """
     return {
-            "age": age(document.get("age")),      
+            "age": age(document.get("age")),
             "locations": {
                 "home": {
-                    "region": document.get("census_tract"), 
+                    "region": document.get("census_tract"),
                 }
             },
             "responses": {
@@ -211,7 +211,7 @@ def encounter_details(document: dict) -> dict:
 
 def age(age: float) -> dict:
     """
-    Given an *age*, return a dict containing its 'value' and a boolean for 
+    Given an *age*, return a dict containing its 'value' and a boolean for
     'ninetyOrAbove'.
 
     Currently applys math.ceil() to age to match the age from Audere.
@@ -230,7 +230,7 @@ def age(age: float) -> dict:
 
 def race(race_name: str) -> list:
     """
-    Given a *race_name*, returns the matching race identifier found in Audere 
+    Given a *race_name*, returns the matching race identifier found in Audere
     survey data.
     """
     if race_name is None:
@@ -250,7 +250,7 @@ def race(race_name: str) -> list:
 
     if race_name not in race_map:
         raise UnknownRaceError(f"Unknown race name «{race_name}»")
-    
+
     return [race_map[race_name]]
 
 def hispanic_latino(ethnic_group: str) -> list:
@@ -270,7 +270,7 @@ def hispanic_latino(ethnic_group: str) -> list:
 
     if ethnic_group not in ethnic_map:
         raise UnknownEthnicGroupError(f"Unknown ethnic group «{ethnic_group}»")
-    
+
     return [ethnic_map[ethnic_group]]
 
 def flu_shot(flu_shot_response: str) -> list:
@@ -338,7 +338,7 @@ def find_sample(db: DatabaseSession, identifier: str) -> Any:
     sample = db.fetch_row("""
         select sample_id as id, identifier, encounter_id
           from warehouse.sample
-         where identifier = %s or 
+         where identifier = %s or
                collection_identifier = %s
            for update
         """, (identifier,identifier,))
@@ -351,8 +351,8 @@ def find_sample(db: DatabaseSession, identifier: str) -> Any:
     return sample
 
 
-def update_sample(db: DatabaseSession, 
-                  sample, 
+def update_sample(db: DatabaseSession,
+                  sample,
                   encounter_id: int) -> Any:
     """
     Update sample's encounter_id.
@@ -370,7 +370,7 @@ def update_sample(db: DatabaseSession,
         where sample_id = %s
         returning sample_id as id, identifier
         """, (encounter_id, sample.id))
-    
+
     assert sample.id, "Updating encounter_id affected no rows!"
 
     LOG.info(f"Updated sample {sample.id}")
@@ -411,21 +411,21 @@ class UnknownSiteError(ValueError):
 
 class UnknownRaceError(ValueError):
     """
-    Raised by :function:`race` if its provided *race_name* is not among the set 
+    Raised by :function:`race` if its provided *race_name* is not among the set
     of expected values.
     """
     pass
 
 class UnknownEthnicGroupError(ValueError):
     """
-    Raised by :function:`hispanic_latino` if its provided *ethnic_group* is not 
+    Raised by :function:`hispanic_latino` if its provided *ethnic_group* is not
     among the set of expected values.
     """
     pass
 
 class UnknownFluShotResponseError(ValueError):
     """
-    Raised by :function:`flu_shot` if its provided *flu_shot_reponse* is not 
+    Raised by :function:`flu_shot` if its provided *flu_shot_reponse* is not
     among the set of expected values.
     """
     pass
