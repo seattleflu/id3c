@@ -357,12 +357,12 @@ def update_sample(db: DatabaseSession,
     """
     Update sample's encounter_id.
     """
+    LOG.debug(f"Updating sample {sample.id}, linked to encounter {encounter_id}")
+
     if sample.encounter_id:
         assert sample.encounter_id == encounter_id, \
-            f"Sample already linked to another encounter {sample.encounter_id}"
+            f"Sample {sample.id} already linked to another encounter {sample.encounter_id}"
         return 
-    
-    LOG.info(f"Updating sample {sample.id}")
 
     sample = db.fetch_row("""
         update warehouse.sample
@@ -372,6 +372,8 @@ def update_sample(db: DatabaseSession,
         """, (encounter_id, sample.id))
     
     assert sample.id, "Updating encounter_id affected no rows!"
+
+    LOG.info(f"Updated sample {sample.id}")
 
     return sample
 
