@@ -29,7 +29,7 @@ def preprocess():
 @click.argument("uw_filename", metavar = "<UW Clinical Data filename>")
 @click.argument("uw_nwh_file", metavar="<UW/NWH filename>")
 @click.argument("hmc_sch_file", metavar="<HMC/SCH filename>")
-@click.option("-o", "--output", metavar="<output filename>", 
+@click.option("-o", "--output", metavar="<output filename>",
     help="The filename for the output of missing barcodes")
 
 
@@ -37,21 +37,21 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
     """
     Process and insert clinical data from UW.
 
-    Given a <UW Clinical Data filename> of an Excel document, selects specific 
-    columns of interest and inserts the queried data into the 
+    Given a <UW Clinical Data filename> of an Excel document, selects specific
+    columns of interest and inserts the queried data into the
     receiving.clinical table as a JSON document.
 
     Uses <UW/NWH filename> and <HMC/SCH filename> to join clinical data to fill
-    in SFS barcodes. 
+    in SFS barcodes.
 
-    <UW/NWH filename> is the filepath to the data containing 
-    manifests of the barcodes from UWMC and NWH Samples. 
+    <UW/NWH filename> is the filepath to the data containing
+    manifests of the barcodes from UWMC and NWH Samples.
 
-    <HMC/SCH filename> is the filepath to the data containing manifests of the 
+    <HMC/SCH filename> is the filepath to the data containing manifests of the
     barcodes from HMC and SCH Retrospective Samples.
 
     """
-    clinical_records, uw_manifest, nwh_manifest, hmc_manifest = load_data(uw_filename, 
+    clinical_records, uw_manifest, nwh_manifest, hmc_manifest = load_data(uw_filename,
         uw_nwh_file, hmc_sch_file)
     clinical_records = create_unique_identifier(clinical_records)
     clinical_records = standardize_identifiers(clinical_records)
@@ -62,7 +62,7 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
     master_ref['Barcode ID'] = master_ref['Barcode ID'].str.lower()
 
     #Join on MRN, Accession and Collection date
-    clinical_records = clinical_records.merge(master_ref, how='left', 
+    clinical_records = clinical_records.merge(master_ref, how='left',
                   on=['MRN', 'Accession', 'Collection date'])
 
     # Standardize names of columns that will be added to the database
@@ -101,19 +101,19 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
     # Hash PersonID and encounter identifier (MRN+Accession+Collection date)
     clinical_records['individual'] = clinical_records['individual'].apply(generate_hash)
     clinical_records['identifier'] = clinical_records['identifier'].apply(generate_hash)
-    
+
     session = DatabaseSession()
     with session, session.cursor() as cursor:
         clinical_records.apply(lambda x: insert_clinical(x, cursor), axis=1)
 
 
-def load_data(uw_filename: str, uw_nwh_file: str, hmc_sch_file: str): 
+def load_data(uw_filename: str, uw_nwh_file: str, hmc_sch_file: str):
     """
-    Returns a pandas DataFrame containing clinical records from UW given the 
+    Returns a pandas DataFrame containing clinical records from UW given the
     *uw_filename*.
 
     Returns a pandas DataFrame containing barcode manifest data from UWMC & NWH
-    and SCH given the two filepaths *uw_nwh_file* and *hmc_sch_file*, 
+    and SCH given the two filepaths *uw_nwh_file* and *hmc_sch_file*,
     respectively.
     """
     clinical_records = load_uw_metadata(uw_filename)
@@ -137,7 +137,7 @@ def load_data(uw_filename: str, uw_nwh_file: str, hmc_sch_file: str):
     return clinical_records, uw_manifest, nwh_manifest, hmc_manifest
 
 def load_uw_metadata(uw_filename: str) -> pd.DataFrame:
-    """ 
+    """
     Given a filename *uw_filename*, returns a pandas DataFrame containing
     clinical metadata.
     """
@@ -157,12 +157,12 @@ def load_manifest_data(filename: str, sheet_name: str) -> pd.DataFrame:
     return df.filter(regex=("Barcode ID|MRN|Collection [Dd]ate|Accession"))
 
 
-def create_unique_identifier(df: pd.DataFrame): 
+def create_unique_identifier(df: pd.DataFrame):
     """Generate a unique identifier for each encounter and drop duplicates"""
     df['identifier'] = (df['labMRN'] + df['LabAccNum'] + \
                         df['Collection date'].astype(str)
                         ).str.lower()
-    return df.drop_duplicates(subset="identifier") 
+    return df.drop_duplicates(subset="identifier")
 
 
 def standardize_identifiers(df: pd.DataFrame) -> pd.DataFrame:
@@ -173,7 +173,7 @@ def standardize_identifiers(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def missing_barcode(df: pd.DataFrame) -> pd.DataFrame:
-    """ 
+    """
     Given a pandas DataFrame *df*, returns a DataFrame with missing barcodes and
     a description of the problem.
     """
@@ -184,10 +184,10 @@ def missing_barcode(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def duplicated_barcode(df: pd.DataFrame) -> pd.DataFrame:
-    """ 
+    """
     Given a pandas DataFrame *df*, returns a DataFrame with duplicated barcodes
     and a description of the problem.
-    """ 
+    """
     duplicates = pd.DataFrame(df.barcode.value_counts())
     duplicates = duplicates[duplicates['barcode'] > 1]
     duplicates = pd.Series(duplicates.index)
@@ -200,9 +200,9 @@ def duplicated_barcode(df: pd.DataFrame) -> pd.DataFrame:
 
 def generate_hash(identifier: str):
     """
-    Generate hash for *identifier* that is linked to identifiable records. 
+    Generate hash for *identifier* that is linked to identifiable records.
     Must provide a "PARTICIPANT_DEIDENTIFIER_SECRET" as an OS environment
-    variable. 
+    variable.
     """
     secret = os.environ["PARTICIPANT_DEIDENTIFIER_SECRET"]
     new_hash = hashlib.sha256()
@@ -213,10 +213,10 @@ def generate_hash(identifier: str):
 
 def insert_clinical(df: pd.DataFrame, cursor):
     """
-    Given a pandas DataFrame, inserts it as a JSON document into the 
-    receiving.clinical table 
+    Given a pandas DataFrame, inserts it as a JSON document into the
+    receiving.clinical table
     """
-    
+
     LOG.debug(f"Inserting clinical data for barcode: «{df['barcode']}» ")
 
     document = df.to_json(date_format='iso')
@@ -230,7 +230,7 @@ def print_problem_barcodes(problem_barcodes: pd.DataFrame, output: str):
     """
     Given a pandas DataFrame of *problem_barcodes*, writes the data to
     stdout unless a filename *output* is given.
-    """ 
+    """
     if output:
         problem_barcodes.to_csv(output, index=False)
     else:
@@ -245,12 +245,12 @@ def sch_clinical(sch_filename):
     Process and insert clinical data from SCH.
     """
     df = pd.read_csv(sch_filename)
-    
+
     # Drop unnecessary columns
     columns_to_keep = ["pat_id", "study_id", "sample_date", 
                        "pat_age", "pat_sex"]
     df = df[columns_to_keep]
-    
+
     # Standardize column names
     df = df.rename(columns={"pat_id": "individual",
                             "study_id": "barcode",
@@ -279,7 +279,7 @@ def sch_clinical(sch_filename):
     df["HispanicLatino"] = None
     df["MedicalInsurace"] = None
     df["census_tract"] = None
-   
+
     session = DatabaseSession()
     with session, session.cursor() as cursor:
         df.apply(lambda x: insert_clinical(x, cursor), axis=1)
