@@ -244,8 +244,6 @@ def race(race_name: str) -> list:
         "Native Hawaiian or Other Pacific Islander": "nativeHawaiian",
         "White": "white",
         "Multiple races": "other",
-        "Unknown": None, 
-        "NULL": None
     }
 
     if race_name not in race_map:
@@ -264,8 +262,6 @@ def hispanic_latino(ethnic_group: str) -> list:
     ethnic_map = {
         "Not Hispanic or Latino": "no",
         "Hispanic or Latino": "yes",
-        "Unknown": None,
-        "NULL": None
     }
 
     if ethnic_group not in ethnic_map:
