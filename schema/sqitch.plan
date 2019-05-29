@@ -68,3 +68,5 @@ roles/clinical-uploader/create 2019-05-23T22:07:37Z Kairsten Fay <kfay@fredhutch
 roles/clinical-uploader/grants [receiving/clinical roles/clinical-uploader/create] 2019-05-23T22:17:07Z Kairsten Fay <kfay@fredhutch.org> # Grants to clinical-uploader
 roles/clinical-processor/create 2019-05-23T22:23:30Z Kairsten Fay <kfay@fredhutch.org> # Create clinical-processor role
 roles/clinical-processor/grants [receiving/clinical roles/clinical-processor/create] 2019-05-23T22:26:30Z Kairsten Fay <kfay@fredhutch.org> # Grants to clinical-processor
+roles/identifier-minter/create 2019-05-29T00:35:13Z Kairsten Fay <kfay@fredhutch.org> # Mint new identifiers and make barcode labels
+roles/identifier-minter/grants [warehouse/identifier roles/identifier-minter/create] 2019-05-29T00:48:29Z Kairsten Fay <kfay@fredhutch.org> # Grants to identifier-minter
