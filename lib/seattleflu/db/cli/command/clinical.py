@@ -142,12 +142,16 @@ def load_uw_metadata(uw_filename: str) -> pd.DataFrame:
     Given a filename *uw_filename*, returns a pandas DataFrame containing
     clinical metadata.
     """
+    dtypes = {'census_tract': 'str'}
     dates = ['Collection.Date']
     na_values = ['Unknown']
+
     if uw_filename.endswith('.csv'):
-        df = pd.read_csv(uw_filename, na_values=na_values, parse_dates=dates)
+        df = pd.read_csv(uw_filename, na_values=na_values, parse_dates=dates,
+                         dtype=dtypes)
     else:
-        df = pd.read_excel(uw_filename, na_values=na_values, parse_dates=dates)
+        df = pd.read_excel(uw_filename, na_values=na_values, parse_dates=dates,
+                           dtype=dtypes)
 
     df = add_metadata(df, uw_filename)
 
@@ -270,7 +274,8 @@ def parse_sch(sch_filename, output):
     All clinical records parsed are output to stdout as newline-delimited JSON
     records.  You will likely want to redirect stdout to a file.
     """
-    clinical_records = pd.read_csv(sch_filename)
+    dtypes = {'census_tract': 'str'}
+    clinical_records = pd.read_csv(sch_filename, dtype=dtypes)
     clinical_records = add_metadata(clinical_records, sch_filename)
 
     # Standardize column names
