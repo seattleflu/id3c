@@ -141,10 +141,11 @@ def load_uw_metadata(uw_filename: str) -> pd.DataFrame:
     Given a filename *uw_filename*, returns a pandas DataFrame containing
     clinical metadata.
     """
+    na_values = ['Unknown']
     if uw_filename.endswith('.csv'):
-        df = pd.read_csv(uw_filename)
+        df = pd.read_csv(uw_filename, na_values=na_values)
     else:
-        df = pd.read_excel(uw_filename)
+        df = pd.read_excel(uw_filename, na_values=na_values)
     return df
 
 def load_manifest_data(filename: str, sheet_name: str) -> pd.DataFrame:
@@ -246,19 +247,20 @@ def sch_clinical(sch_filename):
     """
     df = pd.read_csv(sch_filename)
 
-    # Drop unnecessary columns
-    columns_to_keep = ["pat_id2", "study_id", "drawndate",
-                       "age", "sex", "census_tract"]
-    df = df[columns_to_keep]
 
     # Standardize column names
-    df = df.rename(columns={"pat_id2": "individual",
-                            "study_id": "barcode",
-                            "drawndate": "encountered",
-                            "age": "age",
-                            "sex": "AssignedSex"})
+    column_map = {
+        "pat_id2": "individual",
+        "study_id": "barcode",
+        "drawndate": "encountered",
+        "age": "age",
+        "sex": "AssignedSex",
+        "census_tract": "census_tract",
+    }
+    df = df.rename(columns=column_map)
 
-    # Convert to date time format
+    # Drop unnecessary columns
+    df = df[column_map.values()]
     df["encountered"] = pd.to_datetime(df["encountered"])
 
     # Insert static value columns
