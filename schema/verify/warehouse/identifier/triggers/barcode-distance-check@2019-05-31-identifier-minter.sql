@@ -2,13 +2,6 @@
 
 begin;
 
--- We are using the destructive `truncate` on the identifier table but rolling
--- back below. Test data in this file began conflicting with real data in the
--- production db.
--- Until we find a better way to ensure that the test data never conflict with
--- real data, we will employ this truncate-but-rollback approach.
-truncate warehouse.identifier;
-
 do $$
 declare
     testing_set integer;
@@ -51,6 +44,4 @@ begin
 end
 $$;
 
--- DO NOT change this `rollback` to `commit` without removing the `truncate`
--- statement above!
-rollback;  -- `rollback` keeps this script from destroying real data!
+rollback;

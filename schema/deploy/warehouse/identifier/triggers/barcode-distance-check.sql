@@ -8,7 +8,9 @@ begin;
 --
 --    cual-id create ids --existing-ids ...
 --
-create function warehouse.identifier_barcode_distance_check() returns trigger as $$
+-- CAUTION ADVISED when changing implementation of this this function, as it
+-- will run as the owner, not the current user.
+create or replace function warehouse.identifier_barcode_distance_check() returns trigger as $$
     declare
         minimum_distance integer := 3;
         conflicting_barcodes citext[];
@@ -57,7 +59,14 @@ create function warehouse.identifier_barcode_distance_check() returns trigger as
             return NEW;
         end if;
     end
-$$ language plpgsql;
+$$ language plpgsql
+   security definer
+   -- Explicitly restrict which schemas the code inside the function can find
+   -- other tables, functions, etc. without qualification
+   SET search_path = pg_catalog, public, pg_temp;
+
+drop trigger identifier_barcode_distance_check_before_insert on warehouse.identifier;
+drop trigger identifier_barcode_distance_check_before_update on warehouse.identifier;
 
 create trigger identifier_barcode_distance_check_before_insert
     before insert on warehouse.identifier

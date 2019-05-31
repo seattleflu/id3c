@@ -70,3 +70,5 @@ roles/clinical-processor/create 2019-05-23T22:23:30Z Kairsten Fay <kfay@fredhutc
 roles/clinical-processor/grants [receiving/clinical roles/clinical-processor/create] 2019-05-23T22:26:30Z Kairsten Fay <kfay@fredhutch.org> # Grants to clinical-processor
 roles/identifier-minter/create 2019-05-29T00:35:13Z Kairsten Fay <kfay@fredhutch.org> # Mint new identifiers and make barcode labels
 roles/identifier-minter/grants [warehouse/identifier roles/identifier-minter/create] 2019-05-29T00:48:29Z Kairsten Fay <kfay@fredhutch.org> # Grants to identifier-minter
+@2019-05-31-identifier-minter 2019-05-31T17:39:34Z Kairsten Fay <kfay@fredhutch.org> # Mark `warehouse.identifier_barcode_distance_check()` with security definer.\n\nThis rework is necessary for creating the "identifier-minter" role.
+warehouse/identifier/triggers/barcode-distance-check [warehouse/identifier/triggers/barcode-distance-check@2019-05-31-identifier-minter warehouse/identifier functions/hamming_distance] 2019-05-31T17:41:38Z Kairsten Fay <kfay@fredhutch.org> # Mark the trigger function

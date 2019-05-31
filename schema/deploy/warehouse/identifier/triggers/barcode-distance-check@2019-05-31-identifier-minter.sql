@@ -8,7 +8,7 @@ begin;
 --
 --    cual-id create ids --existing-ids ...
 --
-create or replace function warehouse.identifier_barcode_distance_check() returns trigger as $$
+create function warehouse.identifier_barcode_distance_check() returns trigger as $$
     declare
         minimum_distance integer := 3;
         conflicting_barcodes citext[];
@@ -58,9 +58,6 @@ create or replace function warehouse.identifier_barcode_distance_check() returns
         end if;
     end
 $$ language plpgsql;
-
-drop trigger identifier_barcode_distance_check_before_insert on warehouse.identifier;
-drop trigger identifier_barcode_distance_check_before_update on warehouse.identifier;
 
 create trigger identifier_barcode_distance_check_before_insert
     before insert on warehouse.identifier
