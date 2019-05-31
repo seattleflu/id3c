@@ -1,0 +1,12 @@
+strict digraph {
+  rankdir = LR;
+
+  node [shape=plaintext];
+  edge [style=solid];
+
+  Flu -> A;
+  Flu -> B;
+  Flu -> C;
+  A -> H1;
+  A -> H3;
+}

@@ -1,0 +1,44 @@
+strict digraph {
+    rankdir = BT;
+
+    // Exists
+    node [shape=box];
+    edge [style=solid];
+
+    individual;
+
+    site;
+
+    encounter -> individual;
+    encounter -> site;
+
+    sample -> encounter [arrowhead=empty];
+
+    presence_absence [label="presence/absence"];
+    presence_absence -> sample;
+    presence_absence -> target;
+
+
+    // Planned
+    node [style=dotted];
+    edge [style=dotted];
+
+    encounter -> place;
+    site -> place;
+
+    organism [label="organism (i.e. pathogen, taxa)"];
+    target -> organism;
+
+    sequence_read_set [label="sequence read set"];
+    sequence_read_set -> sample;
+
+    genome -> sample;
+    genome -> organism;
+    genome -> sequence_read_set [arrowhead=empty];
+
+    encounter -> vaccination;
+    vaccination -> organism;
+
+    encounter -> race;
+    encounter -> symptom;
+}
