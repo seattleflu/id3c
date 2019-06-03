@@ -14,9 +14,7 @@ begin;
 -- there needs to be a lag between view development and consumers being
 -- updated, copy the view definition into v2 and make changes there.
 
-drop view shipping.incidence_model_observation_v1;
-
-create view shipping.incidence_model_observation_v1 as
+create or replace view shipping.incidence_model_observation_v1 as
 
     select encounter.identifier as encounter,
 
@@ -32,11 +30,7 @@ create view shipping.incidence_model_observation_v1 as
            -- never be a real value in our dataset.
            --
            -- XXX TODO: This will be pre-processed out of the JSON in the future.
-           case (encounter.details->'age'->>'ninetyOrAbove')::bool
-             when true
-             then 90
-             else (encounter.details->'age'->>'value')::int
-           end as age,
+           ceiling(age_in_years(age))::int as age,
 
            age_bin_fine.range as age_range_fine,
            lower(age_bin_fine.range) as age_range_fine_lower,
@@ -66,8 +60,8 @@ create view shipping.incidence_model_observation_v1 as
       from warehouse.encounter
       join warehouse.individual using (individual_id)
       join warehouse.site using (site_id)
-      left join shipping.age_bin_fine on age_bin_fine.range @> cast(encounter.details->'age'->>'value' as int)
-      left join shipping.age_bin_coarse on age_bin_coarse.range @> cast(encounter.details->'age'->>'value' as int),
+      left join shipping.age_bin_fine on age_bin_fine.range @> ceiling(age_in_years(age))::int
+      left join shipping.age_bin_coarse on age_bin_coarse.range @> ceiling(age_in_years(age))::int,
 
       lateral (
           -- XXX TODO: The data in this subquery will be modeled better in the
@@ -115,7 +109,7 @@ grant select
    on shipping.incidence_model_observation_v1
    to "incidence-modeler";
 
-create view shipping.presence_absence_result_v1 as
+create or replace view shipping.presence_absence_result_v1 as
 
     select sample.identifier as sample,
            target.identifier as target,

@@ -14,7 +14,10 @@ begin;
 -- there needs to be a lag between view development and consumers being
 -- updated, copy the view definition into v2 and make changes there.
 
-create or replace view shipping.incidence_model_observation_v1 as
+drop view shipping.incidence_model_observation_v1;
+drop view shipping.presence_absence_result_v1;
+
+create view shipping.incidence_model_observation_v1 as
 
     select encounter.identifier as encounter,
 
@@ -113,7 +116,7 @@ grant select
    on shipping.incidence_model_observation_v1
    to "incidence-modeler";
 
-create or replace view shipping.presence_absence_result_v1 as
+create view shipping.presence_absence_result_v1 as
 
     select sample.identifier as sample,
            target.identifier as target,
