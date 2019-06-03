@@ -2,7 +2,7 @@
 
 begin;
 
-set search_path to receiving;
+set local search_path to receiving;
 
 drop table aliquot;
 drop table sample;

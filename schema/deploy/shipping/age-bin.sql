@@ -2,7 +2,7 @@
 
 begin;
 
-set search_path to shipping;
+set local search_path to shipping;
 
 create table age_bin_fine (
     range int4range primary key,
