@@ -130,5 +130,96 @@ revoke all
 grant select
     on shipping.presence_absence_result_v1
     to "incidence-modeler";
-    
+
+create view shipping.incidence_model_observation_v2 as
+
+    select encounter.identifier as encounter,
+
+           (encountered at time zone 'US/Pacific')::date as encountered_date,
+           to_char((encountered at time zone 'US/Pacific')::date, 'IYYY-"W"IW') as encountered_week,
+
+           site.details->>'type' as site_type,
+
+           individual.identifier as individual,
+           individual.sex,
+
+           age_in_years(age) as age,
+
+           age_bin_fine_v2.range as age_range_fine,
+           age_in_years(lower(age_bin_fine_v2.range)) as age_range_fine_lower,
+           age_in_years(upper(age_bin_fine_v2.range)) as age_range_fine_upper,
+
+           age_bin_coarse_v2.range as age_range_coarse,
+           age_in_years(lower(age_bin_coarse_v2.range)) as age_range_coarse_lower,
+           age_in_years(upper(age_bin_coarse_v2.range)) as age_range_coarse_upper,
+
+           -- XXX TODO: This will be pre-processed out of the JSON in the future.
+           case (encounter.details->'locations'->'temp') is not null
+             when true
+             then encounter.details->'locations'->'temp'->>'region'
+             else encounter.details->'locations'->'home'->>'region'
+           end as residence_census_tract,
+
+           -- XXX TODO: This will be pre-processed out of the JSON in the future.
+           encounter.details->'locations'->'work'->>'region' as work_census_tract,
+
+           encounter_responses.flu_shot,
+           encounter_responses.symptoms,
+           encounter_responses.race,
+           encounter_responses.hispanic_or_latino,
+
+           encounter_sample.sample
+
+      from warehouse.encounter
+      join warehouse.individual using (individual_id)
+      join warehouse.site using (site_id)
+      left join shipping.age_bin_fine_v2 on age_bin_fine_v2.range @> age
+      left join shipping.age_bin_coarse_v2 on age_bin_coarse_v2.range @> age,
+
+      lateral (
+          -- XXX TODO: The data in this subquery will be modeled better in the
+          -- future and the verbosity of extracting data from the JSON details
+          -- document will go away.
+          --   -trs, 22 March 2019
+
+          select -- XXX FIXME: Remove use of nullif() when we're no longer
+                 -- dealing with raw response values.
+                 nullif(nullif(responses."FluShot"[1], 'doNotKnow'), 'dontKnow')::bool as flu_shot,
+
+                 -- XXX FIXME: Remove duplicate value collapsing when we're no
+                 -- longer affected by this known Audere data quality issue.
+                 array_distinct(responses."Symptoms") as symptoms,
+                 array_distinct(responses."Race") as race,
+
+                 -- XXX FIXME: Remove use of nullif() when we're no longer
+                 -- dealing with raw response values.
+                 nullif(responses."HispanicLatino"[1], 'preferNotToSay')::bool as hispanic_or_latino
+
+            from jsonb_to_record(encounter.details->'responses')
+              as responses (
+                  "FluShot" text[],
+                  "Symptoms" text[],
+                  "Race" text[],
+                  "HispanicLatino" text[]))
+        as encounter_responses,
+
+      lateral (
+        select first_value(sample.identifier) over (order by sample_id) as sample
+          from warehouse.sample
+         where sample.encounter_id = encounter.encounter_id)
+        as encounter_sample
+
+     order by encountered;
+
+comment on view shipping.incidence_model_observation_v2 is
+    'Version 2 of view of warehoused encounters and important questionnaire responses for modeling and viz teams';
+
+revoke all
+    on shipping.incidence_model_observation_v2
+  from "incidence-modeler";
+
+grant select
+   on shipping.incidence_model_observation_v2
+   to "incidence-modeler";
+
 commit;
