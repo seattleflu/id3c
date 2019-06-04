@@ -72,3 +72,4 @@ roles/identifier-minter/create 2019-05-29T00:35:13Z Kairsten Fay <kfay@fredhutch
 roles/identifier-minter/grants [warehouse/identifier roles/identifier-minter/create] 2019-05-29T00:48:29Z Kairsten Fay <kfay@fredhutch.org> # Grants to identifier-minter
 @2019-05-31-identifier-minter 2019-05-31T17:39:34Z Kairsten Fay <kfay@fredhutch.org> # Mark `warehouse.identifier_barcode_distance_check()` with security definer.\n\nThis rework is necessary for creating the "identifier-minter" role.
 warehouse/identifier/triggers/barcode-distance-check [warehouse/identifier/triggers/barcode-distance-check@2019-05-31-identifier-minter warehouse/identifier functions/hamming_distance] 2019-05-31T17:41:38Z Kairsten Fay <kfay@fredhutch.org> # Mark the trigger function
+warehouse/encounter/age [warehouse/encounter] 2019-05-30T23:09:41Z Jover Lee <joverlee@fredhutch.org> # Add age column to encounter
