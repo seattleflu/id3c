@@ -78,3 +78,5 @@ types/intervalrange 2019-06-03T16:03:03Z Jover Lee <joverlee@fredhutch.org> # Cr
 shipping/age-bin-v2 [types/intervalrange] 2019-06-03T16:20:43Z Jover Lee <joverlee@fredhutch.org> # Version 2 age bin tables that use intervalrange type
 @2019-06-03-age-column 2019-06-03T19:34:42Z Jover Lee <joverlee@fredhutch.org> # Schema as of 03 June 2019
 shipping/views [shipping/views@2019-06-03-age-column shipping/age-bin-v2] 2019-06-03T19:36:12Z Jover Lee <joverlee@fredhutch.org> # Update modeling views to include new age column and age bin tables
+@2019-06-04-join-shipping-views 2019-06-04T23:35:07Z Jover Lee <joverlee@fredhutch.org> # Schema as of 04 June 2019
+shipping/views [shipping/views@2019-06-04-join-shipping-views] 2019-06-04T23:36:16Z Jover Lee <joverlee@fredhutch.org> # Create new view to join modeling and presence/absence views

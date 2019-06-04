@@ -131,7 +131,8 @@ grant select
     on shipping.presence_absence_result_v1
     to "incidence-modeler";
 
-create view shipping.incidence_model_observation_v2 as
+
+create or replace view shipping.incidence_model_observation_v2 as
 
     select encounter.identifier as encounter,
 
@@ -222,5 +223,16 @@ revoke all
 grant select
    on shipping.incidence_model_observation_v2
    to "incidence-modeler";
+
+
+create or replace view shipping.observation_with_presence_absence_result_v1 as
+
+    select target,
+           present,
+           present::int as presence,
+           observation.*
+      from shipping.incidence_model_observation_v2 as observation
+      join shipping.presence_absence_result_v1 using (sample)
+      order by site, encounter, sample, target;
 
 commit;
