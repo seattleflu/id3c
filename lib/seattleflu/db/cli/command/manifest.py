@@ -143,6 +143,10 @@ def parse_using_config(config_file):
           sample: "Barcode ID*"
           aliquots: "Aliquot [ABC]"
           date: "Collection date*"
+          aliquot_date: "Date aliquoted"
+          racks: "Rack [ABC]*"
+          notes: "Notes"
+    \b
         ---
         workbook: OneDrive/SFS Retrospective Samples 2018-2019.xlsx
         sheet: HMC
@@ -150,6 +154,9 @@ def parse_using_config(config_file):
           sample: "Barcode ID"
           aliquots: "Aliquot [ABC]"
           date: "Collection date*"
+          aliquot_date: "Date aliquoted"
+          racks: "Rack [ABC]"
+          test_results: "Test ResulTS"
         ...
 
     Relative paths in <config.yaml> are treated relative to the containing
@@ -171,12 +178,17 @@ def parse_using_config(config_file):
     for config in configs:
         try:
             kwargs = {
-                "workbook":          config["workbook"],
-                "sheet":             config["sheet"],
-                "sample_column":     config["columns"]["sample"],
-                "collection_column": config["columns"].get("collection"),
-                "aliquot_columns":   config["columns"].get("aliquots"),
-                "date_column":       config["columns"].get("date"),
+                "workbook":             config["workbook"],
+                "sheet":                config["sheet"],
+                "sample_column":        config["columns"]["sample"],
+                "collection_column":    config["columns"].get("collection"),
+                "aliquot_columns":      config["columns"].get("aliquots"),
+                "date_column":          config["columns"].get("date"),
+                "aliquot_date_column":  config["columns"].get("aliquot_date"),
+                "rack_columns":         config["columns"].get("racks"),
+                "test_results_column":  config["columns"].get("test_results"),
+                "pcr_result_column":    config["columns"].get("pcr_result"),
+                "notes_column":         config["columns"].get("notes")
             }
         except KeyError as key:
             LOG.error(f"Required key «{key}» missing from config {config}")
