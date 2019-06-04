@@ -245,7 +245,7 @@ def sch(sch_filename):
     """
     Process and insert clinical data from SCH.
     """
-    df = pd.read_csv(sch_filename)
+    clinical_records = pd.read_csv(sch_filename)
 
 
     # Standardize column names
@@ -257,30 +257,30 @@ def sch(sch_filename):
         "sex": "AssignedSex",
         "census_tract": "census_tract",
     }
-    df = df.rename(columns=column_map)
+    clinical_records = clinical_records.rename(columns=column_map)
 
     # Drop unnecessary columns
-    df = df[column_map.values()]
-    df["encountered"] = pd.to_datetime(df["encountered"])
+    clinical_records = clinical_records[column_map.values()]
+    clinical_records["encountered"] = pd.to_datetime(clinical_records["encountered"])
 
     # Insert static value columns
-    df["site"] = "SCH"
+    clinical_records["site"] = "SCH"
 
     #Create encounter identifier(individual+encountered)
-    df["identifier"] = (df["individual"] + \
-                        df["encountered"].astype(str)).str.lower()
+    clinical_records["identifier"] = (clinical_records["individual"] + \
+                        clinical_records["encountered"].astype(str)).str.lower()
 
     #Hash individual and encounter identifiers
-    df["individual"] = df["individual"].apply(generate_hash)
-    df["identifier"] = df["identifier"].apply(generate_hash)
+    clinical_records["individual"] = clinical_records["individual"].apply(generate_hash)
+    clinical_records["identifier"] = clinical_records["identifier"].apply(generate_hash)
 
 
     # Placeholder columns for future data
-    df["FluShot"] = None
-    df["Race"] = None
-    df["HispanicLatino"] = None
-    df["MedicalInsurace"] = None
+    clinical_records["FluShot"] = None
+    clinical_records["Race"] = None
+    clinical_records["HispanicLatino"] = None
+    clinical_records["MedicalInsurace"] = None
 
     session = DatabaseSession()
     with session, session.cursor() as cursor:
-        df.apply(lambda x: insert_clinical(x, cursor), axis=1)
+        clinical_records.apply(lambda x: insert_clinical(x, cursor), axis=1)
