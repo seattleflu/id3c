@@ -6,5 +6,5 @@ __all__ = [
     "etl",
     "identifier",
     "manifest",
-    "preprocess",
+    "clinical",
 ]
