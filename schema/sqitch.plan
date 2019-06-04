@@ -74,3 +74,4 @@ roles/identifier-minter/grants [warehouse/identifier roles/identifier-minter/cre
 warehouse/identifier/triggers/barcode-distance-check [warehouse/identifier/triggers/barcode-distance-check@2019-05-31-identifier-minter warehouse/identifier functions/hamming_distance] 2019-05-31T17:41:38Z Kairsten Fay <kfay@fredhutch.org> # Mark the trigger function
 warehouse/encounter/age [warehouse/encounter] 2019-05-30T23:09:41Z Jover Lee <joverlee@fredhutch.org> # Add age column to encounter
 functions/age_conversion 2019-05-31T20:57:07Z Jover Lee <joverlee@fredhutch.org> # Age conversion functions to change age interval to numeric age
+types/intervalrange 2019-06-03T16:03:03Z Jover Lee <joverlee@fredhutch.org> # Create type intervalrange
