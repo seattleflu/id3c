@@ -20,12 +20,12 @@ from seattleflu.db.cli import cli
 LOG = logging.getLogger(__name__)
 
 
-@cli.group("preprocess", help = __doc__)
-def preprocess():
+@cli.group("clinical", help = __doc__)
+def clinical():
     pass
 
 # UW Clinical subcommand
-@preprocess.command("uw-clinical")
+@clinical.command("uw")
 @click.argument("uw_filename", metavar = "<UW Clinical Data filename>")
 @click.argument("uw_nwh_file", metavar="<UW/NWH filename>")
 @click.argument("hmc_sch_file", metavar="<HMC/SCH filename>")
@@ -33,7 +33,7 @@ def preprocess():
     help="The filename for the output of missing barcodes")
 
 
-def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
+def uw(uw_filename, uw_nwh_file, hmc_sch_file, output):
     """
     Process and insert clinical data from UW.
 
@@ -238,10 +238,10 @@ def print_problem_barcodes(problem_barcodes: pd.DataFrame, output: str):
         print(problem_barcodes.to_csv(index=False))
 
 
-@preprocess.command("sch-clinical")
+@clinical.command("sch")
 @click.argument("sch_filename", metavar = "<SCH Clinical Data filename>")
 
-def sch_clinical(sch_filename):
+def sch(sch_filename):
     """
     Process and insert clinical data from SCH.
     """
