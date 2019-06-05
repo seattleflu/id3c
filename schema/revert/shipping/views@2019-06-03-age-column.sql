@@ -14,9 +14,9 @@ begin;
 -- there needs to be a lag between view development and consumers being
 -- updated, copy the view definition into v2 and make changes there.
 
-drop view shipping.incidence_model_observation_v2;
+drop view shipping.incidence_model_observation_v1;
 
-create or replace view shipping.incidence_model_observation_v1 as
+create view shipping.incidence_model_observation_v1 as
 
     select encounter.identifier as encounter,
 
@@ -115,26 +115,6 @@ grant select
    on shipping.incidence_model_observation_v1
    to "incidence-modeler";
 
-create or replace view shipping.presence_absence_result_v1 as
+drop view shipping.presence_absence_result_v1;
 
-    select sample.identifier as sample,
-           target.identifier as target,
-           present
-
-    from warehouse.sample
-    join warehouse.presence_absence using (sample_id)
-    join warehouse.target using (target_id)
-    where target.control = false;
-
-comment on view shipping.presence_absence_result_v1 is
-    'View of warehoused presence-absence results for modeling and viz teams';
-
-revoke all
-    on shipping.presence_absence_result_v1
-  from "incidence-modeler";
-  
-grant select
-    on shipping.presence_absence_result_v1
-    to "incidence-modeler";
-    
 commit;

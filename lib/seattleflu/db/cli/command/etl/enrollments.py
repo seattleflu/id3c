@@ -22,7 +22,7 @@ LOG = logging.getLogger(__name__)
 # lacking this revision number in their log.  If a change to the ETL routine
 # necessitates re-processing all enrollments, this revision number should be
 # incremented.
-REVISION = 3
+REVISION = 4
 
 
 @etl.command("enrollments", help = __doc__)
@@ -113,6 +113,7 @@ def etl_enrollments(*, action: str):
                     encountered     = enrollment.document["startTimestamp"],
                     individual_id   = individual.id,
                     site_id         = site.id,
+                    age             = age(enrollment.document),
                     details         = encounter_details(enrollment.document))
 
                 # Find existing collected samples, or create skeletal sample
@@ -276,6 +277,7 @@ def upsert_encounter(db: DatabaseSession,
                      encountered: str,
                      individual_id: int,
                      site_id: int,
+                     age: str,
                      details: dict) -> Any:
     """
     Upsert encounter by its *identifier*.
@@ -287,6 +289,7 @@ def upsert_encounter(db: DatabaseSession,
         "encountered": encountered,
         "individual_id": individual_id,
         "site_id": site_id,
+        "age": age,
         "details": Json(details),
     }
 
@@ -296,18 +299,21 @@ def upsert_encounter(db: DatabaseSession,
                 individual_id,
                 site_id,
                 encountered,
+                age,
                 details)
             values (
                 %(identifier)s,
                 %(individual_id)s,
                 %(site_id)s,
                 %(encountered)s::timestamp with time zone,
+                %(age)s,
                 %(details)s)
 
         on conflict (identifier) do update
             set individual_id = excluded.individual_id,
                 site_id       = excluded.site_id,
                 encountered   = excluded.encountered,
+                age           = excluded.age,
                 details       = excluded.details
 
         returning encounter_id as id, identifier
@@ -320,6 +326,23 @@ def upsert_encounter(db: DatabaseSession,
     return encounter
 
 
+def age(document: dict) -> str:
+    """
+    Retrieves the age of the individual at the time of encounter from 
+    *document*.
+
+    Converts age value from int to string to fit interval format. 
+    """
+    age_dict = document.get("age")
+    if not age_dict:
+        return None
+    if age_dict.get("ninetyOrAbove"):
+        return "90 years"
+    age = float(age_dict.get("value"))
+    # XXX TODO: Determine how Audere will send age in months for < 1 year olds.
+    return f"{age} years"
+
+
 def encounter_details(document: dict) -> dict:
     """
     Describe encounter details in a simple data structure designed to be used
@@ -329,7 +352,7 @@ def encounter_details(document: dict) -> dict:
     the data dictionary.
     """
     return {
-        "age": document.get("age"),                 # XXX TODO: Model this relationally soon
+        "age": document.get("age"),                 # XXX TODO: Remove age from details
         "locations": encounter_locations(document), # XXX TODO: Model this relationally soon
         "language": document["localeLanguageCode"],
         "responses": {

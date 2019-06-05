@@ -72,3 +72,9 @@ roles/identifier-minter/create 2019-05-29T00:35:13Z Kairsten Fay <kfay@fredhutch
 roles/identifier-minter/grants [warehouse/identifier roles/identifier-minter/create] 2019-05-29T00:48:29Z Kairsten Fay <kfay@fredhutch.org> # Grants to identifier-minter
 @2019-05-31-identifier-minter 2019-05-31T17:39:34Z Kairsten Fay <kfay@fredhutch.org> # Mark `warehouse.identifier_barcode_distance_check()` with security definer.\n\nThis rework is necessary for creating the "identifier-minter" role.
 warehouse/identifier/triggers/barcode-distance-check [warehouse/identifier/triggers/barcode-distance-check@2019-05-31-identifier-minter warehouse/identifier functions/hamming_distance] 2019-05-31T17:41:38Z Kairsten Fay <kfay@fredhutch.org> # Mark the trigger function
+warehouse/encounter/age [warehouse/encounter] 2019-05-30T23:09:41Z Jover Lee <joverlee@fredhutch.org> # Add age column to encounter
+functions/age_conversion 2019-05-31T20:57:07Z Jover Lee <joverlee@fredhutch.org> # Age conversion functions to change age interval to numeric age
+types/intervalrange 2019-06-03T16:03:03Z Jover Lee <joverlee@fredhutch.org> # Create type intervalrange
+shipping/age-bin-v2 [types/intervalrange] 2019-06-03T16:20:43Z Jover Lee <joverlee@fredhutch.org> # Version 2 age bin tables that use intervalrange type
+@2019-06-03-age-column 2019-06-03T19:34:42Z Jover Lee <joverlee@fredhutch.org> # Schema as of 03 June 2019
+shipping/views [shipping/views@2019-06-03-age-column shipping/age-bin-v2] 2019-06-03T19:36:12Z Jover Lee <joverlee@fredhutch.org> # Update modeling views to include new age column and age bin tables
