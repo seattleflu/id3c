@@ -50,6 +50,9 @@ def uw(uw_filename, uw_nwh_file, hmc_sch_file, output):
     <HMC/SCH filename> is the filepath to the data containing manifests of the
     barcodes from HMC and SCH Retrospective Samples.
 
+    <output filename> is the desired filepath of the output CSV of problematic
+    barcodes encountered while parsing. If not provided, the problematic
+    barcodes print to the log.
     """
     clinical_records, uw_manifest, nwh_manifest, hmc_manifest = load_data(uw_filename,
         uw_nwh_file, hmc_sch_file)
@@ -230,12 +233,15 @@ def insert_clinical(df: pd.DataFrame, cursor):
 def print_problem_barcodes(problem_barcodes: pd.DataFrame, output: str):
     """
     Given a pandas DataFrame of *problem_barcodes*, writes the data to
-    stdout unless a filename *output* is given.
+    the log unless a filename *output* is given.
     """
     if output:
         problem_barcodes.to_csv(output, index=False)
     else:
-        print(problem_barcodes.to_csv(index=False))
+        problem_barcodes.apply(lambda x: LOG.warning(
+            f"{x['problem']} in MRN {x['MRN']}, Accession {x['Accession']}, "
+            f"barcode {x['barcode']}"
+        ), axis=1)
 
 
 @clinical.command("sch")
