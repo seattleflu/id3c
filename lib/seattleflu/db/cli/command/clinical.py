@@ -104,7 +104,8 @@ def parse_uw(uw_filename, uw_nwh_file, hmc_sch_file, output):
     # Drop columns we're not tracking
     clinical_records = clinical_records[column_map.values()]
 
-    # Hash PersonID and encounter identifier (MRN+Accession+Collection date)
+    # Remove PII
+    clinical_records['age'] = clinical_records['age'].apply(age_ceiling)
     clinical_records['individual'] = clinical_records['individual'].apply(generate_hash)
     clinical_records['identifier'] = clinical_records['identifier'].apply(generate_hash)
 
@@ -207,6 +208,12 @@ def duplicated_barcode(df: pd.DataFrame) -> pd.DataFrame:
 
     return duplicated_barcodes[['MRN', 'Accession', 'barcode', 'problem', '_metadata']]
 
+def age_ceiling(age: float, max_age=90) -> float:
+    """
+    Given an *age*, returns the same *age* unless it exceeds the *max_age*, in
+    which case the *max_age* is returned.
+    """
+    return min(age, max_age)
 
 def generate_hash(identifier: str):
     """
@@ -269,10 +276,10 @@ def parse_sch(sch_filename):
     clinical_records["identifier"] = (clinical_records["individual"] + \
                         clinical_records["encountered"].astype(str)).str.lower()
 
-    #Hash individual and encounter identifiers
+    # Remove PII
+    clinical_records['age'] = clinical_records['age'].apply(age_ceiling)
     clinical_records["individual"] = clinical_records["individual"].apply(generate_hash)
     clinical_records["identifier"] = clinical_records["identifier"].apply(generate_hash)
-
 
     # Placeholder columns for future data
     clinical_records["FluShot"] = None
