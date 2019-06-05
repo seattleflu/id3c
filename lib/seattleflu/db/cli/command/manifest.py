@@ -73,6 +73,36 @@ def manifest():
            "Must match exactly; shell-style glob patterns are supported.",
     required = False)
 
+@click.option("--aliquot-date-column",
+    metavar = "<column>",
+    help = "Name of the single column containing an aliquot date.  "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--rack-columns",
+    metavar = "<column>",
+    help = "Name of the, possibly multiple, columns containing rack identifiers.  "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--test-results-column",
+    metavar = "<column>",
+    help = "Name of the single column containing test results.  "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--pcr-result-column",
+    metavar = "<column>",
+    help = "Name of the single column containing rapid PCR results.  "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--notes-column",
+    metavar = "<column>",
+    help = "Name of the single column containing additional information.  "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
 def parse(**kwargs):
     """
     Parse a single manifest workbook sheet.
@@ -161,7 +191,12 @@ def _parse(*,
            sample_column,
            aliquot_columns = None,
            collection_column = None,
-           date_column = None):
+           date_column = None,
+           aliquot_date_column = None,
+           rack_columns = None,
+           test_results_column = None,
+           pcr_result_column = None,
+           notes_column = None):
     """
     Internal function powering :func:`parse` and :func:`parse_using_config`.
     """
@@ -186,9 +221,31 @@ def _parse(*,
                 for aliquot_column
                  in find_columns(manifest, aliquot_columns) })
 
+    if rack_columns:
+        column_map.update({
+            rack_column: "rack"
+                for rack_column
+                in find_columns(manifest, rack_columns) })
+
     if date_column:
         column_map.update({
             find_one_column(manifest, date_column): "date" })
+
+    if aliquot_date_column:
+        column_map.update({
+            find_one_column(manifest, aliquot_date_column): "aliquot_date"})
+
+    if test_results_column:
+        column_map.update({
+            find_one_column(manifest, test_results_column): "test_results"})
+
+    if pcr_result_column:
+        column_map.update({
+            find_one_column(manifest, pcr_result_column): "pcr_result"})
+
+    if notes_column:
+        column_map.update({
+            find_one_column(manifest, notes_column): "notes" })
 
     LOG.debug(f"Column map: {column_map}")
 
@@ -208,6 +265,10 @@ def _parse(*,
     if aliquot_columns:
         manifest["aliquots"] = manifest.aliquot.apply(list, axis = "columns")
         manifest.drop(columns = manifest.aliquot, inplace = True)
+
+    if rack_columns:
+        manifest["racks"] = manifest.rack.apply(list, axis="columns")
+        manifest.drop(columns = manifest.rack, inplace=True)
 
     # Add internal provenance metadata for data tracing
     digest = sha1sum(workbook)
