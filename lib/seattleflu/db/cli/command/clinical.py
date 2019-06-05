@@ -1,5 +1,5 @@
 """
-Pre-process clinical data.
+Parse and upload clinical data.
 
 Clinical data will contain PII (personally identifiable information) and
 unnecessary information that does not need to be stored. This process will only
@@ -25,7 +25,7 @@ def clinical():
     pass
 
 # UW Clinical subcommand
-@clinical.command("uw")
+@clinical.command("parse-uw")
 @click.argument("uw_filename", metavar = "<UW Clinical Data filename>")
 @click.argument("uw_nwh_file", metavar="<UW/NWH filename>")
 @click.argument("hmc_sch_file", metavar="<HMC/SCH filename>")
@@ -33,7 +33,7 @@ def clinical():
     help="The filename for the output of missing barcodes")
 
 
-def uw(uw_filename, uw_nwh_file, hmc_sch_file, output):
+def parse_uw(uw_filename, uw_nwh_file, hmc_sch_file, output):
     """
     Process and insert clinical data from UW.
 
@@ -53,6 +53,9 @@ def uw(uw_filename, uw_nwh_file, hmc_sch_file, output):
     <output filename> is the desired filepath of the output CSV of problematic
     barcodes encountered while parsing. If not provided, the problematic
     barcodes print to the log.
+
+    All clinical records parsed are output to stdout as newline-delimited JSON
+    records.  You will likely want to redirect stdout to a file.
     """
     clinical_records, uw_manifest, nwh_manifest, hmc_manifest = load_data(uw_filename,
         uw_nwh_file, hmc_sch_file)
@@ -105,9 +108,7 @@ def uw(uw_filename, uw_nwh_file, hmc_sch_file, output):
     clinical_records['individual'] = clinical_records['individual'].apply(generate_hash)
     clinical_records['identifier'] = clinical_records['identifier'].apply(generate_hash)
 
-    session = DatabaseSession()
-    with session, session.cursor() as cursor:
-        clinical_records.apply(lambda x: insert_clinical(x, cursor), axis=1)
+    print(clinical_records.to_json(orient='records', lines=True))
 
 
 def load_data(uw_filename: str, uw_nwh_file: str, hmc_sch_file: str):
@@ -220,21 +221,6 @@ def generate_hash(identifier: str):
     return new_hash.hexdigest()
 
 
-def insert_clinical(df: pd.DataFrame, cursor):
-    """
-    Given a pandas DataFrame, inserts it as a JSON document into the
-    receiving.clinical table
-    """
-
-    LOG.debug(f"Inserting clinical data for barcode: «{df['barcode']}» ")
-
-    document = df.to_json(date_format='iso')
-
-    cursor.execute(
-        "insert into receiving.clinical (document) values (%s)",
-        (document,)
-    )
-
 def print_problem_barcodes(problem_barcodes: pd.DataFrame, output: str):
     """
     Given a pandas DataFrame of *problem_barcodes*, writes the data to
@@ -249,12 +235,15 @@ def print_problem_barcodes(problem_barcodes: pd.DataFrame, output: str):
         ), axis=1)
 
 
-@clinical.command("sch")
+@clinical.command("parse-sch")
 @click.argument("sch_filename", metavar = "<SCH Clinical Data filename>")
 
-def sch(sch_filename):
+def parse_sch(sch_filename):
     """
     Process and insert clinical data from SCH.
+
+    All clinical records parsed are output to stdout as newline-delimited JSON
+    records.  You will likely want to redirect stdout to a file.
     """
     clinical_records = pd.read_csv(sch_filename)
 
@@ -292,6 +281,40 @@ def sch(sch_filename):
     clinical_records["HispanicLatino"] = None
     clinical_records["MedicalInsurace"] = None
 
-    session = DatabaseSession()
-    with session, session.cursor() as cursor:
-        clinical_records.apply(lambda x: insert_clinical(x, cursor), axis=1)
+    print(clinical_records.to_json(orient='records', lines=True))
+
+@clinical.command("upload")
+@click.argument("clinical_file",
+    metavar = "<clinical.ndjson>",
+    type = click.File("r"))
+
+def upload(clinical_file):
+    """
+    Upload clinical records into the database receiving area.
+
+    <clinical.ndjson> must be a newline-delimited JSON file produced by this
+    command's sibling commands.
+
+    Once records are uploaded, the clinical ETL routine will reconcile the
+    clinical records with known sites, individuals, encounters and samples.
+    """
+    db = DatabaseSession()
+
+    try:
+        for document in (line.strip() for line in clinical_file):
+            LOG.debug(f"Processing clinical record: {document}")
+
+            clinical = db.fetch_row("""
+                insert into receiving.clinical (document) values (%s)
+                    returning clinical_id as id
+                """, (document,))
+
+            LOG.info(f"Created received clinical record {clinical.id}")
+
+        LOG.info("Committing all changes")
+        db.commit()
+
+    except:
+        LOG.info("Rolling back all changes; the database will not be modified")
+        db.rollback()
+        raise
