@@ -227,37 +227,27 @@ def _parse(*,
         column_map.update({
             find_one_column(manifest, collection_column): "collection" })
 
-    if aliquot_columns:
-        column_map.update({
-            aliquot_column: "aliquot"
-                for aliquot_column
-                 in find_columns(manifest, aliquot_columns) })
+    column_groups = {
+        "aliquot": aliquot_columns,
+        "rack": rack_columns }
 
-    if rack_columns:
-        column_map.update({
-            rack_column: "rack"
-                for rack_column
-                in find_columns(manifest, rack_columns) })
+    for key in column_groups:
+        if column_groups[key]:
+            column_map.update({
+                column: key for column in find_columns(manifest, column_groups[key])
+            })
 
-    if date_column:
-        column_map.update({
-            find_one_column(manifest, date_column): "date" })
+    single_columns = {
+        "date": date_column,
+        "aliquot_date": aliquot_date_column,
+        "test_results": test_results_column,
+        "pcr_result": pcr_result_column,
+        "notes": notes_column }
 
-    if aliquot_date_column:
-        column_map.update({
-            find_one_column(manifest, aliquot_date_column): "aliquot_date"})
-
-    if test_results_column:
-        column_map.update({
-            find_one_column(manifest, test_results_column): "test_results"})
-
-    if pcr_result_column:
-        column_map.update({
-            find_one_column(manifest, pcr_result_column): "pcr_result"})
-
-    if notes_column:
-        column_map.update({
-            find_one_column(manifest, notes_column): "notes" })
+    for key in single_columns:
+        if single_columns[key]:
+            column_map.update({
+                find_one_column(manifest, single_columns[key]): key })
 
     LOG.debug(f"Column map: {column_map}")
 
@@ -273,14 +263,11 @@ def _parse(*,
         .replace({ pandas.np.nan: None, "": None }) \
         .dropna(subset = ["sample"])
 
-    # Combine individual aliquot columns into one list-valued column
-    if aliquot_columns:
-        manifest["aliquots"] = manifest.aliquot.apply(list, axis = "columns")
-        manifest.drop(columns = manifest.aliquot, inplace = True)
-
-    if rack_columns:
-        manifest["racks"] = manifest.rack.apply(list, axis="columns")
-        manifest.drop(columns = manifest.rack, inplace=True)
+    # Combine individual aliquot and rack columns into one list-valued column
+    for key in column_groups:
+        if column_groups[key]:
+            manifest[f"{key}s"] = manifest[key].apply(list, axis="columns")
+            manifest.drop(columns = manifest[key], inplace=True)
 
     # Add internal provenance metadata for data tracing
     digest = sha1sum(workbook)
