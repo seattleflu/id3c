@@ -23,7 +23,7 @@ LOG = logging.getLogger(__name__)
 # clinical records lacking this revision number in their log.  If a
 # change to the ETL routine necessitates re-processing all clinical records,
 # this revision number should be incremented.
-REVISION = 1
+REVISION = 2
 
 
 @etl.command("clinical", help = __doc__)
@@ -111,6 +111,7 @@ def etl_clinical(*, action: str):
                     encountered     = record.document["encountered"],
                     individual_id   = individual.id,
                     site_id         = site.id,
+                    age             = age(record.document),
                     details         = encounter_details(record.document))
 
                 sample = update_sample(db,
@@ -188,13 +189,27 @@ def sex(sex_name) -> str:
 
     return sex_map.get(sex_name, "other")
 
+
+def age(document: dict) -> str:
+    """
+    Given a *document*, retrieve age value and 
+    return as a string to fit the interval format.
+
+    If no value is given for age, then will just return None.
+    """
+    age = document.get("age")
+    if age is None:
+        return None
+    return f"{float(age)} years"
+
+
 def encounter_details(document: dict) -> dict:
     """
     Describe encounter details in a simple data structure designed to be used
     from SQL.
     """
     return {
-            "age": age(document.get("age")),
+            "age": age_to_delete(document.get("age")), # XXX TODO: Remove age from details
             "locations": {
                 "home": {
                     "region": document.get("census_tract"),
@@ -209,15 +224,14 @@ def encounter_details(document: dict) -> dict:
             },
         }
 
-def age(age: float) -> dict:
+def age_to_delete(age: float) -> str:
     """
+    TODO: Delete this function once we remove age from details
     Given an *age*, return a dict containing its 'value' and a boolean for
     'ninetyOrAbove'.
-
     Currently applys math.ceil() to age to match the age from Audere.
     This may change in the future as we push to report age in months for
     participants less than 1 year old.
-
     If no value is given for *age*, then will just retun None.
     """
     if age is None:
@@ -227,6 +241,7 @@ def age(age: float) -> dict:
         "value": min(ceil(age), 90),
         "ninetyOrAbove": ceil(age) >= 90
     }
+
 
 def race(race_name: str) -> list:
     """
