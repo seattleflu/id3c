@@ -73,6 +73,36 @@ def manifest():
            "Must match exactly; shell-style glob patterns are supported.",
     required = False)
 
+@click.option("--aliquot-date-column",
+    metavar = "<column>",
+    help = "Name of the single column containing an aliquot date.  "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--rack-columns",
+    metavar = "<column>",
+    help = "Name of the, possibly multiple, columns containing rack identifiers.  "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--test-results-column",
+    metavar = "<column>",
+    help = "Name of the single column containing test results.  "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--pcr-result-column",
+    metavar = "<column>",
+    help = "Name of the single column containing rapid PCR results.  "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--notes-column",
+    metavar = "<column>",
+    help = "Name of the single column containing additional information.  "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
 def parse(**kwargs):
     """
     Parse a single manifest workbook sheet.
@@ -113,6 +143,10 @@ def parse_using_config(config_file):
           sample: "Barcode ID*"
           aliquots: "Aliquot [ABC]"
           date: "Collection date*"
+          aliquot_date: "Date aliquoted"
+          racks: "Rack [ABC]*"
+          notes: "Notes"
+    \b
         ---
         workbook: OneDrive/SFS Retrospective Samples 2018-2019.xlsx
         sheet: HMC
@@ -120,6 +154,9 @@ def parse_using_config(config_file):
           sample: "Barcode ID"
           aliquots: "Aliquot [ABC]"
           date: "Collection date*"
+          aliquot_date: "Date aliquoted"
+          racks: "Rack [ABC]"
+          test_results: "Test ResulTS"
         ...
 
     Relative paths in <config.yaml> are treated relative to the containing
@@ -141,12 +178,17 @@ def parse_using_config(config_file):
     for config in configs:
         try:
             kwargs = {
-                "workbook":          config["workbook"],
-                "sheet":             config["sheet"],
-                "sample_column":     config["columns"]["sample"],
-                "collection_column": config["columns"].get("collection"),
-                "aliquot_columns":   config["columns"].get("aliquots"),
-                "date_column":       config["columns"].get("date"),
+                "workbook":             config["workbook"],
+                "sheet":                config["sheet"],
+                "sample_column":        config["columns"]["sample"],
+                "collection_column":    config["columns"].get("collection"),
+                "aliquot_columns":      config["columns"].get("aliquots"),
+                "date_column":          config["columns"].get("date"),
+                "aliquot_date_column":  config["columns"].get("aliquot_date"),
+                "rack_columns":         config["columns"].get("racks"),
+                "test_results_column":  config["columns"].get("test_results"),
+                "pcr_result_column":    config["columns"].get("pcr_result"),
+                "notes_column":         config["columns"].get("notes")
             }
         except KeyError as key:
             LOG.error(f"Required key «{key}» missing from config {config}")
@@ -161,7 +203,12 @@ def _parse(*,
            sample_column,
            aliquot_columns = None,
            collection_column = None,
-           date_column = None):
+           date_column = None,
+           aliquot_date_column = None,
+           rack_columns = None,
+           test_results_column = None,
+           pcr_result_column = None,
+           notes_column = None):
     """
     Internal function powering :func:`parse` and :func:`parse_using_config`.
     """
@@ -180,15 +227,27 @@ def _parse(*,
         column_map.update({
             find_one_column(manifest, collection_column): "collection" })
 
-    if aliquot_columns:
-        column_map.update({
-            aliquot_column: "aliquot"
-                for aliquot_column
-                 in find_columns(manifest, aliquot_columns) })
+    column_groups = {
+        "aliquot": aliquot_columns,
+        "rack": rack_columns }
 
-    if date_column:
-        column_map.update({
-            find_one_column(manifest, date_column): "date" })
+    for key in column_groups:
+        if column_groups[key]:
+            column_map.update({
+                column: key for column in find_columns(manifest, column_groups[key])
+            })
+
+    single_columns = {
+        "date": date_column,
+        "aliquot_date": aliquot_date_column,
+        "test_results": test_results_column,
+        "pcr_result": pcr_result_column,
+        "notes": notes_column }
+
+    for key in single_columns:
+        if single_columns[key]:
+            column_map.update({
+                find_one_column(manifest, single_columns[key]): key })
 
     LOG.debug(f"Column map: {column_map}")
 
@@ -204,10 +263,11 @@ def _parse(*,
         .replace({ pandas.np.nan: None, "": None }) \
         .dropna(subset = ["sample"])
 
-    # Combine individual aliquot columns into one list-valued column
-    if aliquot_columns:
-        manifest["aliquots"] = manifest.aliquot.apply(list, axis = "columns")
-        manifest.drop(columns = manifest.aliquot, inplace = True)
+    # Combine individual aliquot and rack columns into one list-valued column
+    for key in column_groups:
+        if column_groups[key]:
+            manifest[f"{key}s"] = manifest[key].apply(list, axis="columns")
+            manifest.drop(columns = manifest[key], inplace=True)
 
     # Add internal provenance metadata for data tracing
     digest = sha1sum(workbook)
