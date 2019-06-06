@@ -50,6 +50,9 @@ def uw(uw_filename, uw_nwh_file, hmc_sch_file, output):
     <HMC/SCH filename> is the filepath to the data containing manifests of the
     barcodes from HMC and SCH Retrospective Samples.
 
+    <output filename> is the desired filepath of the output CSV of problematic
+    barcodes encountered while parsing. If not provided, the problematic
+    barcodes print to the log.
     """
     clinical_records, uw_manifest, nwh_manifest, hmc_manifest = load_data(uw_filename,
         uw_nwh_file, hmc_sch_file)
@@ -146,6 +149,11 @@ def load_uw_metadata(uw_filename: str) -> pd.DataFrame:
         df = pd.read_csv(uw_filename, na_values=na_values)
     else:
         df = pd.read_excel(uw_filename, na_values=na_values)
+
+    df['_metadata'] = list(map(lambda index: {
+        'filename': uw_filename,
+        'row': index + 2}, df.index))
+
     return df
 
 def load_manifest_data(filename: str, sheet_name: str) -> pd.DataFrame:
@@ -181,7 +189,7 @@ def missing_barcode(df: pd.DataFrame) -> pd.DataFrame:
     missing_barcodes = df.loc[df['barcode'].isnull()].copy()
     missing_barcodes['problem'] = 'Missing barcode'
 
-    return missing_barcodes[['MRN', 'Accession', 'barcode', 'problem']]
+    return missing_barcodes[['MRN', 'Accession', 'barcode', 'problem', '_metadata']]
 
 
 def duplicated_barcode(df: pd.DataFrame) -> pd.DataFrame:
@@ -196,7 +204,7 @@ def duplicated_barcode(df: pd.DataFrame) -> pd.DataFrame:
     duplicated_barcodes = df[df['barcode'].isin(duplicates)].copy()
     duplicated_barcodes['problem'] = 'Barcode is not unique'
 
-    return duplicated_barcodes[['MRN', 'Accession', 'barcode', 'problem']]
+    return duplicated_barcodes[['MRN', 'Accession', 'barcode', 'problem', '_metadata']]
 
 
 def generate_hash(identifier: str):
@@ -230,12 +238,15 @@ def insert_clinical(df: pd.DataFrame, cursor):
 def print_problem_barcodes(problem_barcodes: pd.DataFrame, output: str):
     """
     Given a pandas DataFrame of *problem_barcodes*, writes the data to
-    stdout unless a filename *output* is given.
+    the log unless a filename *output* is given.
     """
     if output:
         problem_barcodes.to_csv(output, index=False)
     else:
-        print(problem_barcodes.to_csv(index=False))
+        problem_barcodes.apply(lambda x: LOG.warning(
+            f"{x['problem']} in row {x['_metadata']['row']} of file "
+            f"{x['_metadata']['filename']}, barcode {x['barcode']}"
+        ), axis=1)
 
 
 @clinical.command("sch")
