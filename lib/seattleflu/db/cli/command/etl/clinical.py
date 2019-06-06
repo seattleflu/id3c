@@ -9,8 +9,7 @@ from typing import Any
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
-from . import etl
-from .enrollments import find_or_create_site, upsert_individual, upsert_encounter
+from . import etl, find_or_create_site, upsert_individual, upsert_encounter
 from .presence_absence import SampleNotFoundError
 
 
