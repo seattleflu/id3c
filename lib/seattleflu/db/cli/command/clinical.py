@@ -1,5 +1,5 @@
 """
-Pre-process clinical data.
+Parse and upload clinical data.
 
 Clinical data will contain PII (personally identifiable information) and
 unnecessary information that does not need to be stored. This process will only
@@ -20,12 +20,12 @@ from seattleflu.db.cli import cli
 LOG = logging.getLogger(__name__)
 
 
-@cli.group("preprocess", help = __doc__)
-def preprocess():
+@cli.group("clinical", help = __doc__)
+def clinical():
     pass
 
 # UW Clinical subcommand
-@preprocess.command("uw-clinical")
+@clinical.command("parse-uw")
 @click.argument("uw_filename", metavar = "<UW Clinical Data filename>")
 @click.argument("uw_nwh_file", metavar="<UW/NWH filename>")
 @click.argument("hmc_sch_file", metavar="<HMC/SCH filename>")
@@ -33,7 +33,7 @@ def preprocess():
     help="The filename for the output of missing barcodes")
 
 
-def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
+def parse_uw(uw_filename, uw_nwh_file, hmc_sch_file, output):
     """
     Process and insert clinical data from UW.
 
@@ -50,6 +50,12 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
     <HMC/SCH filename> is the filepath to the data containing manifests of the
     barcodes from HMC and SCH Retrospective Samples.
 
+    <output filename> is the desired filepath of the output CSV of problematic
+    barcodes encountered while parsing. If not provided, the problematic
+    barcodes print to the log.
+
+    All clinical records parsed are output to stdout as newline-delimited JSON
+    records.  You will likely want to redirect stdout to a file.
     """
     clinical_records, uw_manifest, nwh_manifest, hmc_manifest = load_data(uw_filename,
         uw_nwh_file, hmc_sch_file)
@@ -102,9 +108,7 @@ def uw_clinical(uw_filename, uw_nwh_file, hmc_sch_file, output):
     clinical_records['individual'] = clinical_records['individual'].apply(generate_hash)
     clinical_records['identifier'] = clinical_records['identifier'].apply(generate_hash)
 
-    session = DatabaseSession()
-    with session, session.cursor() as cursor:
-        clinical_records.apply(lambda x: insert_clinical(x, cursor), axis=1)
+    print(clinical_records.to_json(orient='records', lines=True))
 
 
 def load_data(uw_filename: str, uw_nwh_file: str, hmc_sch_file: str):
@@ -146,6 +150,11 @@ def load_uw_metadata(uw_filename: str) -> pd.DataFrame:
         df = pd.read_csv(uw_filename, na_values=na_values)
     else:
         df = pd.read_excel(uw_filename, na_values=na_values)
+
+    df['_metadata'] = list(map(lambda index: {
+        'filename': uw_filename,
+        'row': index + 2}, df.index))
+
     return df
 
 def load_manifest_data(filename: str, sheet_name: str) -> pd.DataFrame:
@@ -181,7 +190,7 @@ def missing_barcode(df: pd.DataFrame) -> pd.DataFrame:
     missing_barcodes = df.loc[df['barcode'].isnull()].copy()
     missing_barcodes['problem'] = 'Missing barcode'
 
-    return missing_barcodes[['MRN', 'Accession', 'barcode', 'problem']]
+    return missing_barcodes[['MRN', 'Accession', 'barcode', 'problem', '_metadata']]
 
 
 def duplicated_barcode(df: pd.DataFrame) -> pd.DataFrame:
@@ -196,7 +205,7 @@ def duplicated_barcode(df: pd.DataFrame) -> pd.DataFrame:
     duplicated_barcodes = df[df['barcode'].isin(duplicates)].copy()
     duplicated_barcodes['problem'] = 'Barcode is not unique'
 
-    return duplicated_barcodes[['MRN', 'Accession', 'barcode', 'problem']]
+    return duplicated_barcodes[['MRN', 'Accession', 'barcode', 'problem', '_metadata']]
 
 
 def generate_hash(identifier: str):
@@ -212,40 +221,31 @@ def generate_hash(identifier: str):
     return new_hash.hexdigest()
 
 
-def insert_clinical(df: pd.DataFrame, cursor):
-    """
-    Given a pandas DataFrame, inserts it as a JSON document into the
-    receiving.clinical table
-    """
-
-    LOG.debug(f"Inserting clinical data for barcode: «{df['barcode']}» ")
-
-    document = df.to_json(date_format='iso')
-
-    cursor.execute(
-        "insert into receiving.clinical (document) values (%s)",
-        (document,)
-    )
-
 def print_problem_barcodes(problem_barcodes: pd.DataFrame, output: str):
     """
     Given a pandas DataFrame of *problem_barcodes*, writes the data to
-    stdout unless a filename *output* is given.
+    the log unless a filename *output* is given.
     """
     if output:
         problem_barcodes.to_csv(output, index=False)
     else:
-        print(problem_barcodes.to_csv(index=False))
+        problem_barcodes.apply(lambda x: LOG.warning(
+            f"{x['problem']} in row {x['_metadata']['row']} of file "
+            f"{x['_metadata']['filename']}, barcode {x['barcode']}"
+        ), axis=1)
 
 
-@preprocess.command("sch-clinical")
+@clinical.command("parse-sch")
 @click.argument("sch_filename", metavar = "<SCH Clinical Data filename>")
 
-def sch_clinical(sch_filename):
+def parse_sch(sch_filename):
     """
     Process and insert clinical data from SCH.
+
+    All clinical records parsed are output to stdout as newline-delimited JSON
+    records.  You will likely want to redirect stdout to a file.
     """
-    df = pd.read_csv(sch_filename)
+    clinical_records = pd.read_csv(sch_filename)
 
 
     # Standardize column names
@@ -257,30 +257,63 @@ def sch_clinical(sch_filename):
         "sex": "AssignedSex",
         "census_tract": "census_tract",
     }
-    df = df.rename(columns=column_map)
+    clinical_records = clinical_records.rename(columns=column_map)
 
     # Drop unnecessary columns
-    df = df[column_map.values()]
-    df["encountered"] = pd.to_datetime(df["encountered"])
+    clinical_records = clinical_records[column_map.values()]
 
     # Insert static value columns
-    df["site"] = "SCH"
+    clinical_records["site"] = "SCH"
 
     #Create encounter identifier(individual+encountered)
-    df["identifier"] = (df["individual"] + \
-                        df["encountered"].astype(str)).str.lower()
+    clinical_records["identifier"] = (clinical_records["individual"] + \
+                        clinical_records["encountered"].astype(str)).str.lower()
 
     #Hash individual and encounter identifiers
-    df["individual"] = df["individual"].apply(generate_hash)
-    df["identifier"] = df["identifier"].apply(generate_hash)
+    clinical_records["individual"] = clinical_records["individual"].apply(generate_hash)
+    clinical_records["identifier"] = clinical_records["identifier"].apply(generate_hash)
 
 
     # Placeholder columns for future data
-    df["FluShot"] = None
-    df["Race"] = None
-    df["HispanicLatino"] = None
-    df["MedicalInsurace"] = None
+    clinical_records["FluShot"] = None
+    clinical_records["Race"] = None
+    clinical_records["HispanicLatino"] = None
+    clinical_records["MedicalInsurace"] = None
 
-    session = DatabaseSession()
-    with session, session.cursor() as cursor:
-        df.apply(lambda x: insert_clinical(x, cursor), axis=1)
+    print(clinical_records.to_json(orient='records', lines=True))
+
+@clinical.command("upload")
+@click.argument("clinical_file",
+    metavar = "<clinical.ndjson>",
+    type = click.File("r"))
+
+def upload(clinical_file):
+    """
+    Upload clinical records into the database receiving area.
+
+    <clinical.ndjson> must be a newline-delimited JSON file produced by this
+    command's sibling commands.
+
+    Once records are uploaded, the clinical ETL routine will reconcile the
+    clinical records with known sites, individuals, encounters and samples.
+    """
+    db = DatabaseSession()
+
+    try:
+        for document in (line.strip() for line in clinical_file):
+            LOG.debug(f"Processing clinical record: {document}")
+
+            clinical = db.fetch_row("""
+                insert into receiving.clinical (document) values (%s)
+                    returning clinical_id as id
+                """, (document,))
+
+            LOG.info(f"Created received clinical record {clinical.id}")
+
+        LOG.info("Committing all changes")
+        db.commit()
+
+    except:
+        LOG.info("Rolling back all changes; the database will not be modified")
+        db.rollback()
+        raise
