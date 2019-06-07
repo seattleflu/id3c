@@ -256,8 +256,10 @@ def print_problem_barcodes(problem_barcodes: pd.DataFrame, output: str):
 
 @clinical.command("parse-sch")
 @click.argument("sch_filename", metavar = "<SCH Clinical Data filename>")
+@click.option("-o", "--output", metavar="<output filename>",
+    help="The filename for the output of missing barcodes")
 
-def parse_sch(sch_filename):
+def parse_sch(sch_filename, output):
     """
     Process and insert clinical data from SCH.
 
@@ -265,7 +267,7 @@ def parse_sch(sch_filename):
     records.  You will likely want to redirect stdout to a file.
     """
     clinical_records = pd.read_csv(sch_filename)
-
+    clinical_records = add_metadata(clinical_records, sch_filename)
 
     # Standardize column names
     column_map = {
@@ -277,6 +279,8 @@ def parse_sch(sch_filename):
         "census_tract": "census_tract",
     }
     clinical_records = clinical_records.rename(columns=column_map)
+
+    barcode_quality_control(clinical_records, output)
 
     # Drop unnecessary columns
     clinical_records = clinical_records[column_map.values()]
