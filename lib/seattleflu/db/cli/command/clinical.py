@@ -89,14 +89,7 @@ def parse_uw(uw_filename, uw_nwh_file, hmc_sch_file, output):
 
     clinical_records = clinical_records.rename(columns=column_map)
 
-    # Perform quality control
-    missing_barcodes = missing_barcode(clinical_records)
-    duplicated_barcodes = duplicated_barcode(clinical_records)
-
-    print_problem_barcodes(pd.concat([missing_barcodes, duplicated_barcodes],
-                                 ignore_index=True), output)
-
-    assert len(duplicated_barcodes) == 0, "You have duplicated barcodes!"
+    barcode_quality_control(clinical_records, output)
 
     # Subset df to drop missing barcodes
     clinical_records = clinical_records.loc[clinical_records['barcode'].notnull()]
@@ -152,11 +145,18 @@ def load_uw_metadata(uw_filename: str) -> pd.DataFrame:
     else:
         df = pd.read_excel(uw_filename, na_values=na_values)
 
-    df['_metadata'] = list(map(lambda index: {
-        'filename': uw_filename,
-        'row': index + 2}, df.index))
+    df = add_metadata(df, uw_filename)
 
     return df
+
+
+def add_metadata(df: pd.DataFrame, filename: str) -> pd.DataFrame:
+    """ Adds a metadata column to a given DataFrame *df* for reporting """
+    df['_metadata'] = list(map(lambda index: {
+        'filename': filename,
+        'row': index + 2}, df.index))
+    return df
+
 
 def load_manifest_data(filename: str, sheet_name: str) -> pd.DataFrame:
     """
@@ -191,7 +191,7 @@ def missing_barcode(df: pd.DataFrame) -> pd.DataFrame:
     missing_barcodes = df.loc[df['barcode'].isnull()].copy()
     missing_barcodes['problem'] = 'Missing barcode'
 
-    return missing_barcodes[['MRN', 'Accession', 'barcode', 'problem', '_metadata']]
+    return missing_barcodes
 
 
 def duplicated_barcode(df: pd.DataFrame) -> pd.DataFrame:
@@ -206,7 +206,19 @@ def duplicated_barcode(df: pd.DataFrame) -> pd.DataFrame:
     duplicated_barcodes = df[df['barcode'].isin(duplicates)].copy()
     duplicated_barcodes['problem'] = 'Barcode is not unique'
 
-    return duplicated_barcodes[['MRN', 'Accession', 'barcode', 'problem', '_metadata']]
+    return duplicated_barcodes
+
+
+def barcode_quality_control(clinical_records: pd.DataFrame, output: str) -> None:
+    """ Perform quality control on barcodes """
+    missing_barcodes = missing_barcode(clinical_records)
+    duplicated_barcodes = duplicated_barcode(clinical_records)
+
+    print_problem_barcodes(pd.concat([missing_barcodes, duplicated_barcodes],
+                                 ignore_index=True), output)
+
+    assert len(duplicated_barcodes) == 0, "You have duplicated barcodes!"
+
 
 def age_ceiling(age: float, max_age=90) -> float:
     """
@@ -244,8 +256,10 @@ def print_problem_barcodes(problem_barcodes: pd.DataFrame, output: str):
 
 @clinical.command("parse-sch")
 @click.argument("sch_filename", metavar = "<SCH Clinical Data filename>")
+@click.option("-o", "--output", metavar="<output filename>",
+    help="The filename for the output of missing barcodes")
 
-def parse_sch(sch_filename):
+def parse_sch(sch_filename, output):
     """
     Process and insert clinical data from SCH.
 
@@ -253,7 +267,7 @@ def parse_sch(sch_filename):
     records.  You will likely want to redirect stdout to a file.
     """
     clinical_records = pd.read_csv(sch_filename)
-
+    clinical_records = add_metadata(clinical_records, sch_filename)
 
     # Standardize column names
     column_map = {
@@ -265,6 +279,8 @@ def parse_sch(sch_filename):
         "census_tract": "census_tract",
     }
     clinical_records = clinical_records.rename(columns=column_map)
+
+    barcode_quality_control(clinical_records, output)
 
     # Drop unnecessary columns
     clinical_records = clinical_records[column_map.values()]
