@@ -4,6 +4,12 @@ Data logistics for the [Seattle Flu Study](https://seattleflu.org) and
 [Flu@Home](https://fluathome.org), enabling real-time genomic epidemiology
 studies.
 
+## Navigation
+* [Database](#database)
+* [Web API](#web-api)
+* [CLI](#cli)
+* [Setup](#setup)
+
 ## Database
 
 [PostgreSQL 10](https://www.postgresql.org/about/news/1786/)
@@ -80,7 +86,7 @@ General principles to follow when developing the schema.
 * Do the ~simplest thing that meets our immediate needs.  Aim for ease of
   modification in the future rather than trying to guess future needs in
   advance.
-  
+
   It can be really hard to stick to this principle, but it turns out that the
   best way to make something flexible for future needs is to make it as simple
   as possible now so it can be modified later.
@@ -114,7 +120,7 @@ For example:
 * Nouns (tables, columns, etc) in our system should consider adopting the
   equivalent terms used by [FHIR R4](http://www.hl7.org/implement/standards/fhir/)
   resources.
-  
+
   This will aid with producing FHIR documents in the future and provides a
   consistent terminology on which to discuss concepts more broadly than our
   group.  FHIR is a large specification and there is a lot to digest; it's
@@ -178,8 +184,9 @@ Python 3 + [Flask](http://flask.pocoo.org)
 
 * Database connection details are set entirely using the [standard libpq
   environment variables](https://www.postgresql.org/docs/current/libpq-envars.html),
-  such as `PGHOST` and `PGDATABASE`.
-  
+  such as `PGHOST` and `PGDATABASE`. You may provide these when starting the
+  API server.
+
   User authentication is performed against the database for each request, so
   you do not (and should not) provide a username and password when starting the
   API server.
@@ -193,11 +200,30 @@ Python 3 + [Flask](http://flask.pocoo.org)
 ### Starting the server
 
 The commands `pipenv run python -m seattleflu.api` or `pipenv run flask run`
-will run the application's __development__ server.
+will run the application's __development__ server. To provide database
+connection details while starting the development server, run the command
+`PGDATABASE=DB_NAME pipenv run flask run`, substituting `DB_NAME` with the name
+of your database.
 
 For production, a standard `api.wsgi` file is provided which can be used by any
 web server with WSGI support.
 
+### Examples
+
+User authentication must be provided when making POST requests to the API. For
+example, you can run the following `curl` command to send JSON data named
+`enrollments.json` to the `/enrollment` endpoint on a local development server:
+
+```sh
+curl http://localhost:5000/enrollment \
+  --header "Content-Type: application/json" \
+  --data-binary @enrollments.json \
+  --user USERNAME
+```
+
+Substitute your own local database username for `USERNAME`.  This will prompt
+you for a password; you can also specify it directly by using `--user
+"USERNAME:PASSWORD"`, though be aware it will be saved to your shell history.
 
 ## CLI
 
