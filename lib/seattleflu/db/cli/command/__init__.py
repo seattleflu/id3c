@@ -7,4 +7,5 @@ __all__ = [
     "identifier",
     "manifest",
     "clinical",
+    "user",
 ]

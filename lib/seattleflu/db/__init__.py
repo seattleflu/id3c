@@ -2,10 +2,12 @@
 Seattle Flu Study database libraries
 """
 import logging
+import secrets
 from psycopg2 import IntegrityError
 from psycopg2.errors import ExclusionViolation
+from psycopg2.sql import SQL, Identifier
 from statistics import median, mode
-from typing import Any, NamedTuple
+from typing import Any, Iterable, NamedTuple
 from .session import DatabaseSession
 
 
@@ -129,3 +131,66 @@ def find_identifier(db: DatabaseSession, barcode: str) -> NamedTuple:
     else:
         LOG.warning(f"No identifier found for barcode «{barcode}»")
         return None
+
+
+def create_user(session: DatabaseSession, name, comment: str = None) -> None:
+    """
+    Create the user *name*, described by an optional *comment*.
+    """
+    with session.cursor() as cursor:
+        LOG.info(f"Creating user «{name}»")
+
+        cursor.execute(
+            sqlf("create user {}", Identifier(name)))
+
+        if comment is not None:
+            cursor.execute(
+                sqlf("comment on role {} is %s", Identifier(name)),
+                (comment,))
+
+
+def grant_roles(session: DatabaseSession, username, roles: Iterable = []) -> None:
+    """
+    Grants the given set of *roles* to *username*.
+    """
+    if not roles:
+        LOG.warning("No roles provided; none will be granted.")
+        return
+
+    with session.cursor() as cursor:
+        for role in roles:
+            LOG.info(f"Granting «{role}» to «{username}»")
+
+            cursor.execute(
+                sqlf("grant {} to {}",
+                     Identifier(role),
+                     Identifier(username)))
+
+
+def reset_password(session: DatabaseSession, username) -> str:
+    """
+    Sets the password for *username* to a generated random string.
+
+    The new password is returned.
+    """
+    new_password = secrets.token_urlsafe()
+
+    with session.cursor() as cursor:
+        LOG.info(f"Setting password of user «{username}»")
+
+        cursor.execute(
+            sqlf("alter user {} password %s", Identifier(username)),
+            (new_password,))
+
+    return new_password
+
+
+def sqlf(sql, *args, **kwargs):
+    """
+    Format the given *sql* statement using the given arguments.
+
+    This should only be used for SQL statements which need to be dynamic, or
+    need to include quoted identifier values.  Literal values are best
+    supported by using placeholders in the call to ``execute()``.
+    """
+    return SQL(sql).format(*args, **kwargs)
