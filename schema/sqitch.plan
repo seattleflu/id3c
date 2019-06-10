@@ -80,3 +80,5 @@ shipping/age-bin-v2 [types/intervalrange] 2019-06-03T16:20:43Z Jover Lee <joverl
 shipping/views [shipping/views@2019-06-03-age-column shipping/age-bin-v2] 2019-06-03T19:36:12Z Jover Lee <joverlee@fredhutch.org> # Update modeling views to include new age column and age bin tables
 roles/dumper/create [receiving/schema warehouse/schema shipping/schema] 2019-06-04T20:57:23Z Thomas Sibley <tsibley@fredhutch.org> # Create dumper role for people who should be able to use pg_dump
 roles/dumper/grants [roles/dumper/create] 2019-06-04T20:59:22Z Thomas Sibley <tsibley@fredhutch.org> # Grants to dumper role
+@2019-06-04-join-shipping-views 2019-06-04T23:35:07Z Jover Lee <joverlee@fredhutch.org> # Schema as of 04 June 2019
+shipping/views [shipping/views@2019-06-04-join-shipping-views] 2019-06-04T23:36:16Z Jover Lee <joverlee@fredhutch.org> # Create new view to join modeling and presence/absence views
