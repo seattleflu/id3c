@@ -102,7 +102,7 @@ def parse_uw(uw_filename, uw_nwh_file, hmc_sch_file, output):
     clinical_records['individual'] = clinical_records['individual'].apply(generate_hash)
     clinical_records['identifier'] = clinical_records['identifier'].apply(generate_hash)
 
-    print(clinical_records.to_json(orient='records', lines=True))
+    dump_ndjson(clinical_records)
 
 
 def load_data(uw_filename: str, uw_nwh_file: str, hmc_sch_file: str):
@@ -304,7 +304,8 @@ def parse_sch(sch_filename, output):
     clinical_records["HispanicLatino"] = None
     clinical_records["MedicalInsurace"] = None
 
-    print(clinical_records.to_json(orient='records', lines=True))
+    dump_ndjson(clinical_records)
+
 
 @clinical.command("upload")
 @click.argument("clinical_file",
@@ -336,3 +337,14 @@ def upload(clinical_file):
         LOG.info("Rolling back all changes; the database will not be modified")
         db.rollback()
         raise
+
+
+def dump_ndjson(df):
+    """
+    Prints a :class:`pandas.DataFrame` as NDJSON.
+
+    Dates are formatted according to ISO 8601.
+    """
+    print(df.to_json(orient = "records", lines = True, date_format = "iso"))
+
+
