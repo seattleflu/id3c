@@ -338,16 +338,11 @@ def upload(manifest_file):
     db = DatabaseSession()
 
     try:
-        for document in (line.strip() for line in manifest_file):
-            LOG.debug(f"Processing sample manifest record: {document}")
+        LOG.info(f"Copying sample manifest records from {manifest_file.name}")
 
-            manifest = db.fetch_row("""
-               insert into receiving.manifest (document) values (%s)
-                   returning manifest_id as id
-               """, (document,))
+        row_count = db.copy_from_ndjson(("receiving", "manifest", "document"), manifest_file)
 
-            LOG.info(f"Created received manifest record {manifest.id}")
-
+        LOG.info(f"Received {row_count:,} manifest records")
         LOG.info("Committing all changes")
         db.commit()
 

@@ -323,16 +323,11 @@ def upload(clinical_file):
     db = DatabaseSession()
 
     try:
-        for document in (line.strip() for line in clinical_file):
-            LOG.debug(f"Processing clinical record: {document}")
+        LOG.info(f"Copying clinical records from {clinical_file.name}")
 
-            clinical = db.fetch_row("""
-                insert into receiving.clinical (document) values (%s)
-                    returning clinical_id as id
-                """, (document,))
+        row_count = db.copy_from_ndjson(("receiving", "clinical", "document"), clinical_file)
 
-            LOG.info(f"Created received clinical record {clinical.id}")
-
+        LOG.info(f"Received {row_count:,} clinical records")
         LOG.info("Committing all changes")
         db.commit()
 
