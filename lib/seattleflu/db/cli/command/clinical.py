@@ -284,6 +284,7 @@ def parse_sch(sch_filename, output):
 
     # Drop unnecessary columns
     clinical_records = clinical_records[column_map.values()]
+    clinical_records["encountered"] = pd.to_datetime(clinical_records["encountered"])
 
     # Insert static value columns
     clinical_records["site"] = "SCH"
