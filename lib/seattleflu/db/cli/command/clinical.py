@@ -15,7 +15,7 @@ import seattleflu.db as db
 from math import ceil
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.cli import cli
-from . import add_metadata
+from . import add_metadata, barcode_quality_control
 
 
 LOG = logging.getLogger(__name__)
@@ -218,43 +218,6 @@ def standardize_identifiers(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def missing_barcode(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Given a pandas DataFrame *df*, returns a DataFrame with missing barcodes and
-    a description of the problem.
-    """
-    missing_barcodes = df.loc[df['barcode'].isnull()].copy()
-    missing_barcodes['problem'] = 'Missing barcode'
-
-    return missing_barcodes
-
-
-def duplicated_barcode(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Given a pandas DataFrame *df*, returns a DataFrame with duplicated barcodes
-    and a description of the problem.
-    """
-    duplicates = pd.DataFrame(df.barcode.value_counts())
-    duplicates = duplicates[duplicates['barcode'] > 1]
-    duplicates = pd.Series(duplicates.index)
-
-    duplicated_barcodes = df[df['barcode'].isin(duplicates)].copy()
-    duplicated_barcodes['problem'] = 'Barcode is not unique'
-
-    return duplicated_barcodes
-
-
-def barcode_quality_control(clinical_records: pd.DataFrame, output: str) -> None:
-    """ Perform quality control on barcodes """
-    missing_barcodes = missing_barcode(clinical_records)
-    duplicated_barcodes = duplicated_barcode(clinical_records)
-
-    print_problem_barcodes(pd.concat([missing_barcodes, duplicated_barcodes],
-                                 ignore_index=True), output)
-
-    assert len(duplicated_barcodes) == 0, "You have duplicated barcodes!"
-
-
 def age_ceiling(age: float, max_age=90) -> float:
     """
     Given an *age*, returns the same *age* unless it exceeds the *max_age*, in
@@ -273,20 +236,6 @@ def generate_hash(identifier: str):
     new_hash.update(identifier.encode("utf-8"))
     new_hash.update(secret.encode("utf-8"))
     return new_hash.hexdigest()
-
-
-def print_problem_barcodes(problem_barcodes: pd.DataFrame, output: str):
-    """
-    Given a pandas DataFrame of *problem_barcodes*, writes the data to
-    the log unless a filename *output* is given.
-    """
-    if output:
-        problem_barcodes.to_csv(output, index=False)
-    else:
-        problem_barcodes.apply(lambda x: LOG.warning(
-            f"{x['problem']} in row {x['_metadata']['row']} of file "
-            f"{x['_metadata']['filename']}, barcode {x['barcode']}"
-        ), axis=1)
 
 
 @clinical.command("parse-sch")
