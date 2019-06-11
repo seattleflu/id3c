@@ -142,6 +142,40 @@ class DatabaseSession:
             return cursor.fetchone()
 
 
+    def copy_from_ndjson(self, qualified_column: Tuple, stream) -> int:
+        """
+        Copies JSON documents (one per line) from the file-like object *stream*
+        into *qualified_column*.
+
+        *qualified_column* should be a tuple of (table, column) or (schema,
+        table, column).  All identifiers will be properly quoted by this
+        method.
+        """
+        assert len(qualified_column) >= 2, \
+            "No table name included in qualified column tuple"
+
+        table  = SQL(".").join(map(Identifier, qualified_column[0:-1]))
+        column = Identifier(qualified_column[-1])
+
+        with self.cursor() as cursor:
+            # The text format supported by COPY allows certain escape sequences
+            # in the data.  To avoid that and thus avoid the need to
+            # double-escape our JSON values, use the CSV format configured
+            # with ASCII control characters which aren't permitted literals in
+            # JSON as the delimiter and quote character.
+            cursor.copy_expert(
+                SQL("""
+                    copy {} ({}) from stdin with (
+                        format csv,
+                        delimiter E'\\x1f',
+                        quote E'\\x1b',
+                        encoding 'utf-8')
+                    """).format(table, column),
+                stream)
+
+            return cursor.rowcount
+
+
     def session_info(self) -> str:
         """
         Describes the current database session using a concise string.
