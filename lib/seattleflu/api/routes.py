@@ -9,14 +9,17 @@ from .utils.routes import authenticated_datastore_session_required, content_type
 
 LOG = logging.getLogger(__name__)
 
-api = Blueprint("api", __name__)
+api_v1 = Blueprint('api_v1', 'api_v1', url_prefix='/v1')
+api_unversioned = Blueprint('api_unversioned', 'api_unversioned', url_prefix='/')
 
 blueprints = [
-    api,
+    api_v1,
+    api_unversioned,
 ]
 
 
-@api.route("/", methods = ['GET'])
+@api_v1.route("/", methods = ['GET'])
+@api_unversioned.route("/", methods = ['GET'])
 def index():
     """
     Show an index page with documentation.
@@ -24,7 +27,8 @@ def index():
     return send_file("static/index.html", "text/html; charset=UTF-8")
 
 
-@api.route("/enrollment", methods = ['POST'])
+@api_v1.route("/receiving/enrollment", methods = ['POST'])
+@api_unversioned.route("/enrollment", methods = ['POST'])
 @content_types_accepted(["application/json"])
 @check_content_length
 @authenticated_datastore_session_required
@@ -45,7 +49,8 @@ def receive_enrollment(*, session):
     return "", 204
 
 
-@api.route("/presence-absence", methods = ['POST'])
+@api_v1.route("/receiving/presence-absence", methods = ['POST'])
+@api_unversioned.route("/presence-absence", methods = ['POST'])
 @content_types_accepted(["application/json"])
 @check_content_length
 @authenticated_datastore_session_required
@@ -64,7 +69,8 @@ def receive_presence_absence(*, session):
     return "", 204
 
 
-@api.route("/sequence-read-set", methods = ['POST'])
+@api_v1.route("/receiving/sequence-read-set", methods = ['POST'])
+@api_unversioned.route("/sequence-read-set", methods = ['POST'])
 @content_types_accepted(["application/json"])
 @check_content_length
 @authenticated_datastore_session_required

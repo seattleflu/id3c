@@ -36,37 +36,45 @@
 
     <h2>Routes</h2>
 
-    <h3 class="code">POST /enrollment</h3>
+    <h3 class="code">POST /v1/receiving/enrollment</h3>
     <p>Stores the request data as an enrollment document in a receiving area of
-    the study database.
+    the study database. Accepts any JSON object.
 
-    <h3 class="code">POST /presence-absence</h3>
+    <h3 class="code">POST /v1/receiving/presence-absence</h3>
     <p>Stores the request data as presence/absence calls in a receiving area of
-    the study database.
+    the study database. Accepts any JSON object.
+
+    <h3 class="code">POST /v1/receiving/sequence-read-set</h3>
+    <p>Stores the request data as a sequence read set document in a receiving
+    area of the study database.
 
     <p>By convention, the body of the request should be a JSON object like the
     following:
 
 <pre>{
-  "calls": [
-    {
-      "source": {
-        "sample": "20e1d4a2",
-        "rack": "TS01143828",
-        "tube": "1183001056",
-        "well": "A:1",
-        ...
-      },
-      "target": {
-        "name": "RSVA",
-        "control": false,
-        ...
-      },
-      "present": true
-    },
+  "source": {
+    "sample": "20e1d4a2",
+    ...
+  },
+  "reads": [
+    "https://server/path/to/reads_L001_R1_001.fastq.gz",
+    "https://server/path/to/reads_L001_R2_001.fastq.gz",
     ...
   ]
 }</pre>
+
+    <h2>Legacy Routes</h2>
+    <p>
+      These routes have been deprecated but continue to be supported (for now).
+    </p>
+
+    <h3 class="code">POST /enrollment</h3>
+    <p>Stores the request data as an enrollment document in a receiving area of
+    the study database. Accepts any JSON object.
+
+    <h3 class="code">POST /presence-absence</h3>
+    <p>Stores the request data as presence/absence calls in a receiving area of
+    the study database. Accepts any JSON object.
 
     <h3 class="code">POST /sequence-read-set</h3>
     <p>Stores the request data as a sequence read set document in a receiving
