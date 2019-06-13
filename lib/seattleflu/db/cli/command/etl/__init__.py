@@ -187,6 +187,33 @@ def update_sample(db: DatabaseSession,
     LOG.info(f"Updated sample {sample.id}")
 
     return sample
+class UnknownSiteError(ValueError):
+    """
+    Raised by :function:`site_identifier` if its provided *site_nickname*
+    is not among the set of expected values.
+    """
+    pass
+
+class UnknownRaceError(ValueError):
+    """
+    Raised by :function:`race` if its provided *race_name* is not among the set
+    of expected values.
+    """
+    pass
+
+class UnknownEthnicGroupError(ValueError):
+    """
+    Raised by :function:`hispanic_latino` if its provided *ethnic_group* is not
+    among the set of expected values.
+    """
+    pass
+
+class UnknownFluShotResponseError(ValueError):
+    """
+    Raised by :function:`flu_shot` if its provided *flu_shot_reponse* is not
+    among the set of expected values.
+    """
+    pass
 
 
 from . import *

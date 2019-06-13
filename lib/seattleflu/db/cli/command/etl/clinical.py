@@ -11,6 +11,8 @@ from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
 from . import etl, find_or_create_site, upsert_individual, \
               upsert_encounter, update_sample
+from . import UnknownSiteError, UnknownRaceError, UnknownEthnicGroupError
+from . import UnknownFluShotResponseError
 from .presence_absence import SampleNotFoundError
 
 
@@ -385,31 +387,3 @@ def mark_processed(db, clinical_id: int, entry: {}) -> None:
                set processing_log = processing_log || %(log_entry)s
              where clinical_id = %(clinical_id)s
             """, data)
-
-class UnknownSiteError(ValueError):
-    """
-    Raised by :function:`site_identifier` if its provided *site_nickname*
-    is not among the set of expected values.
-    """
-    pass
-
-class UnknownRaceError(ValueError):
-    """
-    Raised by :function:`race` if its provided *race_name* is not among the set
-    of expected values.
-    """
-    pass
-
-class UnknownEthnicGroupError(ValueError):
-    """
-    Raised by :function:`hispanic_latino` if its provided *ethnic_group* is not
-    among the set of expected values.
-    """
-    pass
-
-class UnknownFluShotResponseError(ValueError):
-    """
-    Raised by :function:`flu_shot` if its provided *flu_shot_reponse* is not
-    among the set of expected values.
-    """
-    pass
