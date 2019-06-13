@@ -74,3 +74,12 @@ def print_problem_barcodes(problem_barcodes: pd.DataFrame, output: str):
             f"{x['problem']} in row {x['_metadata']['row']} of file "
             f"{x['_metadata']['filename']}, barcode {x['barcode']}"
         ), axis=1)
+
+
+def dump_ndjson(df):
+    """
+    Prints a :class:`pandas.DataFrame` as NDJSON.
+
+    Dates are formatted according to ISO 8601.
+    """
+    print(df.to_json(orient = "records", lines = True, date_format = "iso"))

@@ -15,7 +15,7 @@ import seattleflu.db as db
 from math import ceil
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.cli import cli
-from . import add_metadata, barcode_quality_control
+from . import add_metadata, barcode_quality_control, dump_ndjson
 
 
 LOG = logging.getLogger(__name__)
@@ -325,12 +325,3 @@ def upload(clinical_file):
         LOG.info("Rolling back all changes; the database will not be modified")
         db.rollback()
         raise
-
-
-def dump_ndjson(df):
-    """
-    Prints a :class:`pandas.DataFrame` as NDJSON.
-
-    Dates are formatted according to ISO 8601.
-    """
-    print(df.to_json(orient = "records", lines = True, date_format = "iso"))
