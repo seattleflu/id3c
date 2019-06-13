@@ -109,3 +109,4 @@ receiving/redcap-det [receiving/schema] 2019-07-18T19:25:49Z Kairsten Fay <kfay@
 roles/redcap-det-uploader/create 2019-08-16T19:07:18Z Kairsten Fay <kfay@fredhutch.org> # Upload REDCap data entry trigger records into receiving
 roles/redcap-det-uploader/grants [receiving/redcap-det roles/redcap-det-uploader/create] 2019-08-16T19:20:57Z Kairsten Fay <kfay@fredhutch.org> # Grants to redcap-det-uploader
 @2019-08-22 2019-08-22T17:53:49Z Thomas Sibley <tsibley@fredhutch.org> # Schema as of 22 August 2019
+receiving/kit-result [receiving/schema] 2019-06-13T23:08:38Z Jover Lee <joverlee@fredhutch.org> # Receiving table for self-test kit results
