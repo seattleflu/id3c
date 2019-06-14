@@ -131,6 +131,7 @@ def load_data(uw_filename: str, uw_nwh_file: str, hmc_sch_file: str):
                                     'Collection Date (per tube)': 'Collection date'})
 
     hmc_manifest = load_manifest_data(hmc_sch_file, 'HMC')
+    hmc_manifest = hmc_manifest.rename(columns={'Barcode ID (Sample ID)': 'Barcode ID'})
 
     return clinical_records, uw_manifest, nwh_manifest, hmc_manifest
 
