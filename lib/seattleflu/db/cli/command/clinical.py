@@ -91,6 +91,12 @@ def parse_uw(uw_filename, uw_nwh_file, hmc_sch_file, output):
 
     barcode_quality_control(clinical_records, output)
 
+    # Convert dtypes
+    clinical_records["encountered"] = pd.to_datetime(clinical_records["encountered"])
+    # Age must be converted to Int64 dtype because pandas does not support NaNs
+    # with normal type 'int'
+    clinical_records["age"] = clinical_records["age"].astype(pd.Int64Dtype())
+
     # Subset df to drop missing barcodes
     clinical_records = clinical_records.loc[clinical_records['barcode'].notnull()]
 
@@ -117,10 +123,6 @@ def load_data(uw_filename: str, uw_nwh_file: str, hmc_sch_file: str):
     clinical_records = load_uw_metadata(uw_filename)
     clinical_records = clinical_records \
                         .rename(columns={'Collection.Date': 'Collection date'})
-    clinical_records['Collection date'] = pd.to_datetime(clinical_records['Collection date'])
-    # Convert datatype in 'age' column because
-    # Pandas does not support NaNs with normal type 'int'
-    clinical_records['Age'] = clinical_records['Age'].astype(pd.Int64Dtype())
 
     uw_manifest = load_manifest_data(uw_nwh_file, 'UWMC')
     uw_manifest = uw_manifest.rename(columns={'Barcode ID (Sample ID)': 'Barcode ID',
@@ -140,11 +142,16 @@ def load_uw_metadata(uw_filename: str) -> pd.DataFrame:
     Given a filename *uw_filename*, returns a pandas DataFrame containing
     clinical metadata.
     """
+    dtypes = {'census_tract': 'str'}
+    dates = ['Collection.Date']
     na_values = ['Unknown']
+
     if uw_filename.endswith('.csv'):
-        df = pd.read_csv(uw_filename, na_values=na_values)
+        df = pd.read_csv(uw_filename, na_values=na_values, parse_dates=dates,
+                         dtype=dtypes)
     else:
-        df = pd.read_excel(uw_filename, na_values=na_values)
+        df = pd.read_excel(uw_filename, na_values=na_values, parse_dates=dates,
+                           dtype=dtypes)
 
     df = add_metadata(df, uw_filename)
 
@@ -267,7 +274,8 @@ def parse_sch(sch_filename, output):
     All clinical records parsed are output to stdout as newline-delimited JSON
     records.  You will likely want to redirect stdout to a file.
     """
-    clinical_records = pd.read_csv(sch_filename)
+    dtypes = {'census_tract': 'str'}
+    clinical_records = pd.read_csv(sch_filename, dtype=dtypes)
     clinical_records = add_metadata(clinical_records, sch_filename)
 
     # Standardize column names
@@ -285,6 +293,8 @@ def parse_sch(sch_filename, output):
 
     # Drop unnecessary columns
     clinical_records = clinical_records[column_map.values()]
+
+    # Convert dtypes
     clinical_records["encountered"] = pd.to_datetime(clinical_records["encountered"])
 
     # Insert static value columns
