@@ -136,6 +136,7 @@ def load_uw_metadata(uw_filename: str, date: str) -> pd.DataFrame:
 
     Standardizes the collection date column with some hard-coded logic that may
     need to be updated in the future.
+    Removes leading and trailing whitespace from str-type columns.
     """
     dtypes = {'census_tract': 'str'}
     dates = ['Collection.Date']
@@ -149,9 +150,30 @@ def load_uw_metadata(uw_filename: str, date: str) -> pd.DataFrame:
                            dtype=dtypes)
 
     df = df.rename(columns={date: 'Collection date'})
+    df = trim_whitespace(df)
     df = add_metadata(df, uw_filename)
 
     return df
+
+
+def trim_whitespace(df: pd.DataFrame) -> pd.DataFrame:
+    """ Trims leading and trailing whitespace from strings in *df* """
+    str_columns = df.columns[every_value_is_str_or_na(df)]
+
+    # Guard against AttributeErrors from entirely empty non-object dtype columns
+    str_columns = list(df[str_columns].select_dtypes(include='object'))
+
+    df[str_columns] = df[str_columns].apply(lambda column: column.str.strip())
+
+    return df
+
+
+def every_value_is_str_or_na(df):
+    """
+    Evaluates whether every value in the columns of a given DataFrame *df* is
+    either a string or NA.
+    """
+    return df.applymap(lambda col: isinstance(col, str) or pd.isna(col)).all()
 
 
 def add_metadata(df: pd.DataFrame, filename: str) -> pd.DataFrame:
@@ -169,6 +191,7 @@ def load_manifest_data(filename: str, sheet_name: str, date: str) -> pd.DataFram
 
     Renames collection *date* and barcode columns with some hard-coded logic
     that may need to be updated in the future.
+    Removes leading and trailing whitespace from str-type columns.
     """
     barcode = 'Barcode ID (Sample ID)'
     dtypes = {barcode: 'str'}
@@ -182,6 +205,8 @@ def load_manifest_data(filename: str, sheet_name: str, date: str) -> pd.DataFram
     }
 
     df = df.rename(columns=rename_map)
+    df = trim_whitespace(df)
+
     return df[['Barcode ID', 'MRN', 'Collection date', 'Accession']]
 
 
@@ -285,6 +310,7 @@ def parse_sch(sch_filename, output):
     """
     dtypes = {'census_tract': 'str'}
     clinical_records = pd.read_csv(sch_filename, dtype=dtypes)
+    clinical_records = trim_whitespace(clinical_records)
     clinical_records = add_metadata(clinical_records, sch_filename)
 
     # Standardize column names
