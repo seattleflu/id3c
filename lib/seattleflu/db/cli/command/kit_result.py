@@ -173,3 +173,34 @@ def standardize_columns(subset: pd.DataFrame) -> pd.DataFrame:
             column_map[match[0]] = columns[column]
 
     return subset.rename(columns = column_map)
+
+@kit_result.command("upload")
+@click.argument("kit_result_file",
+    metavar = "<kit_result.ndjson>",
+    type = click.File("r"))
+
+def upload(kit_result_file):
+    """
+    Upload kit_result records into the database receiving area.
+
+    <kit_result.ndjson> must be a newline-delimited JSON file produced by this
+    command's sibling command.
+
+    Once records are uploaded, the kit_result ETL routine will reconcile the
+    kit_result records with known identifiers and existing kits/samples.
+    """
+    db = DatabaseSession()
+
+    try:
+        LOG.info(f"Copying kit result records from {kit_result_file.name}")
+
+        row_count = db.copy_from_ndjson(("receiving", "kit_result", "document"), kit_result_file)
+
+        LOG.info(f"Received {row_count:,} kit result records")
+        LOG.info("Committing all changes")
+        db.commit()
+
+    except:
+        LOG.info("Rolling back all changes; the database will not be modified")
+        db.rollback()
+        raise
