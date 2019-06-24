@@ -120,27 +120,22 @@ def load_data(uw_filename: str, uw_nwh_file: str, hmc_sch_file: str):
     and SCH given the two filepaths *uw_nwh_file* and *hmc_sch_file*,
     respectively.
     """
-    clinical_records = load_uw_metadata(uw_filename)
-    clinical_records = clinical_records \
-                        .rename(columns={'Collection.Date': 'Collection date'})
+    clinical_records = load_uw_metadata(uw_filename, date='Collection.Date')
 
-    uw_manifest = load_manifest_data(uw_nwh_file, 'UWMC')
-    uw_manifest = uw_manifest.rename(columns={'Barcode ID (Sample ID)': 'Barcode ID',
-                                  'Collection Date': 'Collection date'})
-
-    nwh_manifest = load_manifest_data(uw_nwh_file, 'NWH')
-    nwh_manifest = nwh_manifest.rename(columns={'Barcode ID (Sample ID)': 'Barcode ID',
-                                    'Collection Date (per tube)': 'Collection date'})
-
-    hmc_manifest = load_manifest_data(hmc_sch_file, 'HMC')
-    hmc_manifest = hmc_manifest.rename(columns={'Barcode ID (Sample ID)': 'Barcode ID'})
+    uw_manifest = load_manifest_data(uw_nwh_file, 'UWMC', 'Collection Date')
+    nwh_manifest = load_manifest_data(uw_nwh_file, 'NWH',
+                                      'Collection Date (per tube)')
+    hmc_manifest = load_manifest_data(hmc_sch_file, 'HMC', 'Collection date')
 
     return clinical_records, uw_manifest, nwh_manifest, hmc_manifest
 
-def load_uw_metadata(uw_filename: str) -> pd.DataFrame:
+def load_uw_metadata(uw_filename: str, date: str) -> pd.DataFrame:
     """
     Given a filename *uw_filename*, returns a pandas DataFrame containing
     clinical metadata.
+
+    Standardizes the collection date column with some hard-coded logic that may
+    need to be updated in the future.
     """
     dtypes = {'census_tract': 'str'}
     dates = ['Collection.Date']
@@ -153,6 +148,7 @@ def load_uw_metadata(uw_filename: str) -> pd.DataFrame:
         df = pd.read_excel(uw_filename, na_values=na_values, parse_dates=dates,
                            dtype=dtypes)
 
+    df = df.rename(columns={date: 'Collection date'})
     df = add_metadata(df, uw_filename)
 
     return df
@@ -166,14 +162,26 @@ def add_metadata(df: pd.DataFrame, filename: str) -> pd.DataFrame:
     return df
 
 
-def load_manifest_data(filename: str, sheet_name: str) -> pd.DataFrame:
+def load_manifest_data(filename: str, sheet_name: str, date: str) -> pd.DataFrame:
     """
     Given a *filename* and *sheet_name*, returns a pandas DataFrame containing
-    barcode manifest data
+    barcode manifest data.
+
+    Renames collection *date* and barcode columns with some hard-coded logic
+    that may need to be updated in the future.
     """
+    barcode = 'Barcode ID (Sample ID)'
+
     df = pd.read_excel(filename, sheet_name=sheet_name, keep_default_na=False,
         na_values=['NA', '', 'Unknown', 'NULL'])
-    return df.filter(regex=("Barcode ID|MRN|Collection [Dd]ate|Accession"))
+
+    rename_map = {
+        barcode: 'Barcode ID',
+        date: 'Collection date',
+    }
+
+    df = df.rename(columns=rename_map)
+    return df[['Barcode ID', 'MRN', 'Collection date', 'Accession']]
 
 
 def create_unique_identifier(df: pd.DataFrame):
@@ -357,5 +365,3 @@ def dump_ndjson(df):
     Dates are formatted according to ISO 8601.
     """
     print(df.to_json(orient = "records", lines = True, date_format = "iso"))
-
-
