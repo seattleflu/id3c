@@ -171,9 +171,10 @@ def load_manifest_data(filename: str, sheet_name: str, date: str) -> pd.DataFram
     that may need to be updated in the future.
     """
     barcode = 'Barcode ID (Sample ID)'
+    dtypes = {barcode: 'str'}
 
     df = pd.read_excel(filename, sheet_name=sheet_name, keep_default_na=False,
-        na_values=['NA', '', 'Unknown', 'NULL'])
+        na_values=['NA', '', 'Unknown', 'NULL'], dtype=dtypes)
 
     rename_map = {
         barcode: 'Barcode ID',
