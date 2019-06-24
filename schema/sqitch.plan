@@ -82,3 +82,7 @@ roles/dumper/create [receiving/schema warehouse/schema shipping/schema] 2019-06-
 roles/dumper/grants [roles/dumper/create] 2019-06-04T20:59:22Z Thomas Sibley <tsibley@fredhutch.org> # Grants to dumper role
 @2019-06-04-join-shipping-views 2019-06-04T23:35:07Z Jover Lee <joverlee@fredhutch.org> # Schema as of 04 June 2019
 shipping/views [shipping/views@2019-06-04-join-shipping-views] 2019-06-04T23:36:16Z Jover Lee <joverlee@fredhutch.org> # Create new view to join modeling and presence/absence views
+hstore 2019-06-21T19:02:47Z Thomas Sibley <tsibley@fredhutch.org> # Add hstore data type extension
+ltree 2019-06-21T15:30:18Z Thomas Sibley <tsibley@fredhutch.org> # Enable the ltree extension
+warehouse/organism [hstore ltree warehouse/schema] 2019-06-21T15:34:44Z Thomas Sibley <tsibley@fredhutch.org> # Add organisms to the warehouse
+warehouse/target/organism [warehouse/target warehouse/organism] 2019-06-21T22:01:31Z Thomas Sibley <tsibley@fredhutch.org> # Link targets to an organism
