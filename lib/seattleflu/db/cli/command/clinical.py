@@ -15,7 +15,7 @@ import seattleflu.db as db
 from math import ceil
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.cli import cli
-from . import add_metadata, barcode_quality_control, dump_ndjson
+from . import add_metadata, barcode_quality_control, dump_ndjson, trim_whitespace
 
 
 LOG = logging.getLogger(__name__)
@@ -155,26 +155,6 @@ def load_uw_metadata(uw_filename: str, date: str) -> pd.DataFrame:
     df = add_metadata(df, uw_filename)
 
     return df
-
-
-def trim_whitespace(df: pd.DataFrame) -> pd.DataFrame:
-    """ Trims leading and trailing whitespace from strings in *df* """
-    str_columns = df.columns[every_value_is_str_or_na(df)]
-
-    # Guard against AttributeErrors from entirely empty non-object dtype columns
-    str_columns = list(df[str_columns].select_dtypes(include='object'))
-
-    df[str_columns] = df[str_columns].apply(lambda column: column.str.strip())
-
-    return df
-
-
-def every_value_is_str_or_na(df):
-    """
-    Evaluates whether every value in the columns of a given DataFrame *df* is
-    either a string or NA.
-    """
-    return df.applymap(lambda col: isinstance(col, str) or pd.isna(col)).all()
 
 
 def load_manifest_data(filename: str, sheet_name: str, date: str) -> pd.DataFrame:
