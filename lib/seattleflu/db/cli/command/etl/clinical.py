@@ -4,7 +4,6 @@ Process clinical documents into the relational warehouse.
 import click
 import logging
 from datetime import datetime, timezone
-from typing import Any
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
