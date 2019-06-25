@@ -15,6 +15,7 @@ import seattleflu.db as db
 from math import ceil
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.cli import cli
+from . import add_metadata
 
 
 LOG = logging.getLogger(__name__)
@@ -174,14 +175,6 @@ def every_value_is_str_or_na(df):
     either a string or NA.
     """
     return df.applymap(lambda col: isinstance(col, str) or pd.isna(col)).all()
-
-
-def add_metadata(df: pd.DataFrame, filename: str) -> pd.DataFrame:
-    """ Adds a metadata column to a given DataFrame *df* for reporting """
-    df['_metadata'] = list(map(lambda index: {
-        'filename': filename,
-        'row': index + 2}, df.index))
-    return df
 
 
 def load_manifest_data(filename: str, sheet_name: str, date: str) -> pd.DataFrame:
