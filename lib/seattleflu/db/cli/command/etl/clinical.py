@@ -11,6 +11,7 @@ from seattleflu.db.datatypes import Json
 from . import etl, find_or_create_site, upsert_individual, \
               upsert_encounter, update_sample
 from . import age, age_to_delete
+from . import find_sample
 from . import UnknownSiteError, UnknownRaceError, UnknownEthnicGroupError
 from . import UnknownFluShotResponseError
 from .presence_absence import SampleNotFoundError
@@ -309,29 +310,6 @@ def sample_identifier(db: DatabaseSession, barcode: str) -> str:
             f"Identifier found in set «{identifier.set_name}», not «samples»"
 
     return str(identifier.uuid) if identifier else None
-
-
-def find_sample(db: DatabaseSession, identifier: str) -> Any:
-    """
-    Find sample by *identifier* and return sample.
-    """
-    LOG.debug(f"Looking up sample «{identifier}»")
-
-    sample = db.fetch_row("""
-        select sample_id as id, identifier, encounter_id
-          from warehouse.sample
-         where identifier = %s or
-               collection_identifier = %s
-           for update
-        """, (identifier,identifier,))
-
-    if not sample:
-        LOG.error(f"No sample with identifier «{identifier}» found")
-        return None
-
-    LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
-    return sample
-
 
 def mark_skipped(db, clinical_id: int) -> None:
     LOG.debug(f"Marking clinical record {clinical_id} as skipped")

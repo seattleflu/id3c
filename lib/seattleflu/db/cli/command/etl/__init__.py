@@ -220,6 +220,28 @@ def age_to_delete(age: float) -> str:
     }
 
 
+def find_sample(db: DatabaseSession, identifier: str) -> Any:
+    """
+    Find sample by *identifier* and return sample.
+    """
+    LOG.debug(f"Looking up sample «{identifier}»")
+
+    sample = db.fetch_row("""
+        select sample_id as id, identifier, encounter_id
+          from warehouse.sample
+         where identifier = %s or
+               collection_identifier = %s
+           for update
+        """, (identifier,identifier,))
+
+    if not sample:
+        LOG.error(f"No sample with identifier «{identifier}» found")
+        return None
+
+    LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
+    return sample
+
+
 class UnknownSiteError(ValueError):
     """
     Raised by :function:`site_identifier` if its provided *site_nickname*
