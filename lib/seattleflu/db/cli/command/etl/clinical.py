@@ -3,7 +3,6 @@ Process clinical documents into the relational warehouse.
 """
 import click
 import logging
-from math import ceil
 from datetime import datetime, timezone
 from typing import Any
 from seattleflu.db import find_identifier
@@ -11,6 +10,7 @@ from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
 from . import etl, find_or_create_site, upsert_individual, \
               upsert_encounter, update_sample
+from . import age, age_to_delete
 from . import UnknownSiteError, UnknownRaceError, UnknownEthnicGroupError
 from . import UnknownFluShotResponseError
 from .presence_absence import SampleNotFoundError
@@ -192,19 +192,6 @@ def sex(sex_name) -> str:
     return sex_map.get(sex_name, "other")
 
 
-def age(document: dict) -> str:
-    """
-    Given a *document*, retrieve age value and
-    return as a string to fit the interval format.
-
-    If no value is given for age, then will just return None.
-    """
-    age = document.get("age")
-    if age is None:
-        return None
-    return f"{float(age)} years"
-
-
 def encounter_details(document: dict) -> dict:
     """
     Describe encounter details in a simple data structure designed to be used
@@ -225,24 +212,6 @@ def encounter_details(document: dict) -> dict:
                 "MedicalInsurance": insurance(document.get("MedicalInsurance"))
             },
         }
-
-def age_to_delete(age: float) -> str:
-    """
-    TODO: Delete this function once we remove age from details
-    Given an *age*, return a dict containing its 'value' and a boolean for
-    'ninetyOrAbove'.
-    Currently applys math.ceil() to age to match the age from Audere.
-    This may change in the future as we push to report age in months for
-    participants less than 1 year old.
-    If no value is given for *age*, then will just retun None.
-    """
-    if age is None:
-        return None
-
-    return {
-        "value": min(ceil(age), 90),
-        "ninetyOrAbove": ceil(age) >= 90
-    }
 
 
 def race(race_name: str) -> list:

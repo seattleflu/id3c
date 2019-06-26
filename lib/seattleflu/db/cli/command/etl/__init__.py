@@ -3,6 +3,7 @@ Run ETL routines
 """
 import click
 import logging
+from math import ceil
 from typing import Any
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
@@ -187,6 +188,38 @@ def update_sample(db: DatabaseSession,
     LOG.info(f"Updated sample {sample.id}")
 
     return sample
+def age(document: dict) -> str:
+    """
+    Given a *document*, retrieve age value and
+    return as a string to fit the interval format.
+
+    If no value is given for age, then will just return None.
+    """
+    age = document.get("age")
+    if age is None:
+        return None
+    return f"{float(age)} years"
+
+
+def age_to_delete(age: float) -> str:
+    """
+    TODO: Delete this function once we remove age from details
+    Given an *age*, return a dict containing its 'value' and a boolean for
+    'ninetyOrAbove'.
+    Currently applys math.ceil() to age to match the age from Audere.
+    This may change in the future as we push to report age in months for
+    participants less than 1 year old.
+    If no value is given for *age*, then will just retun None.
+    """
+    if age is None:
+        return None
+
+    return {
+        "value": min(ceil(age), 90),
+        "ninetyOrAbove": ceil(age) >= 90
+    }
+
+
 class UnknownSiteError(ValueError):
     """
     Raised by :function:`site_identifier` if its provided *site_nickname*
