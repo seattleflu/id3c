@@ -7,12 +7,22 @@ from datetime import datetime, timezone
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
-from . import etl, find_or_create_site, upsert_individual, \
-              upsert_encounter, update_sample
-from . import age, age_to_delete
-from . import find_sample
-from . import UnknownSiteError, UnknownRaceError, UnknownEthnicGroupError
-from . import UnknownFluShotResponseError
+from . import (
+    etl,
+
+    age,
+    age_to_delete,
+    find_or_create_site,
+    find_sample,
+    update_sample,
+    upsert_encounter,
+    upsert_individual,
+
+    UnknownEthnicGroupError,
+    UnknownFluShotResponseError,
+    UnknownRaceError,
+    UnknownSiteError,
+)
 from .presence_absence import SampleNotFoundError
 
 
