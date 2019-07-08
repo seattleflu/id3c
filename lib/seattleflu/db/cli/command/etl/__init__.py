@@ -140,4 +140,52 @@ def upsert_encounter(db: DatabaseSession,
     return encounter
 
 
+def find_sample_by_id(db: DatabaseSession, sample_id: int) -> Any:
+    """
+    Find sample by *sample_id* and return sample.
+    """
+    LOG.debug(f"Looking up sample «{sample_id}»")
+
+    sample = db.fetch_row("""
+        select sample_id as id, identifier, encounter_id
+          from warehouse.sample
+         where sample_id = %s
+            for update
+        """, (sample_id,))
+
+    if not sample:
+        LOG.error(f"No sample with id «{sample_id}» found")
+        return None
+
+    LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
+    return sample
+
+
+def update_sample(db: DatabaseSession,
+                  sample,
+                  encounter_id: int) -> Any:
+    """
+    Update sample's encounter_id.
+    """
+    LOG.debug(f"Updating sample {sample.id}, linked to encounter {encounter_id}")
+
+    if sample.encounter_id:
+        assert sample.encounter_id == encounter_id, \
+            f"Sample {sample.id} already linked to another encounter {sample.encounter_id}"
+        return
+
+    sample = db.fetch_row("""
+        update warehouse.sample
+            set encounter_id = %s
+        where sample_id = %s
+        returning sample_id as id, identifier
+        """, (encounter_id, sample.id))
+
+    assert sample.id, "Updating encounter_id affected no rows!"
+
+    LOG.info(f"Updated sample {sample.id}")
+
+    return sample
+
+
 from . import *
