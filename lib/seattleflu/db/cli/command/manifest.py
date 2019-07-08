@@ -20,6 +20,7 @@ import logging
 import pandas
 import re
 import yaml
+from functools import reduce
 from deepdiff import DeepHash
 from hashlib import sha1
 from os import chdir
@@ -101,6 +102,37 @@ def manifest():
     metavar = "<column>",
     help = "Name of the single column containing additional information.  "
            "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--kit-column",
+    metavar = "<column>",
+    help = "Name of the single column containing additional information. "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--test-strip-column",
+    metavar = "<column>",
+    help = "Name of the single column containing test strip barcodes. "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--test-origin-column",
+    metavar = "<column>",
+    help = "Name of the single column containing test origin. "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--arrival-date-column",
+    metavar = "<column>",
+    help = "Name of the single column containing the sample arrival date. "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--sample-type",
+    metavar = "<type>",
+    help = "The type of sample within this manifest. "
+           "Only applicable to samples from self-test kits.",
+    type=click.Choice(["utm", "rdt"]),
     required = False)
 
 def parse(**kwargs):
@@ -188,7 +220,12 @@ def parse_using_config(config_file):
                 "rack_columns":         config["columns"].get("racks"),
                 "test_results_column":  config["columns"].get("test_results"),
                 "pcr_result_column":    config["columns"].get("pcr_result"),
-                "notes_column":         config["columns"].get("notes")
+                "notes_column":         config["columns"].get("notes"),
+                "kit_column":           config["columns"].get("kit"),
+                "test_strip_column":    config["columns"].get("test_strip"),
+                "test_origin_column":   config["columns"].get("test_origin"),
+                "arrival_date_column":  config["columns"].get("arrival_date"),
+                "sample_type":          config.get("sample_type")
             }
         except KeyError as key:
             LOG.error(f"Required key «{key}» missing from config {config}")
@@ -208,7 +245,12 @@ def _parse(*,
            rack_columns = None,
            test_results_column = None,
            pcr_result_column = None,
-           notes_column = None):
+           notes_column = None,
+           kit_column = None,
+           test_strip_column = None,
+           test_origin_column = None,
+           arrival_date_column = None,
+           sample_type = None):
     """
     Internal function powering :func:`parse` and :func:`parse_using_config`.
     """
@@ -216,16 +258,11 @@ def _parse(*,
 
     # All columns are read as strings so that we can type values at load time.
     manifest = pandas.read_excel(workbook, sheet_name = sheet, dtype = str)
-
     LOG.debug(f"Columns in manifest: {list(manifest.columns)}")
 
     column_map = {
         find_one_column(manifest, sample_column): "sample",
     }
-
-    if collection_column:
-        column_map.update({
-            find_one_column(manifest, collection_column): "collection" })
 
     column_groups = {
         "aliquot": aliquot_columns,
@@ -238,16 +275,28 @@ def _parse(*,
             })
 
     single_columns = {
+        "collection": collection_column,
+        "kit": kit_column,
         "date": date_column,
         "aliquot_date": aliquot_date_column,
         "test_results": test_results_column,
         "pcr_result": pcr_result_column,
-        "notes": notes_column }
+        "notes": notes_column,
+        "test_strip": test_strip_column,
+        "test_origin": test_origin_column,
+        "arrival_date": arrival_date_column }
 
     for key in single_columns:
         if single_columns[key]:
-            column_map.update({
-                find_one_column(manifest, single_columns[key]): key })
+            map_key = find_one_column(manifest, single_columns[key])
+            # Allow columns to map to multiple keys
+            if map_key in column_map:
+                map_key_copy = map_key + "_copy"
+                manifest[map_key_copy] = manifest[map_key]
+                column_map.update({ map_key_copy: key })
+            else:
+                column_map.update({
+                    find_one_column(manifest, single_columns[key]): key })
 
     LOG.debug(f"Column map: {column_map}")
 
@@ -268,6 +317,15 @@ def _parse(*,
         if column_groups[key]:
             manifest[f"{key}s"] = manifest[key].apply(list, axis="columns")
             manifest.drop(columns = manifest[key], inplace=True)
+
+    # Set of columns names for barcodes
+    barcode_columns = {"sample", "collection", "kit", "test_strip"}
+    # Drop any rows that have duplicated barcodes
+    manifest = qc_barcodes(manifest, barcode_columns)
+
+    # Add sample type for kit related samples
+    if sample_type:
+        manifest["sample_type"] = sample_type
 
     # Add internal provenance metadata for data tracing
     digest = sha1sum(workbook)
@@ -392,6 +450,37 @@ def find_columns(table: pandas.DataFrame, name: str) -> List[str]:
     assert matches, f"No column name matching «{name}» found; column names are: {list(table.columns)}"
     return matches
 
+
+def qc_barcodes(df: pandas.DataFrame, columns: list) -> pandas.DataFrame:
+    """
+    Check all barcode columns for duplicates and drops records that have
+    duplicated barcodes.
+    """
+    deduplicated = df
+
+    for column in columns:
+        if column not in df:
+            LOG.debug(f"Column «{column}» was not found in manifest")
+            continue
+
+        # Drop null values so they don't get counted as duplicates
+        col = df[column].dropna()
+
+        # Find duplicates within column
+        duplicates = col[col.duplicated(keep=False)]
+
+        # If duplicates are found, drop rows with duplicate barcodes
+        if len(duplicates) > 0:
+            LOG.warning(f"Found duplicate barcodes in column «{column}»")
+            dup_barcodes = duplicates.unique().tolist()
+            LOG.warning(f"Duplicated barcodes: {dup_barcodes}")
+            LOG.warning(f"Dropping records with duplicate barcodes")
+            deduplicated_df = df[(~df[column].duplicated(keep=False)) \
+                                | (df[column].isnull())][column].to_frame()
+            common_idx = deduplicated.index.intersection(deduplicated_df.index)
+            deduplicated = deduplicated.loc[common_idx]
+
+    return deduplicated
 
 def sha1sum(path: str) -> str:
     """
