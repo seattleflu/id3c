@@ -16,14 +16,16 @@ from . import etl, find_or_create_site, upsert_individual, upsert_encounter
 LOG = logging.getLogger(__name__)
 
 
-# This revision number is stored in the processing_log of each enrollment
-# record when the enrollment is successfully processed by this ETL routine.
-# The routine finds new-to-it records to process by looking for enrollments
-# lacking this revision number in their log.  If a change to the ETL routine
-# necessitates re-processing all enrollments, this revision number should be
-# incremented.
+# The revision number and etl name are stored in the processing_log of each
+# enrollment record when the enrollment is successfully processed by
+# this ETL routine. The routine finds new-to-it records to process by looking
+# for enrollments lacking this etl revision number and etl name in their log.
+# If a change to the ETL routine necessitates re-processing all enrollments,
+# this revision number should be incremented.
+# The etl name has been added to allow multiple etls to process the same
+# receiving table
 REVISION = 4
-
+ETL_NAME = "enrollments"
 
 @etl.command("enrollments", help = __doc__)
 
@@ -74,7 +76,7 @@ def etl_enrollments(*, action: str):
          where not processing_log @> %s
          order by id
            for update
-        """, (Json([{ "revision": REVISION }]),))
+        """, (Json([{ "etl": ETL_NAME, "revision": REVISION }]),))
 
     processed_without_error = None
 
@@ -316,6 +318,7 @@ def mark_processed(db, enrollment_id: int) -> None:
     data = {
         "enrollment_id": enrollment_id,
         "log_entry": Json({
+            "etl": ETL_NAME,
             "revision": REVISION,
             "timestamp": datetime.now(timezone.utc),
         }),
