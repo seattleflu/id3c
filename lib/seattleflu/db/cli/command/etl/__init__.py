@@ -22,7 +22,8 @@ __all__ = [
     "enrollments",
     "manifest",
     "presence_absence",
-    "clinical"
+    "clinical",
+    "kit"
 ]
 
 def find_or_create_site(db: DatabaseSession, identifier: str, details: dict) -> Any:
