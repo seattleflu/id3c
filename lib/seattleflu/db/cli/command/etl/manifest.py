@@ -26,13 +26,17 @@ from . import etl
 LOG = logging.getLogger(__name__)
 
 
-# This revision number is stored in the processing_log of each manifest record
-# when the manifest record is successfully processed by this ETL routine.  The
-# routine finds new-to-it records to process by looking for those lacking this
-# revision number in their log.  If a change to the ETL routine necessitates
+# The revision number and etl name are stored in the processing_log of each
+# manifest record when the manifest record is successfully processed
+# or skipped by this ETL routine. The routine finds new-to-it records
+# to process by looking for those lacking this etl revision number and etl name
+# in their log.  If a change to the ETL routine necessitates
 # re-processing all manifest records, this revision number should be
 # incremented.
+# The etl name has been added to allow multiple etls to process the same
+# receiving table.
 REVISION = 1
+ETL_NAME = "manifest"
 
 
 @etl.command("manifest", help = __doc__)
@@ -79,7 +83,7 @@ def etl_manifest(*, action: str):
          where not processing_log @> %s
          order by id
            for update
-        """, (Json([{ "revision": REVISION }]),))
+        """, (Json([{ "etl": ETL_NAME, "revision": REVISION }]),))
 
     processed_without_error = None
 
@@ -250,6 +254,7 @@ def mark_processed(db, manifest_id: int, entry = {}) -> None:
         "manifest_id": manifest_id,
         "log_entry": Json({
             **entry,
+            "etl": ETL_NAME,
             "revision": REVISION,
             "timestamp": datetime.now(timezone.utc),
         }),
