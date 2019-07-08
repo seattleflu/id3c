@@ -215,10 +215,10 @@ def site_details(site: dict) -> dict:
 
 def age(document: dict) -> str:
     """
-    Retrieves the age of the individual at the time of encounter from 
+    Retrieves the age of the individual at the time of encounter from
     *document*.
 
-    Converts age value from int to string to fit interval format. 
+    Converts age value from int to string to fit interval format.
     """
     age_dict = document.get("age")
     if not age_dict:
