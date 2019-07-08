@@ -11,6 +11,7 @@ __all__ = [
     "manifest",
     "clinical",
     "user",
+    "longitudinal",
 ]
 
 
