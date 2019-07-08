@@ -68,6 +68,7 @@ def etl_manifest(*, action: str):
     expected_identifier_sets = {
         "samples": {"samples"},
         "collections": {"collections-seattleflu.org", "collections-fluathome.org"},
+        "rdt": {"collections-fluathome.org"}
     }
 
     # Fetch and iterate over samples that aren't processed
@@ -102,8 +103,15 @@ def etl_manifest(*, action: str):
                     mark_skipped(db, manifest_record.id)
                     continue
 
-                assert sample_identifier.set_name in expected_identifier_sets["samples"], \
-                    f"Sample identifier found in set «{sample_identifier.set_name}», not {expected_identifier_sets['samples']}"
+                if (manifest_record.document.get("sample_type") and
+                    manifest_record.document["sample_type"] == "rdt"):
+                    assert sample_identifier.set_name in expected_identifier_sets["rdt"], \
+                        (f"Sample identifier found in set «{sample_identifier.set_name}», " +
+                        f"not {expected_identifier_sets['rdt']}")
+                else:
+                    assert sample_identifier.set_name in expected_identifier_sets["samples"], \
+                        (f"Sample identifier found in set «{sample_identifier.set_name}», " +
+                        f"not {expected_identifier_sets['samples']}")
 
                 # Optionally, convert the collection barcode to full
                 # identifier, ensuring it's known and from the correct
@@ -174,9 +182,9 @@ def upsert_sample(db: DatabaseSession,
     """
     Upsert sample by its *identifier* and/or *collection_identifier*.
 
-    An existing sample has its *encounter_id* updated, and the provided
-    *additional_details* are merged (at the top-level only) into the existing
-    sample details, if any.
+    An existing sample has its *identifier* and *collection_identifier* updated,
+    and the provided *additional_details* are merged (at the top-level only)
+    into the existing sample details, if any.
 
     Raises an exception if there is more than one matching sample.
     """
