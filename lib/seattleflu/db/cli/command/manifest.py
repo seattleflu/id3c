@@ -272,7 +272,7 @@ def _parse(*,
     # multiple destination columns.
     parsed_manifest = pandas.DataFrame()
 
-    parsed_manifest["sample"] = manifest[find_one_column(manifest, sample_column)]
+    parsed_manifest["sample"] = select_column(manifest, sample_column)
 
     single_columns = {
         "collection": collection_column,
@@ -288,7 +288,7 @@ def _parse(*,
 
     for dst, src in single_columns.items():
         if src:
-            parsed_manifest[dst] = manifest[find_one_column(manifest, src)]
+            parsed_manifest[dst] = select_column(manifest, src)
 
     group_columns = {
         "aliquots": aliquot_columns,
@@ -296,7 +296,7 @@ def _parse(*,
 
     for dst, src in group_columns.items():
         if src:
-            parsed_manifest[dst] = manifest[find_columns(manifest, src)].apply(list, axis="columns")
+            parsed_manifest[dst] = select_columns(manifest, src).apply(list, axis="columns")
 
     # Drop rows with null sample values, which may be introduced by space
     # stripping.
@@ -395,9 +395,9 @@ def upload(manifest_file):
         raise
 
 
-def find_one_column(table: pandas.DataFrame, name: str) -> str:
+def select_column(table: pandas.DataFrame, name: str) -> pandas.Series:
     """
-    Find the single column matching *name* in *table*.
+    Select the single column matching *name* in *table*.
 
     *table* must be a :class:`pandas.DataFrame`.
 
@@ -409,15 +409,15 @@ def find_one_column(table: pandas.DataFrame, name: str) -> str:
 
     Returns a :class:`pandas.Series` column from *table*.
     """
-    matches = find_columns(table, name)
+    matching = select_columns(table, name)
 
-    assert len(matches) == 1, f"More than one column name matching «{name}»: {matches}"
-    return matches[0]
+    assert len(matching.columns) == 1, f"More than one column name matching «{name}»: {matching.columns}"
+    return matching[matching.columns[0]]
 
 
-def find_columns(table: pandas.DataFrame, name: str) -> List[str]:
+def select_columns(table: pandas.DataFrame, name: str) -> List[str]:
     """
-    Find one or more columns matching *name* in *table*.
+    Select one or more columns matching *name* in *table*.
 
     *table* must be a :class:`pandas.DataFrame`.
 
@@ -427,13 +427,14 @@ def find_columns(table: pandas.DataFrame, name: str) -> List[str]:
     Matching is performed case-insensitively.  An `AssertionError` is raised if
     no columns are found.
 
-    Returns a list of column names from *table*.
+    Returns a :class:`pandas.DataFrame` containing a subset of columns in
+    *table*.
     """
     pattern = re.compile(fnmatch.translate(name), re.IGNORECASE)
     matches = list(filter(pattern.match, table.columns))
 
     assert matches, f"No column name matching «{name}» found; column names are: {list(table.columns)}"
-    return matches
+    return table[matches]
 
 
 def qc_barcodes(df: pandas.DataFrame, columns: list) -> pandas.DataFrame:
