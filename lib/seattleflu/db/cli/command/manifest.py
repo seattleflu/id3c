@@ -260,19 +260,19 @@ def _parse(*,
     manifest = pandas.read_excel(workbook, sheet_name = sheet, dtype = str)
     LOG.debug(f"Columns in manifest: {list(manifest.columns)}")
 
-    column_map = {
-        find_one_column(manifest, sample_column): "sample",
-    }
+    # Strip leading/trailing spaces from values and replace missing values
+    # (numpy's NaN) and empty strings (possibly from stripping) with None so
+    # they are converted to null in JSON.
+    manifest = manifest \
+        .apply(lambda column: column.str.strip()) \
+        .replace({ pandas.np.nan: None, "": None })
 
-    column_groups = {
-        "aliquot": aliquot_columns,
-        "rack": rack_columns }
+    # Construct parsed manifest by copying columns from source to destination.
+    # This approach is used to allow the same source column to end up as
+    # multiple destination columns.
+    parsed_manifest = pandas.DataFrame()
 
-    for key in column_groups:
-        if column_groups[key]:
-            column_map.update({
-                column: key for column in find_columns(manifest, column_groups[key])
-            })
+    parsed_manifest["sample"] = manifest[find_one_column(manifest, sample_column)]
 
     single_columns = {
         "collection": collection_column,
@@ -286,61 +286,46 @@ def _parse(*,
         "test_origin": test_origin_column,
         "arrival_date": arrival_date_column }
 
-    for key in single_columns:
-        if single_columns[key]:
-            map_key = find_one_column(manifest, single_columns[key])
-            # Allow columns to map to multiple keys
-            if map_key in column_map:
-                map_key_copy = map_key + "_copy"
-                manifest[map_key_copy] = manifest[map_key]
-                column_map.update({ map_key_copy: key })
-            else:
-                column_map.update({
-                    find_one_column(manifest, single_columns[key]): key })
+    for dst, src in single_columns.items():
+        if src:
+            parsed_manifest[dst] = manifest[find_one_column(manifest, src)]
 
-    LOG.debug(f"Column map: {column_map}")
+    group_columns = {
+        "aliquots": aliquot_columns,
+        "racks": rack_columns }
 
-    # Select just our columns of interest (renamed to our mapped output names),
-    # strip leading/trailing spaces from values, replace missing values
-    # (numpy's NaN) and empty strings (possibly from stripping) with None so
-    # they are converted to null in JSON, and drop rows with null sample values
-    # (which may be introduced by stripping).
-    manifest = manifest \
-        .filter(items = column_map.keys()) \
-        .rename(columns = column_map) \
-        .apply(lambda column: column.str.strip()) \
-        .replace({ pandas.np.nan: None, "": None }) \
-        .dropna(subset = ["sample"])
+    for dst, src in group_columns.items():
+        if src:
+            parsed_manifest[dst] = manifest[find_columns(manifest, src)].apply(list, axis="columns")
 
-    # Combine individual aliquot and rack columns into one list-valued column
-    for key in column_groups:
-        if column_groups[key]:
-            manifest[f"{key}s"] = manifest[key].apply(list, axis="columns")
-            manifest.drop(columns = manifest[key], inplace=True)
+    # Drop rows with null sample values, which may be introduced by space
+    # stripping.
+    parsed_manifest = parsed_manifest.dropna(subset = ["sample"])
 
     # Set of columns names for barcodes
     barcode_columns = {"sample", "collection", "kit", "test_strip"}
+
     # Drop any rows that have duplicated barcodes
-    manifest = qc_barcodes(manifest, barcode_columns)
+    parsed_manifest = qc_barcodes(parsed_manifest, barcode_columns)
 
     # Add sample type for kit related samples
     if sample_type:
-        manifest["sample_type"] = sample_type
+        parsed_manifest["sample_type"] = sample_type
 
     # Add internal provenance metadata for data tracing
     digest = sha1sum(workbook)
 
-    manifest[PROVENANCE_KEY] = list(
+    parsed_manifest[PROVENANCE_KEY] = list(
         map(lambda index: {
                 "workbook": workbook,
                 "sha1sum": digest,
                 "sheet": sheet,
                 # Account for header row and convert from 0-based to 1-based indexing
                 "row": index + 2,
-            }, manifest.index))
+            }, parsed_manifest.index))
 
     # Return a standard list of dicts instead of a DataFrame
-    return manifest.to_dict(orient = "records")
+    return parsed_manifest.to_dict(orient = "records")
 
 
 @manifest.command("diff")
@@ -422,7 +407,7 @@ def find_one_column(table: pandas.DataFrame, name: str) -> str:
     Matching is performed case-insensitively.  An `AssertionError` is raised if
     no columns are found or if more than one column is found.
 
-    Returns a column name from *table*.
+    Returns a :class:`pandas.Series` column from *table*.
     """
     matches = find_columns(table, name)
 
