@@ -9,7 +9,8 @@ from typing import Any
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
-from . import etl, find_or_create_site, upsert_individual, upsert_encounter
+from . import etl, find_or_create_site, upsert_individual, \
+              upsert_encounter, update_sample
 from .presence_absence import SampleNotFoundError
 
 
@@ -191,7 +192,7 @@ def sex(sex_name) -> str:
 
 def age(document: dict) -> str:
     """
-    Given a *document*, retrieve age value and 
+    Given a *document*, retrieve age value and
     return as a string to fit the interval format.
 
     If no value is given for age, then will just return None.
@@ -358,33 +359,6 @@ def find_sample(db: DatabaseSession, identifier: str) -> Any:
         return None
 
     LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
-    return sample
-
-
-def update_sample(db: DatabaseSession,
-                  sample,
-                  encounter_id: int) -> Any:
-    """
-    Update sample's encounter_id.
-    """
-    LOG.debug(f"Updating sample {sample.id}, linked to encounter {encounter_id}")
-
-    if sample.encounter_id:
-        assert sample.encounter_id == encounter_id, \
-            f"Sample {sample.id} already linked to another encounter {sample.encounter_id}"
-        return 
-
-    sample = db.fetch_row("""
-        update warehouse.sample
-            set encounter_id = %s
-        where sample_id = %s
-        returning sample_id as id, identifier
-        """, (encounter_id, sample.id))
-
-    assert sample.id, "Updating encounter_id affected no rows!"
-
-    LOG.info(f"Updated sample {sample.id}")
-
     return sample
 
 

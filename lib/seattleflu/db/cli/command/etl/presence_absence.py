@@ -29,10 +29,10 @@ LOG = logging.getLogger(__name__)
 
 
 # This revision number is stored in the processing_log of each presence-absence
-# record when the presence-absence test is successfully processed by this ETL 
+# record when the presence-absence test is successfully processed by this ETL
 # routine. The routine finds new-to-it records to process by looking for
-# presence-absence tests lacking this revision number in their log.  If a 
-# change to the ETL routine necessitates re-processing all presence-absence tests, 
+# presence-absence tests lacking this revision number in their log.  If a
+# change to the ETL routine necessitates re-processing all presence-absence tests,
 # this revision number should be incremented.
 REVISION = 3
 
@@ -108,7 +108,7 @@ def etl_presence_absence(*, action: str):
                         test_result_target_id = test_result["geneTarget"]
                         LOG.debug(f"Processing target «{test_result_target_id}» for \
                         sample «{received_sample_id}»")
-                        
+
                         # Most of the time we expect to see existing targets so a
                         # select-first approach makes the most sense to avoid useless
                         # updates.
@@ -204,7 +204,7 @@ def target_control(control: str) -> bool:
     Determine the control status of the target.
     """
     expected_values = ["NotControl", "PositiveControl"]
-    if not control or control not in expected_values: 
+    if not control or control not in expected_values:
         raise UnknownControlStatusError(f"Unknown control status «{control}».")
     return control == "PositiveControl"
 
@@ -297,7 +297,7 @@ def upsert_presence_absence(db: DatabaseSession,
     """
     Upsert presence_absence by its *identifier*.
 
-    Confirmed with Samplify that their numeric identifier for each test is stable 
+    Confirmed with Samplify that their numeric identifier for each test is stable
     and persistent.
     """
     LOG.debug(f"Upserting presence_absence «{identifier}»")
@@ -343,9 +343,9 @@ def upsert_presence_absence(db: DatabaseSession,
 
 def get_target_result(target_status: str) -> Any:
     """
-    Takes a given target status and its sample and target ids. Returns the decoded 
+    Takes a given target status and its sample and target ids. Returns the decoded
     target_result as a boolean if the given target status is known. If the given
-    target status is an unexpected value, error will be raised and the ETL process will abort. 
+    target status is an unexpected value, error will be raised and the ETL process will abort.
     """
     expected_values = ['Detected', 'NotDetected']
 
@@ -389,7 +389,7 @@ class UnknownControlStatusError(ValueError):
 
 class UnknownTargetResultError(ValueError):
     """
-    Raised by :function:`get_target_result` if its provided *target_result* 
+    Raised by :function:`get_target_result` if its provided *target_result*
     is not among the set of expected values.
     """
     pass

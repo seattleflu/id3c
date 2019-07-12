@@ -26,13 +26,17 @@ from . import etl
 LOG = logging.getLogger(__name__)
 
 
-# This revision number is stored in the processing_log of each manifest record
-# when the manifest record is successfully processed by this ETL routine.  The
-# routine finds new-to-it records to process by looking for those lacking this
-# revision number in their log.  If a change to the ETL routine necessitates
+# The revision number and etl name are stored in the processing_log of each
+# manifest record when the manifest record is successfully processed
+# or skipped by this ETL routine. The routine finds new-to-it records
+# to process by looking for those lacking this etl revision number and etl name
+# in their log.  If a change to the ETL routine necessitates
 # re-processing all manifest records, this revision number should be
 # incremented.
+# The etl name has been added to allow multiple etls to process the same
+# receiving table.
 REVISION = 1
+ETL_NAME = "manifest"
 
 
 @etl.command("manifest", help = __doc__)
@@ -64,6 +68,7 @@ def etl_manifest(*, action: str):
     expected_identifier_sets = {
         "samples": {"samples"},
         "collections": {"collections-seattleflu.org", "collections-fluathome.org"},
+        "rdt": {"collections-fluathome.org"}
     }
 
     # Fetch and iterate over samples that aren't processed
@@ -79,7 +84,7 @@ def etl_manifest(*, action: str):
          where not processing_log @> %s
          order by id
            for update
-        """, (Json([{ "revision": REVISION }]),))
+        """, (Json([{ "etl": ETL_NAME, "revision": REVISION }]),))
 
     processed_without_error = None
 
@@ -98,8 +103,15 @@ def etl_manifest(*, action: str):
                     mark_skipped(db, manifest_record.id)
                     continue
 
-                assert sample_identifier.set_name in expected_identifier_sets["samples"], \
-                    f"Sample identifier found in set «{sample_identifier.set_name}», not {expected_identifier_sets['samples']}"
+                if (manifest_record.document.get("sample_type") and
+                    manifest_record.document["sample_type"] == "rdt"):
+                    assert sample_identifier.set_name in expected_identifier_sets["rdt"], \
+                        (f"Sample identifier found in set «{sample_identifier.set_name}», " +
+                        f"not {expected_identifier_sets['rdt']}")
+                else:
+                    assert sample_identifier.set_name in expected_identifier_sets["samples"], \
+                        (f"Sample identifier found in set «{sample_identifier.set_name}», " +
+                        f"not {expected_identifier_sets['samples']}")
 
                 # Optionally, convert the collection barcode to full
                 # identifier, ensuring it's known and from the correct
@@ -170,9 +182,9 @@ def upsert_sample(db: DatabaseSession,
     """
     Upsert sample by its *identifier* and/or *collection_identifier*.
 
-    An existing sample has its *encounter_id* updated, and the provided
-    *additional_details* are merged (at the top-level only) into the existing
-    sample details, if any.
+    An existing sample has its *identifier* and *collection_identifier* updated,
+    and the provided *additional_details* are merged (at the top-level only)
+    into the existing sample details, if any.
 
     Raises an exception if there is more than one matching sample.
     """
@@ -250,6 +262,7 @@ def mark_processed(db, manifest_id: int, entry = {}) -> None:
         "manifest_id": manifest_id,
         "log_entry": Json({
             **entry,
+            "etl": ETL_NAME,
             "revision": REVISION,
             "timestamp": datetime.now(timezone.utc),
         }),
