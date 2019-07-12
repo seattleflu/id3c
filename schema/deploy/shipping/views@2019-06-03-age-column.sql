@@ -15,7 +15,6 @@ begin;
 -- updated, copy the view definition into v2 and make changes there.
 
 drop view shipping.incidence_model_observation_v1;
-drop view shipping.presence_absence_result_v1;
 
 create view shipping.incidence_model_observation_v1 as
 
