@@ -94,7 +94,7 @@ def etl_longitudinal(*, action: str):
                 # updates.
                 site = find_or_create_site(db,
                     identifier = site_identifier(record.document),
-                    details    = record.document['type'])
+                    details    = {"type": record.document['type']})
 
 
                 # Most of the time we expect to see existing individuals and new
