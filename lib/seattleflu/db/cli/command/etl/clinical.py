@@ -3,14 +3,26 @@ Process clinical documents into the relational warehouse.
 """
 import click
 import logging
-from math import ceil
 from datetime import datetime, timezone
-from typing import Any
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
-from . import etl, find_or_create_site, upsert_individual, \
-              upsert_encounter, update_sample
+from . import (
+    etl,
+
+    age,
+    age_to_delete,
+    find_or_create_site,
+    find_sample,
+    update_sample,
+    upsert_encounter,
+    upsert_individual,
+
+    UnknownEthnicGroupError,
+    UnknownFluShotResponseError,
+    UnknownRaceError,
+    UnknownSiteError,
+)
 from .presence_absence import SampleNotFoundError
 
 
@@ -190,19 +202,6 @@ def sex(sex_name) -> str:
     return sex_map.get(sex_name, "other")
 
 
-def age(document: dict) -> str:
-    """
-    Given a *document*, retrieve age value and
-    return as a string to fit the interval format.
-
-    If no value is given for age, then will just return None.
-    """
-    age = document.get("age")
-    if age is None:
-        return None
-    return f"{float(age)} years"
-
-
 def encounter_details(document: dict) -> dict:
     """
     Describe encounter details in a simple data structure designed to be used
@@ -223,24 +222,6 @@ def encounter_details(document: dict) -> dict:
                 "MedicalInsurance": insurance(document.get("MedicalInsurance"))
             },
         }
-
-def age_to_delete(age: float) -> str:
-    """
-    TODO: Delete this function once we remove age from details
-    Given an *age*, return a dict containing its 'value' and a boolean for
-    'ninetyOrAbove'.
-    Currently applys math.ceil() to age to match the age from Audere.
-    This may change in the future as we push to report age in months for
-    participants less than 1 year old.
-    If no value is given for *age*, then will just retun None.
-    """
-    if age is None:
-        return None
-
-    return {
-        "value": min(ceil(age), 90),
-        "ninetyOrAbove": ceil(age) >= 90
-    }
 
 
 def race(race_name: str) -> list:
@@ -339,29 +320,6 @@ def sample_identifier(db: DatabaseSession, barcode: str) -> str:
 
     return str(identifier.uuid) if identifier else None
 
-
-def find_sample(db: DatabaseSession, identifier: str) -> Any:
-    """
-    Find sample by *identifier* and return sample.
-    """
-    LOG.debug(f"Looking up sample «{identifier}»")
-
-    sample = db.fetch_row("""
-        select sample_id as id, identifier, encounter_id
-          from warehouse.sample
-         where identifier = %s or
-               collection_identifier = %s
-           for update
-        """, (identifier,identifier,))
-
-    if not sample:
-        LOG.error(f"No sample with identifier «{identifier}» found")
-        return None
-
-    LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
-    return sample
-
-
 def mark_skipped(db, clinical_id: int) -> None:
     LOG.debug(f"Marking clinical record {clinical_id} as skipped")
     mark_processed(db, clinical_id, { "status": "skipped" })
@@ -385,31 +343,3 @@ def mark_processed(db, clinical_id: int, entry: {}) -> None:
                set processing_log = processing_log || %(log_entry)s
              where clinical_id = %(clinical_id)s
             """, data)
-
-class UnknownSiteError(ValueError):
-    """
-    Raised by :function:`site_identifier` if its provided *site_nickname*
-    is not among the set of expected values.
-    """
-    pass
-
-class UnknownRaceError(ValueError):
-    """
-    Raised by :function:`race` if its provided *race_name* is not among the set
-    of expected values.
-    """
-    pass
-
-class UnknownEthnicGroupError(ValueError):
-    """
-    Raised by :function:`hispanic_latino` if its provided *ethnic_group* is not
-    among the set of expected values.
-    """
-    pass
-
-class UnknownFluShotResponseError(ValueError):
-    """
-    Raised by :function:`flu_shot` if its provided *flu_shot_reponse* is not
-    among the set of expected values.
-    """
-    pass

@@ -3,6 +3,7 @@ Run ETL routines
 """
 import click
 import logging
+from math import ceil
 from typing import Any
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
@@ -23,7 +24,8 @@ __all__ = [
     "manifest",
     "presence_absence",
     "clinical",
-    "kit"
+    "kit",
+    "longitudinal",
 ]
 
 def find_or_create_site(db: DatabaseSession, identifier: str, details: dict) -> Any:
@@ -187,6 +189,87 @@ def update_sample(db: DatabaseSession,
     LOG.info(f"Updated sample {sample.id}")
 
     return sample
+def age(document: dict) -> str:
+    """
+    Given a *document*, retrieve age value and
+    return as a string to fit the interval format.
+
+    If no value is given for age, then will just return None.
+    """
+    age = document.get("age")
+    if age is None:
+        return None
+    return f"{float(age)} years"
+
+
+def age_to_delete(age: float) -> str:
+    """
+    TODO: Delete this function once we remove age from details
+    Given an *age*, return a dict containing its 'value' and a boolean for
+    'ninetyOrAbove'.
+    Currently applys math.ceil() to age to match the age from Audere.
+    This may change in the future as we push to report age in months for
+    participants less than 1 year old.
+    If no value is given for *age*, then will just retun None.
+    """
+    if age is None:
+        return None
+
+    return {
+        "value": min(ceil(age), 90),
+        "ninetyOrAbove": ceil(age) >= 90
+    }
+
+
+def find_sample(db: DatabaseSession, identifier: str) -> Any:
+    """
+    Find sample by *identifier* and return sample.
+    """
+    LOG.debug(f"Looking up sample «{identifier}»")
+
+    sample = db.fetch_row("""
+        select sample_id as id, identifier, encounter_id
+          from warehouse.sample
+         where identifier = %s or
+               collection_identifier = %s
+           for update
+        """, (identifier,identifier,))
+
+    if not sample:
+        LOG.error(f"No sample with identifier «{identifier}» found")
+        return None
+
+    LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
+    return sample
+
+
+class UnknownSiteError(ValueError):
+    """
+    Raised by :function:`site_identifier` if its provided *site_nickname*
+    is not among the set of expected values.
+    """
+    pass
+
+class UnknownRaceError(ValueError):
+    """
+    Raised by :function:`race` if its provided *race_name* is not among the set
+    of expected values.
+    """
+    pass
+
+class UnknownEthnicGroupError(ValueError):
+    """
+    Raised by :function:`hispanic_latino` if its provided *ethnic_group* is not
+    among the set of expected values.
+    """
+    pass
+
+class UnknownFluShotResponseError(ValueError):
+    """
+    Raised by :function:`flu_shot` if its provided *flu_shot_reponse* is not
+    among the set of expected values.
+    """
+    pass
 
 
 from . import *
