@@ -22,7 +22,7 @@ from typing import Any
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
-from . import etl
+from . import etl, SampleNotFoundError
 
 
 LOG = logging.getLogger(__name__)
@@ -373,12 +373,6 @@ def mark_processed(db, group_id: int) -> None:
              where presence_absence_id = %(group_id)s
             """, data)
 
-class SampleNotFoundError(ValueError):
-    """
-    Raised when :func:``update_sample`` is unable to find an existing
-    sample with the given identifier.
-    """
-    pass
 
 class UnknownControlStatusError(ValueError):
     """
