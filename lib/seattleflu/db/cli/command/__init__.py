@@ -12,6 +12,7 @@ __all__ = [
     "clinical",
     "user",
     "longitudinal",
+    "reportable_conditions",
 ]
 
 
