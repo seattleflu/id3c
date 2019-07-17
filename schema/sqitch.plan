@@ -90,5 +90,9 @@ warehouse/target/organism [warehouse/target warehouse/organism] 2019-06-21T22:01
 shipping/views [shipping/views@2019-07-12] 2019-07-12T21:42:46Z Thomas Sibley <tsibley@fredhutch.org> # Correct handling of encounters with multiple samples
 warehouse/kit [warehouse/encounter warehouse/sample] 2019-06-10T16:09:32Z Jover Lee <joverlee@fredhutch.org> # Add self-test-kit table to warehouse
 receiving/longitudinal [receiving/schema] 2019-06-11T22:46:10Z Kairsten Fay <kfay@fredhutch.org> # Receiving table for longitudinal data
+roles/longitudinal-uploader/create 2019-07-16T00:06:48Z Kairsten Fay <kfay@fredhutch.org> # Upload longitudinal records into receiving
+roles/longitudinal-uploader/grants [receiving/longitudinal roles/longitudinal-uploader/create] 2019-07-16T00:12:29Z Kairsten Fay <kfay@fredhutch.org> # Grants to longitudinal-uploader
+roles/longitudinal-processor/create 2019-07-16T00:17:00Z Kairsten Fay <kfay@fredhutch.org> # Create longitudinal-processor role
+roles/longitudinal-processor/grants [receiving/longitudinal roles/longitudinal-processor/create] 2019-07-16T00:31:26Z Kairsten Fay <kfay@fredhutch.org> # Grants to longitudinal-processor
 roles/kit-processor/create 2019-07-17T17:50:04Z Jover Lee <joverlee@fredhutch.org> # Create kit-processor role
 roles/kit-processor/grants [roles/kit-processor/create warehouse/kit receiving/manifest receiving/enrollment/processing-log warehouse/identifier] 2019-07-17T18:03:52Z Jover Lee <joverlee@fredhutch.org> # Grants to kit-processor
