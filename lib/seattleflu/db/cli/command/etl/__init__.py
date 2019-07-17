@@ -190,6 +190,8 @@ def update_sample(db: DatabaseSession,
     LOG.info(f"Updated sample {sample.id}")
 
     return sample
+
+
 def age(document: dict) -> str:
     """
     Given a *document*, retrieve age value and
