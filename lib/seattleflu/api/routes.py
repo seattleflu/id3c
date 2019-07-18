@@ -1,6 +1,7 @@
 """
 API route definitions.
 """
+import json
 import logging
 from flask import Blueprint, request, send_file
 from . import datastore
@@ -86,5 +87,24 @@ def receive_sequence_read_set(*, session):
     LOG.debug(f"Received sequence read set {document}")
 
     datastore.store_sequence_read_set(session, document)
+
+    return "", 204
+
+
+@api_v1.route("/receiving/redcap-det", methods = ['POST'])
+@content_types_accepted(["application/x-www-form-urlencoded"])
+@check_content_length
+@authenticated_datastore_session_required
+def receive_redcap_det(*, session):
+    """
+    Receive REDCap data entry triggers.
+    """
+
+    # The REDCap payload should have unique keys, hence we create a flat dict
+    document = request.form.to_dict(flat=True)
+
+    LOG.debug(f"Received REDCap data entry trigger")
+
+    datastore.store_redcap_det(session, json.dumps(document))
 
     return "", 204
