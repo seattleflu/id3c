@@ -99,3 +99,4 @@ roles/kit-processor/grants [roles/kit-processor/create warehouse/kit receiving/m
 warehouse/sequence-read-set [warehouse/sample] 2019-07-10T17:46:53Z Jover Lee <joverlee@fredhutch.org> # Add sequence read sets to warehouse
 warehouse/genome [warehouse/sample warehouse/sequence-read-set warehouse/organism] 2019-07-11T22:57:35Z Jover Lee <joverlee@fredhutch.org> # Add genomes to the warehouse
 warehouse/genomic_sequence [warehouse/genome] 2019-07-16T22:42:05Z Jover Lee <joverlee@fredhutch.org> # Add genomic sequences to the warehouse
+warehouse/sequence-read-set/triggers/urls-not-null-check [warehouse/sequence-read-set] 2019-07-18T17:56:30Z Jover Lee <joverlee@fredhutch.org> # Ensure sequence read set urls are not null
