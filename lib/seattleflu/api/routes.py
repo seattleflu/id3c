@@ -88,3 +88,22 @@ def receive_sequence_read_set(*, session):
     datastore.store_sequence_read_set(session, document)
 
     return "", 204
+
+
+@api_v1.route("/receiving/consensus-genome", methods = ['POST'])
+@content_types_accepted(["application/json"])
+@check_content_length
+@authenticated_datastore_session_required
+def receive_consensus_genome(*, session):
+    """
+    Receive references to consensus genomes.
+
+    POST receiving/consensus-genome with a JSON body
+    """
+    document = request.get_data(as_text = True)
+
+    LOG.debug(f"Received consensus genome {document}")
+
+    datastore.store_consensus_genome(session, document)
+
+    return "", 204
