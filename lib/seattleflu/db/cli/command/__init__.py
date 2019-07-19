@@ -14,6 +14,7 @@ __all__ = [
     "longitudinal",
     "sequence_read_set",
     "consensus_genome",
+    "reportable_conditions",
 ]
 
 

@@ -240,6 +240,9 @@ Interact with the database on the command-line in your shell to:
 
 * Preprocess clinical data and upload it into receiving.
 
+* Send Slack notifications from the [Reportable Conditions Notifications Slack
+  App](https://api.slack.com/apps/ALJJAQGKH)
+
 The `bin/id3c` command is the entry point.  It must be run within the project
 environment, for example by using `pipenv run bin/id3c`.
 
