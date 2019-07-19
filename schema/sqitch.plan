@@ -102,3 +102,4 @@ warehouse/genomic_sequence [warehouse/genome] 2019-07-16T22:42:05Z Jover Lee <jo
 warehouse/sequence-read-set/triggers/urls-not-null-check [warehouse/sequence-read-set] 2019-07-18T17:56:30Z Jover Lee <joverlee@fredhutch.org> # Ensure sequence read set urls are not null
 warehouse/sequence-read-set/triggers/urls-unique-check [warehouse/sequence-read-set] 2019-07-18T18:02:56Z Jover Lee <joverlee@fredhutch.org> # Ensure sequence read set urls are unique within a set
 warehouse/sequence-read-set/triggers/urls-unique-to-one-set [warehouse/sequence-read-set] 2019-07-18T19:08:02Z Jover Lee <joverlee@fredhutch.org> # Ensure urls are unique to one sequence read set
+receiving/consensus-genome [receiving/schema] 2019-07-19T23:21:08Z Kairsten Fay <kfay@fredhutch.org> # Receiving table for consensus genomes
