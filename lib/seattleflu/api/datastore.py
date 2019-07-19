@@ -115,6 +115,27 @@ def store_sequence_read_set(session: DatabaseSession, document: str) -> None:
 
 
 @export
+@catch_permission_denied
+def store_consensus_genome(session: DatabaseSession, document: str) -> None:
+    """
+    Store the given consensus genome *document* (a **string**) in the backing
+    database using *session*.
+
+    Raises a :class:`BadRequestDatabaseError` exception if the given *document*
+    isn't valid and a :class:`Forbidden` exception if the database reports a
+    `permission denied` error.
+    """
+    with session, session.cursor() as cursor:
+        try:
+            cursor.execute(
+                "insert into receiving.consensus_genome (document) values (%s)",
+                    (document,))
+
+        except (DataError, IntegrityError) as error:
+            raise BadRequestDatabaseError(error) from None
+
+
+@export
 class BadRequestDatabaseError(BadRequest):
     """
     Subclass of :class:`seattleflu.api.exceptions.BadRequest` which takes a
