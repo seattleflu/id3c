@@ -243,6 +243,13 @@ def find_sample(db: DatabaseSession, identifier: str) -> Any:
     return sample
 
 
+class SampleNotFoundError(ValueError):
+    """
+    Raised when a function is unable to find an existing sample with the given
+    identifier.
+    """
+    pass
+
 class UnknownSiteError(ValueError):
     """
     Raised by :function:`site_identifier` if its provided *site_nickname*

@@ -18,12 +18,12 @@ from . import (
     update_sample,
     upsert_encounter,
 
+    SampleNotFoundError,
     UnknownEthnicGroupError,
     UnknownFluShotResponseError,
     UnknownRaceError,
     UnknownSiteError,
 )
-from .presence_absence import SampleNotFoundError
 
 
 LOG = logging.getLogger(__name__)
