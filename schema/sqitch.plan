@@ -103,3 +103,5 @@ warehouse/sequence-read-set/triggers/urls-not-null-check [warehouse/sequence-rea
 warehouse/sequence-read-set/triggers/urls-unique-check [warehouse/sequence-read-set] 2019-07-18T18:02:56Z Jover Lee <joverlee@fredhutch.org> # Ensure sequence read set urls are unique within a set
 warehouse/sequence-read-set/triggers/urls-unique-to-one-set [warehouse/sequence-read-set] 2019-07-18T19:08:02Z Jover Lee <joverlee@fredhutch.org> # Ensure urls are unique to one sequence read set
 receiving/consensus-genome [receiving/schema] 2019-07-19T23:21:08Z Kairsten Fay <kfay@fredhutch.org> # Receiving table for consensus genomes
+roles/consensus-genome-uploader/create 2019-07-22T19:18:33Z Kairsten Fay <kfay@fredhutch.org> # Upload consensus genome records into receiving
+roles/consensus-genome-uploader/grants [receiving/consensus-genome roles/consensus-genome-uploader/create] 2019-07-22T19:21:21Z Kairsten Fay <kfay@fredhutch.org> # Grants to consensus genome uploader
