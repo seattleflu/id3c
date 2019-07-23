@@ -13,6 +13,7 @@ __all__ = [
     "user",
     "longitudinal",
     "sequence_read_set",
+    "consensus_genome",
 ]
 
 
