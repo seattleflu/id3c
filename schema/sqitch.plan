@@ -103,3 +103,5 @@ warehouse/sequence-read-set/triggers/urls-unique-to-one-set [warehouse/sequence-
 receiving/consensus-genome [receiving/schema] 2019-07-19T23:21:08Z Kairsten Fay <kfay@fredhutch.org> # Receiving table for consensus genomes
 roles/consensus-genome-uploader/create 2019-07-22T19:18:33Z Kairsten Fay <kfay@fredhutch.org> # Upload consensus genome records into receiving
 roles/consensus-genome-uploader/grants [receiving/consensus-genome roles/consensus-genome-uploader/create] 2019-07-22T19:21:21Z Kairsten Fay <kfay@fredhutch.org> # Grants to consensus genome uploader
+roles/consensus-genome-processor/create 2019-07-25T22:11:30Z Kairsten Fay <kfay@fredhutch.org> # Create consensus genome processor role
+roles/consensus-genome-processor/grants [receiving/consensus-genome roles/consensus-genome-processor/create warehouse/consensus-genome warehouse/genomic-sequence warehouse/sequence-read-set/triggers/urls-unique-to-one-set] 2019-07-25T22:35:15Z Kairsten Fay <kfay@fredhutch.org> # Grants to consensus genome processor
