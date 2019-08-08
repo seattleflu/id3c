@@ -139,6 +139,7 @@ class DatabaseSession:
         """
         with self.cursor() as cursor:
             cursor.execute(sql, values)
+            assert cursor.rowcount <= 1, f"More than one result row for fetch_row({sql!r}, {values!r})"
             return cursor.fetchone()
 
 
