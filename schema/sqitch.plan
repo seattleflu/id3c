@@ -97,3 +97,4 @@ roles/longitudinal-processor/grants [receiving/longitudinal roles/longitudinal-p
 roles/kit-processor/create 2019-07-17T17:50:04Z Jover Lee <joverlee@fredhutch.org> # Create kit-processor role
 roles/kit-processor/grants [roles/kit-processor/create warehouse/kit receiving/manifest receiving/enrollment/processing-log warehouse/identifier] 2019-07-17T18:03:52Z Jover Lee <joverlee@fredhutch.org> # Grants to kit-processor
 warehouse/sequence-read-set [warehouse/sample functions/array_distinct] 2019-07-10T17:46:53Z Jover Lee <joverlee@fredhutch.org> # Add sequence read sets to warehouse
+warehouse/consensus-genome [warehouse/sample warehouse/sequence-read-set warehouse/organism] 2019-07-11T22:57:35Z Jover Lee <joverlee@fredhutch.org> # Add genomes to the warehouse
