@@ -99,3 +99,4 @@ roles/kit-processor/grants [roles/kit-processor/create warehouse/kit receiving/m
 warehouse/sequence-read-set [warehouse/sample functions/array_distinct] 2019-07-10T17:46:53Z Jover Lee <joverlee@fredhutch.org> # Add sequence read sets to warehouse
 warehouse/consensus-genome [warehouse/sample warehouse/sequence-read-set warehouse/organism] 2019-07-11T22:57:35Z Jover Lee <joverlee@fredhutch.org> # Add genomes to the warehouse
 warehouse/genomic-sequence [warehouse/consensus-genome citext] 2019-07-16T22:42:05Z Jover Lee <joverlee@fredhutch.org> # Add genomic sequences to the warehouse
+warehouse/sequence-read-set/triggers/urls-unique-to-one-set [warehouse/sequence-read-set] 2019-07-18T19:08:02Z Jover Lee <joverlee@fredhutch.org> # Ensure urls are unique to one sequence read set
