@@ -3,6 +3,8 @@
 
 begin;
 
+set local role id3c;
+
 comment on role enrollment_processor is 'For enrollment ETL routines';
 
 commit;

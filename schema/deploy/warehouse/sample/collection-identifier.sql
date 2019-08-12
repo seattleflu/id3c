@@ -3,6 +3,8 @@
 
 begin;
 
+set local role id3c;
+
 alter table warehouse.sample
     add column collection_identifier text unique;
 

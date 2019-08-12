@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 select 1/pg_catalog.has_database_privilege('identifier-minter', :'DBNAME', 'connect')::int;
 select 1/pg_catalog.has_schema_privilege('identifier-minter', 'warehouse', 'usage')::int;
 select 1/pg_catalog.has_table_privilege('identifier-minter', 'warehouse.identifier', 'select,insert')::int;

@@ -3,6 +3,8 @@
 
 begin;
 
+set local role id3c;
+
 alter table warehouse.encounter
     add column age interval
     constraint encounter_age_only_precise_to_months 

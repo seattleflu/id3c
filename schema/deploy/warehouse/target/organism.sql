@@ -4,6 +4,8 @@
 
 begin;
 
+set local role id3c;
+
 alter table warehouse.target
     add column organism_id integer references warehouse.organism (organism_id);
 

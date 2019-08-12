@@ -5,6 +5,8 @@
 
 begin;
 
+set local role id3c;
+
 set local search_path to warehouse, public;
 
 create table organism (

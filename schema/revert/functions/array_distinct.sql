@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 drop function public.array_distinct(anyarray);
 
 commit;

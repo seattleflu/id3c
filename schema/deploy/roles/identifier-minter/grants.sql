@@ -4,6 +4,8 @@
 
 begin;
 
+set local role id3c;
+
 -- This change is designed to be sqitch rework-able to make it easier to update
 -- the grants for this role.
 

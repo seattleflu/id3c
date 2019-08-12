@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 create role "kit-processor";
 
 comment on role "kit-processor" is 'For kit ETL routines';

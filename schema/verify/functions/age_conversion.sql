@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 do $$ 
 	declare
     	age record;

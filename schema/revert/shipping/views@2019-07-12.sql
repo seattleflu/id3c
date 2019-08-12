@@ -8,6 +8,8 @@
 
 begin;
 
+set local role id3c;
+
 -- This view is versioned as a hedge against future changes.  Changing this
 -- view in place is fine as long as changes are backwards compatible.  Think of
 -- the version number as the major part of a semantic versioning scheme.  If

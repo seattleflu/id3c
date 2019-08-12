@@ -3,6 +3,8 @@
 
 begin;
 
+set local role id3c;
+
 create role "sequencing-lab";
 
 grant connect on database :"DBNAME" to "sequencing-lab";

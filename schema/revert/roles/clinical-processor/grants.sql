@@ -3,6 +3,8 @@
 
 begin;
 
+set local role id3c;
+
 revoke select, insert
     on warehouse.site
   from "clinical-processor";

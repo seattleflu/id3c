@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 do $$ begin
     -- Insert encounters with various ages
     with

@@ -5,6 +5,8 @@
 
 begin;
 
+set local role id3c;
+
 create role dumper;
 
 comment on role dumper is 'For making copies with pg_dump';

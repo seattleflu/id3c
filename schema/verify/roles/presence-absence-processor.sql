@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 select 1/pg_catalog.has_database_privilege('presence-absence-processor', :'DBNAME', 'connect')::int;
 select 1/pg_catalog.has_schema_privilege('presence-absence-processor', 'receiving', 'usage')::int;
 select 1/pg_catalog.has_schema_privilege('presence-absence-processor', 'warehouse', 'usage')::int;

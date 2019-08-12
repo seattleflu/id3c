@@ -3,6 +3,8 @@
 
 begin;
 
+set local role id3c;
+
 create role "incidence-modeler";
 
 comment on role "incidence-modeler" is

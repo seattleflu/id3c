@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 do $$ begin
     -- Identifier only
     insert into warehouse.sample (identifier, collection_identifier, encounter_id)

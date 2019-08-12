@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 revoke select, insert, update
     on warehouse.site,
        warehouse.individual,

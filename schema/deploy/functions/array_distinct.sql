@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 create function public.array_distinct(anyarray)
     returns anyarray
     returns null on null input

@@ -3,6 +3,8 @@
 
 begin;
 
+set local role id3c;
+
 -- Default barcode from uuid
 create function warehouse.identifier_barcode_default_from_uuid() returns trigger as $$
     declare

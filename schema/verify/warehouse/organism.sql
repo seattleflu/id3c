@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 copy warehouse.organism (lineage, identifiers) from stdin;
 Influenza	
 Influenza.A	NCBITaxon=>11320

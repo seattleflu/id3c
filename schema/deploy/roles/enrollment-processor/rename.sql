@@ -3,6 +3,8 @@
 
 begin;
 
+set local role id3c;
+
 alter role enrollment_processor rename to "enrollment-processor";
 
 commit;

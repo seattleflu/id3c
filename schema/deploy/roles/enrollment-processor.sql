@@ -4,6 +4,8 @@
 
 begin;
 
+set local role id3c;
+
 create role enrollment_processor;
 
 grant connect on database :"DBNAME" to enrollment_processor;

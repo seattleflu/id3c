@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 select 1/pg_catalog.has_database_privilege('diagnostic-lab', :'DBNAME', 'connect')::int;
 select 1/pg_catalog.has_schema_privilege('diagnostic-lab', 'receiving', 'usage')::int;
 select 1/pg_catalog.has_column_privilege('diagnostic-lab', 'receiving.presence_absence', 'document', 'insert')::int;

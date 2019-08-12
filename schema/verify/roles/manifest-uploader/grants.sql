@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 select 1/pg_catalog.has_database_privilege('manifest-uploader', :'DBNAME', 'connect')::int;
 select 1/pg_catalog.has_schema_privilege('manifest-uploader', 'receiving', 'usage')::int;
 select 1/pg_catalog.has_column_privilege('manifest-uploader', 'receiving.manifest', 'document', 'insert')::int;

@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 select 1/(count(*) = 1)::int
     from pg_type
     where typname = 'intervalrange';

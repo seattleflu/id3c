@@ -147,11 +147,13 @@ For development, you'll need a PostgreSQL server and superuser credentials for
 it.  The following commands assume the database server is running locally and
 your local user account maps directly to a database superuser.
 
-Create a database named `seattleflu` using the standard Pg tools.  (You can use
-another name if you want, maybe to have different dev instances, but you'll
-need to adjust the [sqitch target][] you deploy to.)
+Create a user named `id3c` and a database named `seattleflu` using the standard
+Pg tools.  (You can use another database name if you want, maybe to have
+different dev instances, but you'll need to adjust the [sqitch target][] you
+deploy to.)
 
-    createdb --encoding=UTF-8 seattleflu
+    createuser --no-login --createrole id3c
+    createdb --encoding=UTF-8 --owner=id3c seattleflu
 
 Then use `sqitch` to deploy to it.  (`dev` is a [sqitch target][] configured in
 _sqitch.conf_ which points to a local database named `seattleflu`.)

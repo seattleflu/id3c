@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 select 1/pg_catalog.has_database_privilege('longitudinal-processor', :'DBNAME', 'connect')::int;
 select 1/pg_catalog.has_schema_privilege('longitudinal-processor', 'receiving', 'usage')::int;
 select 1/pg_catalog.has_schema_privilege('longitudinal-processor', 'warehouse', 'usage')::int;

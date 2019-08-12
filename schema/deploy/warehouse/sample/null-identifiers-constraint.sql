@@ -5,6 +5,8 @@
 
 begin;
 
+set local role id3c;
+
 alter table warehouse.sample
     alter column identifier drop not null,
     add constraint sample_identifiers_not_null check (

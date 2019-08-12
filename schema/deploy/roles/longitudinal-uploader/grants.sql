@@ -5,6 +5,8 @@
 
 begin;
 
+set local role id3c;
+
 grant connect on database :"DBNAME" to "longitudinal-uploader";
 
 grant usage

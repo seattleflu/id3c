@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 select pg_catalog.has_table_privilege('warehouse.kit', 'select');
 
 -- Check kit_references_not_null constraint is working 

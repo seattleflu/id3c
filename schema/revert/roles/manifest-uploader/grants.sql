@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 revoke insert (document)
     on receiving.manifest
   from "manifest-uploader";

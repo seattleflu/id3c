@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 select 1/(count(*) = 1)::int
   from information_schema.views
  where array[table_schema, table_name]::text[]

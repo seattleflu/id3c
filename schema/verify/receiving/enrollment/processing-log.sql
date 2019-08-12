@@ -2,4 +2,6 @@
 
 begin;
 
+set local role id3c;
+
 rollback;

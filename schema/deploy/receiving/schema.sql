@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 create schema receiving;
 
 comment on schema receiving is

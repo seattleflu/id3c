@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 revoke select, insert
   on warehouse.identifier
   from "identifier-minter";

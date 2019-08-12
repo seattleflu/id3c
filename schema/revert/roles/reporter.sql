@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 alter default privileges revoke select on tables from reporter;
 alter default privileges revoke usage on schemas from reporter;
 

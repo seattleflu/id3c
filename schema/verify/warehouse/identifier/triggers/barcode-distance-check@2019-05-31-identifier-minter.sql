@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 do $$
 declare
     testing_set integer;

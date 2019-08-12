@@ -3,6 +3,8 @@
 
 begin;
 
+set local role id3c;
+
 create domain warehouse.assigned_sex as text
     constraint assigned_sex_value check (
         value in ('male', 'female', 'other'));

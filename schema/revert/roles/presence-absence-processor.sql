@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 revoke select
     on warehouse.identifier,
        warehouse.identifier_set

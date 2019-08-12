@@ -4,6 +4,8 @@
 
 begin;
 
+set local role id3c;
+
 grant select
    on table shipping.age_bin_fine,
             shipping.age_bin_coarse

@@ -3,6 +3,8 @@
 
 begin;
 
+set local role id3c;
+
 create table shipping.age_bin_fine_v2 (
     range intervalrange primary key,
 

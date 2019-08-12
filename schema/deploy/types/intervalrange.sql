@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 create function public.interval_subtype_diff(x interval, y interval)
     returns float8
     returns null on null input

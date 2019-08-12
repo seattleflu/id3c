@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 create or replace function public.age_in_years(age interval) returns numeric
     language sql as $$
         -- Interval periods less than a full month are explicitly ignored.  We

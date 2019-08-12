@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 select 1/pg_catalog.has_database_privilege('clinical-uploader', :'DBNAME', 'connect')::int;
 select 1/pg_catalog.has_schema_privilege('clinical-uploader', 'receiving', 'usage')::int;
 select 1/pg_catalog.has_column_privilege('clinical-uploader', 'receiving.clinical', 'document', 'insert')::int;

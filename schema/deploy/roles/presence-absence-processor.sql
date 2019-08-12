@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 create role "presence-absence-processor";
 
 grant connect on database :"DBNAME" to "presence-absence-processor";

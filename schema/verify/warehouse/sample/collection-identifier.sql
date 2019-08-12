@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 insert into warehouse.sample (identifier, collection_identifier) values
     ('__SAMPLE_1__', '__COLLECTION__'),
     ('__SAMPLE_2__', null);

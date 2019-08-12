@@ -4,6 +4,8 @@
 
 begin;
 
+set local role id3c;
+
 revoke insert (document)
     on receiving.clinical
   from "clinical-uploader";

@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 set local search_path to receiving;
 
 drop table aliquot;

@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 set local search_path to shipping;
 
 create table age_bin_fine (

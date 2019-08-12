@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 create temporary table tests (
     a text,
     b text,

@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 -- The "public" role is a pseudo-role which means "any connected database user".
 --
 -- The "public" schema is part of PostgreSQL's default template1 database and

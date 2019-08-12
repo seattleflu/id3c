@@ -3,6 +3,8 @@
 
 begin;
 
+set local role id3c;
+
 alter table receiving.enrollment
     add column processing_log jsonb not null default '[]'
         constraint enrollment_processing_log_is_array

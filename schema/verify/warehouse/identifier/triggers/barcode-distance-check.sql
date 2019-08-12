@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 -- We are using the destructive `truncate` on the identifier table but rolling
 -- back below. Test data in this file began conflicting with real data in the
 -- production db.

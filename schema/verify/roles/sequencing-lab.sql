@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 select 1/pg_catalog.has_database_privilege('sequencing-lab', :'DBNAME', 'connect')::int;
 select 1/pg_catalog.has_schema_privilege('sequencing-lab', 'receiving', 'usage')::int;
 select 1/pg_catalog.has_column_privilege('sequencing-lab', 'receiving.sequence_read_set', 'document', 'insert')::int;

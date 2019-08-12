@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 insert into receiving.enrollment (document) values ('{}');
 
 do $$ begin

@@ -4,6 +4,8 @@
 
 begin;
 
+set local role id3c;
+
 -- This is the core of our CualID implementation, akin to running:
 --
 --    cual-id create ids --existing-ids ...

@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 select 1/pg_catalog.has_database_privilege('kit-processor', :'DBNAME', 'connect')::int;
 select 1/pg_catalog.has_schema_privilege('kit-processor', 'receiving', 'usage')::int;
 select 1/pg_catalog.has_schema_privilege('kit-processor', 'warehouse', 'usage')::int;

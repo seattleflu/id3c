@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 revoke usage
     on schema shipping
   from "incidence-modeler";

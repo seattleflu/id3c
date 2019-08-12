@@ -4,6 +4,8 @@
 
 begin;
 
+set local role id3c;
+
 grant connect on database :"DBNAME" to "manifest-uploader";
 
 grant usage

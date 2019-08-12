@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 select 1/pg_catalog.has_database_privilege('enroller', :'DBNAME', 'connect')::int;
 select 1/pg_catalog.has_schema_privilege('enroller', 'receiving', 'usage')::int;
 select 1/pg_catalog.has_column_privilege('enroller', 'receiving.enrollment', 'document', 'insert')::int;

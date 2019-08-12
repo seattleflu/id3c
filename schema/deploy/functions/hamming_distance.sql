@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 create or replace function public.hamming_distance(a text, b text)
     returns integer
     returns null on null input

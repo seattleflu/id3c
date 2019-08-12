@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 create temporary sequence __new_sequence_for_testing__;
 
 do $$ begin

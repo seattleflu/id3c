@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 alter table receiving.enrollment
     add column processed timestamp with time zone;
 

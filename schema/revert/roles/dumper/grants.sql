@@ -2,6 +2,8 @@
 
 begin;
 
+set local role id3c;
+
 revoke connect on database :"DBNAME" from dumper;
 
 -- Existing schema, tables, and sequences
