@@ -26,6 +26,12 @@ revoke create on schema public from public;
 -- The :DBNAME psql variable is documented to always be defined.
 revoke connect on database :"DBNAME" from public;
 
+-- Reset to the role that sqitch connects as so that we can alter its schema.
+-- This assumes that the current sqitch user is the same as the one which
+-- initially created the sqitch schema.  During a first deploy to an empty
+-- database, that's true.
+reset role;
+
 -- No one needs access to the sqitch schema.
 revoke usage on schema sqitch from public;
 

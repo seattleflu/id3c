@@ -2,8 +2,6 @@
 
 begin;
 
-set local role id3c;
-
 create extension "uuid-ossp" with schema public;
 
 commit;

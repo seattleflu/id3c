@@ -154,6 +154,7 @@ deploy to.)
 
     createuser --no-login --createrole id3c
     createdb --encoding=UTF-8 --owner=id3c seattleflu
+    psql -c "alter schema public owner to id3c" seattleflu
 
 Then use `sqitch` to deploy to it.  (`dev` is a [sqitch target][] configured in
 _sqitch.conf_ which points to a local database named `seattleflu`.)
