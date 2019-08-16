@@ -97,3 +97,5 @@ roles/longitudinal-processor/grants [receiving/longitudinal roles/longitudinal-p
 roles/kit-processor/create 2019-07-17T17:50:04Z Jover Lee <joverlee@fredhutch.org> # Create kit-processor role
 roles/kit-processor/grants [roles/kit-processor/create warehouse/kit receiving/manifest receiving/enrollment/processing-log warehouse/identifier] 2019-07-17T18:03:52Z Jover Lee <joverlee@fredhutch.org> # Grants to kit-processor
 receiving/redcap-det [receiving/schema] 2019-07-18T19:25:49Z Kairsten Fay <kfay@fredhutch.org> # Receiving table for REDCap DETs
+roles/redcap-det-uploader/create 2019-08-16T19:07:18Z Kairsten Fay <kfay@fredhutch.org> # Upload REDCap data entry trigger records into receiving
+roles/redcap-det-uploader/grants [receiving/redcap-det roles/redcap-det-uploader/create] 2019-08-16T19:20:57Z Kairsten Fay <kfay@fredhutch.org> # Grants to redcap-det-uploader
