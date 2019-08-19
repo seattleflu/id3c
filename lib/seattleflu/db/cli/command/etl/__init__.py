@@ -26,6 +26,7 @@ __all__ = [
     "clinical",
     "kit",
     "longitudinal",
+    "consensus_genome",
 ]
 
 def find_or_create_site(db: DatabaseSession, identifier: str, details: dict) -> Any:
@@ -221,19 +222,23 @@ def age_to_delete(age: float) -> str:
     }
 
 
-def find_sample(db: DatabaseSession, identifier: str) -> Any:
+def find_sample(db: DatabaseSession, identifier: str, for_update = True) -> Any:
     """
     Find sample by *identifier* and return sample.
     """
     LOG.debug(f"Looking up sample «{identifier}»")
+
+    query_ending = ""
+
+    if for_update:
+        query_ending = "for update"
 
     sample = db.fetch_row("""
         select sample_id as id, identifier, encounter_id
           from warehouse.sample
          where identifier = %s or
                collection_identifier = %s
-           for update
-        """, (identifier,identifier,))
+        """ + query_ending, (identifier,identifier,))
 
     if not sample:
         LOG.error(f"No sample with identifier «{identifier}» found")
