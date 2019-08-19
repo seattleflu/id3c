@@ -27,6 +27,7 @@ __all__ = [
     "kit",
     "longitudinal",
     "consensus_genome",
+    "kit_result",
 ]
 
 def find_or_create_site(db: DatabaseSession, identifier: str, details: dict) -> Any:
