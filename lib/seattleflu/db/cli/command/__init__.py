@@ -15,6 +15,7 @@ __all__ = [
     "sequence_read_set",
     "consensus_genome",
     "reportable_conditions",
+    "kit_result",
 ]
 
 
@@ -107,3 +108,35 @@ def dump_ndjson(df):
     Dates are formatted according to ISO 8601.
     """
     print(df.to_json(orient = "records", lines = True, date_format = "iso"))
+
+
+def qc_barcodes(df: pd.DataFrame, columns: list) -> pd.DataFrame:
+    """
+    Check all barcode columns for duplicates and drops records that have
+    duplicated barcodes.
+    """
+    deduplicated = df
+
+    for column in columns:
+        if column not in df:
+            LOG.debug(f"Column «{column}» was not found in manifest")
+            continue
+
+        # Drop null values so they don't get counted as duplicates
+        col = df[column].dropna()
+
+        # Find duplicates within column
+        duplicates = col[col.duplicated(keep=False)]
+
+        # If duplicates are found, drop rows with duplicate barcodes
+        if len(duplicates) > 0:
+            LOG.warning(f"Found duplicate barcodes in column «{column}»")
+            dup_barcodes = duplicates.unique().tolist()
+            LOG.warning(f"Duplicated barcodes: {dup_barcodes}")
+            LOG.warning(f"Dropping records with duplicate barcodes")
+            deduplicated_df = df[(~df[column].duplicated(keep=False)) \
+                                | (df[column].isnull())][column].to_frame()
+            common_idx = deduplicated.index.intersection(deduplicated_df.index)
+            deduplicated = deduplicated.loc[common_idx]
+
+    return deduplicated

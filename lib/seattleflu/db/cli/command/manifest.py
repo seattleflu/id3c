@@ -30,6 +30,7 @@ from seattleflu.db.cli import cli
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import as_json, Json
 from seattleflu.utils import format_doc
+from seattleflu.db.cli.command import qc_barcodes
 
 
 LOG = logging.getLogger(__name__)
@@ -436,37 +437,6 @@ def select_columns(table: pandas.DataFrame, name: str) -> List[str]:
     assert matches, f"No column name matching «{name}» found; column names are: {list(table.columns)}"
     return table[matches]
 
-
-def qc_barcodes(df: pandas.DataFrame, columns: list) -> pandas.DataFrame:
-    """
-    Check all barcode columns for duplicates and drops records that have
-    duplicated barcodes.
-    """
-    deduplicated = df
-
-    for column in columns:
-        if column not in df:
-            LOG.debug(f"Column «{column}» was not found in manifest")
-            continue
-
-        # Drop null values so they don't get counted as duplicates
-        col = df[column].dropna()
-
-        # Find duplicates within column
-        duplicates = col[col.duplicated(keep=False)]
-
-        # If duplicates are found, drop rows with duplicate barcodes
-        if len(duplicates) > 0:
-            LOG.warning(f"Found duplicate barcodes in column «{column}»")
-            dup_barcodes = duplicates.unique().tolist()
-            LOG.warning(f"Duplicated barcodes: {dup_barcodes}")
-            LOG.warning(f"Dropping records with duplicate barcodes")
-            deduplicated_df = df[(~df[column].duplicated(keep=False)) \
-                                | (df[column].isnull())][column].to_frame()
-            common_idx = deduplicated.index.intersection(deduplicated_df.index)
-            deduplicated = deduplicated.loc[common_idx]
-
-    return deduplicated
 
 def sha1sum(path: str) -> str:
     """
