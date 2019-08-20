@@ -12,6 +12,8 @@ __all__ = [
     "clinical",
     "user",
     "longitudinal",
+    "sequence_read_set",
+    "consensus_genome",
 ]
 
 
@@ -45,7 +47,7 @@ def every_value_is_str_or_na(df):
     """
     return df.applymap(lambda col: isinstance(col, str) or pd.isna(col)).all()
 
-    
+
 def barcode_quality_control(clinical_records: pd.DataFrame, output: str) -> None:
     """ Perform quality control on barcodes """
     missing_barcodes = missing_barcode(clinical_records)

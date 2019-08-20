@@ -96,3 +96,12 @@ roles/longitudinal-processor/create 2019-07-16T00:17:00Z Kairsten Fay <kfay@fred
 roles/longitudinal-processor/grants [receiving/longitudinal roles/longitudinal-processor/create] 2019-07-16T00:31:26Z Kairsten Fay <kfay@fredhutch.org> # Grants to longitudinal-processor
 roles/kit-processor/create 2019-07-17T17:50:04Z Jover Lee <joverlee@fredhutch.org> # Create kit-processor role
 roles/kit-processor/grants [roles/kit-processor/create warehouse/kit receiving/manifest receiving/enrollment/processing-log warehouse/identifier] 2019-07-17T18:03:52Z Jover Lee <joverlee@fredhutch.org> # Grants to kit-processor
+warehouse/sequence-read-set [warehouse/sample functions/array_distinct] 2019-07-10T17:46:53Z Jover Lee <joverlee@fredhutch.org> # Add sequence read sets to warehouse
+warehouse/consensus-genome [warehouse/sample warehouse/sequence-read-set warehouse/organism] 2019-07-11T22:57:35Z Jover Lee <joverlee@fredhutch.org> # Add genomes to the warehouse
+warehouse/genomic-sequence [warehouse/consensus-genome citext] 2019-07-16T22:42:05Z Jover Lee <joverlee@fredhutch.org> # Add genomic sequences to the warehouse
+warehouse/sequence-read-set/triggers/urls-unique-to-one-set [warehouse/sequence-read-set] 2019-07-18T19:08:02Z Jover Lee <joverlee@fredhutch.org> # Ensure urls are unique to one sequence read set
+receiving/consensus-genome [receiving/schema] 2019-07-19T23:21:08Z Kairsten Fay <kfay@fredhutch.org> # Receiving table for consensus genomes
+roles/consensus-genome-uploader/create 2019-07-22T19:18:33Z Kairsten Fay <kfay@fredhutch.org> # Upload consensus genome records into receiving
+roles/consensus-genome-uploader/grants [receiving/consensus-genome roles/consensus-genome-uploader/create] 2019-07-22T19:21:21Z Kairsten Fay <kfay@fredhutch.org> # Grants to consensus genome uploader
+roles/consensus-genome-processor/create 2019-07-25T22:11:30Z Kairsten Fay <kfay@fredhutch.org> # Create consensus genome processor role
+roles/consensus-genome-processor/grants [receiving/consensus-genome roles/consensus-genome-processor/create warehouse/consensus-genome warehouse/genomic-sequence warehouse/sequence-read-set/triggers/urls-unique-to-one-set] 2019-07-25T22:35:15Z Kairsten Fay <kfay@fredhutch.org> # Grants to consensus genome processor
