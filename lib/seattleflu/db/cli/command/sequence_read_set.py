@@ -25,9 +25,9 @@ def sequence_read_set():
 
 @sequence_read_set.command("parse")
 
-@click.argument("fastq_directory",
-    metavar = "<directory>",
-    type = click.Path(exists=True, file_okay=False))
+@click.argument("fastqs",
+    metavar = "<fastq> [<fastq> ...]",
+    nargs = -1)
 
 @click.option("--filename-pattern",
     help = "Regex pattern to match sample in expected filename",
@@ -41,10 +41,14 @@ def sequence_read_set():
     default = "file://rhino.fhcrc.org",
     show_default = True)
 
-def parse(fastq_directory, filename_pattern, url_prefix):
+def parse(fastqs, filename_pattern, url_prefix):
     """
-    Find all *.fastq.gz files within a provided <directory>, which should be an
-    absolute file path.
+    Generate sequence read set records from a pile of FASTQ files.
+
+    The paths to the FASTQ files should generally be absolute unless you intend
+    to mask the omitted directory hierarchy.  The given file paths will be
+    appended to the --url-prefix to form a fully-qualified URL.  Shell globs
+    (wildcards) are useful to provide the FASTQ filenames to this command.
 
     The provided --filename-pattern regular expression is used to extract the
     sample ID from each FASTQ filename.  The regex should contain a capture
@@ -57,7 +61,7 @@ def parse(fastq_directory, filename_pattern, url_prefix):
     sequence_read_sets = defaultdict(list)
     filename_pattern = re.compile(filename_pattern)
 
-    for filepath in list(Path(fastq_directory).glob("*.fastq.gz")):
+    for filepath in map(Path, fastqs):
         filename = filepath.name
         # Check the filename matches provided filename pattern
         filename_match = filename_pattern.match(filename)
