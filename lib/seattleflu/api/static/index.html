@@ -51,17 +51,24 @@
     <p>By convention, the body of the request should be a JSON object like the
     following:
 
-<pre>{
-  "source": {
-    "sample": "20e1d4a2",
-    ...
-  },
-  "reads": [
-    "https://server/path/to/reads_L001_R1_001.fastq.gz",
-    "https://server/path/to/reads_L001_R2_001.fastq.gz",
-    ...
-  ]
-}</pre>
+      <pre>
+      {
+          "source": {
+            "sample": "20e1d4a2",
+            ...
+          },
+          "reads": [
+            "https://server/path/to/reads_L001_R1_001.fastq.gz",
+            "https://server/path/to/reads_L001_R2_001.fastq.gz",
+            ...
+          ]
+      }
+      </pre>
+
+    <h3 class="code">POST /v1/receiving/redcap-det</h3>
+    <p>Stores the request data from a REDCap data entry trigger (DET) in a
+    receiving area of the study database. Accepts any URL-encoded form data.
+    </p>
 
     <h3 class="code">POST /v1/receiving/consensus-genome</h3>
     <p>Stores the request data as a consensus genome document in a receiving

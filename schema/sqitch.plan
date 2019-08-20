@@ -105,3 +105,6 @@ roles/consensus-genome-uploader/create 2019-07-22T19:18:33Z Kairsten Fay <kfay@f
 roles/consensus-genome-uploader/grants [receiving/consensus-genome roles/consensus-genome-uploader/create] 2019-07-22T19:21:21Z Kairsten Fay <kfay@fredhutch.org> # Grants to consensus genome uploader
 roles/consensus-genome-processor/create 2019-07-25T22:11:30Z Kairsten Fay <kfay@fredhutch.org> # Create consensus genome processor role
 roles/consensus-genome-processor/grants [receiving/consensus-genome roles/consensus-genome-processor/create warehouse/consensus-genome warehouse/genomic-sequence warehouse/sequence-read-set/triggers/urls-unique-to-one-set] 2019-07-25T22:35:15Z Kairsten Fay <kfay@fredhutch.org> # Grants to consensus genome processor
+receiving/redcap-det [receiving/schema] 2019-07-18T19:25:49Z Kairsten Fay <kfay@fredhutch.org> # Receiving table for REDCap DETs
+roles/redcap-det-uploader/create 2019-08-16T19:07:18Z Kairsten Fay <kfay@fredhutch.org> # Upload REDCap data entry trigger records into receiving
+roles/redcap-det-uploader/grants [receiving/redcap-det roles/redcap-det-uploader/create] 2019-08-16T19:20:57Z Kairsten Fay <kfay@fredhutch.org> # Grants to redcap-det-uploader
