@@ -270,7 +270,8 @@ def encounter_locations(document: dict) -> dict:
     """
     locations = document["locations"]
 
-    use_of = itemgetter("use")
+    def use_of(location):
+        return location["use"].lower()
 
     duplicate_uses = [
         use for use, locations
@@ -282,7 +283,7 @@ def encounter_locations(document: dict) -> dict:
         f"Document {document['id']} contains more than one location for uses: {duplicate_uses}"
 
     return {
-        location["use"].lower(): location
+        use_of(location): location
             for location in locations
     }
 
