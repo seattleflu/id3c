@@ -17,6 +17,7 @@ pandas = "*"
 xlrd = "*"
 pyyaml = "*"
 deepdiff = "*"
+fiona = "*"
 
 [requires]
 python_version = "3.6"
