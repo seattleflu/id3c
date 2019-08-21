@@ -5,20 +5,12 @@
 -- requires: warehouse/sample
 -- requires: warehouse/sample/collection-identifier
 -- requires: warehouse/sample/encounter-fk
--- requires: warehouse/location
--- requires: warehouse/encounter-location
 
 begin;
 
 -- This change is designed to be sqitch rework-able to make it easier to update
 -- the grants for this role.
 
--- Revoke everything…
-revoke all on database :"DBNAME" from "enrollment-processor";
-revoke all on schema receiving, warehouse from "enrollment-processor";
-revoke all on all tables in schema receiving, warehouse from "enrollment-processor";
-
--- …then re-grant
 grant connect on database :"DBNAME" to "enrollment-processor";
 
 grant usage
@@ -42,9 +34,7 @@ grant select, insert, update
    on warehouse.site,
       warehouse.individual,
       warehouse.encounter,
-      warehouse.encounter_location,
-      warehouse.sample,
-      warehouse.location
+      warehouse.sample
    to "enrollment-processor";
 
 commit;

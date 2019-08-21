@@ -10,7 +10,7 @@ from typing import Any
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
-from . import etl, find_or_create_site, upsert_individual, upsert_encounter
+from . import etl, find_or_create_site, find_location, upsert_individual, upsert_encounter, upsert_location, upsert_encounter_location
 
 
 LOG = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ LOG = logging.getLogger(__name__)
 # this revision number should be incremented.
 # The etl name has been added to allow multiple etls to process the same
 # receiving table
-REVISION = 4
+REVISION = 5
 ETL_NAME = "enrollments"
 
 
@@ -121,6 +121,7 @@ def etl_enrollments(*, action: str):
                     details         = encounter_details(enrollment.document))
 
                 process_samples(db, encounter.id, enrollment.document)
+                process_locations(db, encounter.id, enrollment.document)
 
                 mark_processed(db, enrollment.id)
 
@@ -214,6 +215,54 @@ def process_samples(db: DatabaseSession,
     #   -trs, 8 May 2019
 
 
+def process_locations(db: DatabaseSession, encounter_id: int, document: dict):
+    """
+    Process an enrollment *document*'s locations and attach them to *encounter_id*.
+    """
+    locations = encounter_locations(document)
+
+    for (use, location) in locations.items():
+        # Find the tract, if we know it.  Tracts are reasonably enumerable, so
+        # we require that they already exist.
+        tract_identifier = location.get("region")
+
+        if tract_identifier:
+            tract = find_location(db, "tract", tract_identifier)
+            assert tract, f"Tract «{tract_identifier}» is unknown"
+        else:
+            tract = None
+
+        # If we have an address identifier ("household id"), we upsert a
+        # location record for it.  Addresses are not reasonably enumerable, so
+        # we don't require they exist.
+        address_identifier = location.get("id")
+
+        if address_identifier:
+            address = upsert_location(db,
+                scale = "address",
+                identifier = address_identifier,
+                hierarchy = tract.hierarchy if tract else None)
+        else:
+            address = None
+
+        if not (tract or address):
+            LOG.warning(f"No tract or address location available for «{use}»")
+            continue
+
+        # Audere calls this "use", but I think "relation" is a more appropriate
+        # term.  We map to preferred nomenclature based loosely on FHIR.
+        relation = {
+            "home": "residence",
+            "work": "workplace",
+            "temp": "lodging",
+        }
+
+        upsert_encounter_location(db,
+            encounter_id = encounter_id,
+            relation = relation[use],
+            location_id = address.id if address else tract.id)
+
+
 def site_details(site: dict) -> dict:
     """
     Describe site details in a simple data structure designed to be used from
@@ -251,7 +300,7 @@ def encounter_details(document: dict) -> dict:
     """
     return {
         "age": document.get("age"),                 # XXX TODO: Remove age from details
-        "locations": encounter_locations(document), # XXX TODO: Model this relationally soon
+        "locations": encounter_locations(document), # XXX TODO: Remove locations from details
         "language": document["localeLanguageCode"],
         "responses": {
             response["question"]["token"]: decode_answer(response)
