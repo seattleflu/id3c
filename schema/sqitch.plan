@@ -113,3 +113,4 @@ roles/redcap-det-uploader/grants [receiving/redcap-det roles/redcap-det-uploader
 postgis 2019-06-28T22:16:09Z Thomas Sibley <tsibley@fredhutch.org> # Add PostGIS extension
 warehouse/location [warehouse/schema postgis hstore citext] 2019-06-28T22:17:17Z Thomas Sibley <tsibley@fredhutch.org> # Add table for geospatial locations
 warehouse/location/triggers/point-default-from-polygon [warehouse/location] 2019-08-15T18:08:08Z Thomas Sibley <tsibley@fredhutch.org> # Default location.point from polygon
+warehouse/encounter-location [warehouse/location] 2019-07-01T19:37:26Z Thomas Sibley <tsibley@fredhutch.org> # Associate encounters with locations
