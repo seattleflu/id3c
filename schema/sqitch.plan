@@ -108,3 +108,4 @@ roles/consensus-genome-processor/grants [receiving/consensus-genome roles/consen
 receiving/redcap-det [receiving/schema] 2019-07-18T19:25:49Z Kairsten Fay <kfay@fredhutch.org> # Receiving table for REDCap DETs
 roles/redcap-det-uploader/create 2019-08-16T19:07:18Z Kairsten Fay <kfay@fredhutch.org> # Upload REDCap data entry trigger records into receiving
 roles/redcap-det-uploader/grants [receiving/redcap-det roles/redcap-det-uploader/create] 2019-08-16T19:20:57Z Kairsten Fay <kfay@fredhutch.org> # Grants to redcap-det-uploader
+@2019-08-22 2019-08-22T17:53:49Z Thomas Sibley <tsibley@fredhutch.org> # Schema as of 22 August 2019
