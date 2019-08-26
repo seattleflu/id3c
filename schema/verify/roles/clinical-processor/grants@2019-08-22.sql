@@ -11,10 +11,8 @@ select 1/pg_catalog.has_table_privilege('clinical-processor', 'warehouse.sample'
 select 1/pg_catalog.has_column_privilege('clinical-processor', 'warehouse.sample', 'encounter_id', 'select,update')::int;
 select 1/pg_catalog.has_table_privilege('clinical-processor', 'warehouse.identifier', 'select')::int;
 select 1/pg_catalog.has_table_privilege('clinical-processor', 'warehouse.identifier_set', 'select')::int;
-select 1/pg_catalog.has_table_privilege('clinical-processor', 'warehouse.location', 'select')::int;
 select 1/pg_catalog.has_table_privilege('clinical-processor', 'warehouse.encounter', 'select,insert,update')::int;
 select 1/pg_catalog.has_table_privilege('clinical-processor', 'warehouse.individual', 'select,insert,update')::int;
-select 1/pg_catalog.has_table_privilege('clinical-processor', 'warehouse.encounter_location', 'select,insert,update')::int;
 select 1/pg_catalog.has_table_privilege('clinical-processor', 'warehouse.site', 'select,insert')::int;
 
 select 1/(not pg_catalog.has_table_privilege('clinical-processor', 'receiving.clinical', 'delete'))::int;
@@ -28,10 +26,8 @@ select 1/(not pg_catalog.has_column_privilege('clinical-processor', 'warehouse.s
 select 1/(not pg_catalog.has_column_privilege('clinical-processor', 'warehouse.sample', 'sample_id', 'update'))::int;
 select 1/(not pg_catalog.has_table_privilege('clinical-processor', 'warehouse.identifier', 'insert,update,delete'))::int;
 select 1/(not pg_catalog.has_table_privilege('clinical-processor', 'warehouse.identifier_set', 'insert,update,delete'))::int;
-select 1/(not pg_catalog.has_table_privilege('clinical-processor', 'warehouse.location', 'insert,update,delete'))::int;
 select 1/(not pg_catalog.has_table_privilege('clinical-processor', 'warehouse.encounter', 'delete'))::int;
 select 1/(not pg_catalog.has_table_privilege('clinical-processor', 'warehouse.individual', 'delete'))::int;
-select 1/(not pg_catalog.has_table_privilege('clinical-processor', 'warehouse.encounter_location', 'delete'))::int;
 select 1/(not pg_catalog.has_table_privilege('clinical-processor', 'warehouse.site', 'update,delete'))::int;
 
 

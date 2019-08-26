@@ -3,6 +3,7 @@ Process clinical documents into the relational warehouse.
 """
 import click
 import logging
+import re
 from datetime import datetime, timezone
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
@@ -14,9 +15,11 @@ from . import (
     age_to_delete,
     find_or_create_site,
     find_sample,
+    find_location,
     update_sample,
     upsert_encounter,
     upsert_individual,
+    upsert_encounter_location,
 
     SampleNotFoundError,
     UnknownEthnicGroupError,
@@ -35,7 +38,7 @@ LOG = logging.getLogger(__name__)
 # clinical records lacking this revision number in their log.  If a
 # change to the ETL routine necessitates re-processing all clinical records,
 # this revision number should be incremented.
-REVISION = 2
+REVISION = 3
 
 
 @etl.command("clinical", help = __doc__)
@@ -130,6 +133,21 @@ def etl_clinical(*, action: str):
                     sample = sample,
                     encounter_id = encounter.id)
 
+                # Link encounter to a Census tract, if we have it
+                tract_identifier = record.document.get("census_tract")
+
+                if tract_identifier:
+                    # Special-case float-like identifiers in earlier date
+                    tract_identifier = re.sub(r'\.0$', '', str(tract_identifier))
+
+                    tract = find_location(db, "tract", tract_identifier)
+                    assert tract, f"Tract «{tract_identifier}» is unknown"
+
+                    upsert_encounter_location(db,
+                        encounter_id = encounter.id,
+                        relation = "residence",
+                        location_id = tract.id)
+
                 mark_processed(db, record.id, {"status": "processed"})
 
                 LOG.info(f"Finished processing clinical record {record.id}")
@@ -209,6 +227,8 @@ def encounter_details(document: dict) -> dict:
     """
     return {
             "age": age_to_delete(document.get("age")), # XXX TODO: Remove age from details
+
+            # XXX TODO: Remove locations from details
             "locations": {
                 "home": {
                     "region": document.get("census_tract"),
