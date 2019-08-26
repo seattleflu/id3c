@@ -1,6 +1,8 @@
 -- Deploy seattleflu/schema:roles/longitudinal-processor/grants to pg
 -- requires: receiving/longitudinal
 -- requires: roles/longitudinal-processor/create
+-- requires: warehouse/location
+-- requires: warehouse/encounter-location
 
 
 begin;
@@ -8,6 +10,12 @@ begin;
 -- This change is designed to be sqitch rework-able to make it easier to update
 -- the grants for this role.
 
+-- Revoke everything…
+revoke all on database :"DBNAME" from "longitudinal-processor";
+revoke all on schema receiving, warehouse from "longitudinal-processor";
+revoke all on all tables in schema receiving, warehouse from "longitudinal-processor";
+
+-- …then re-grant
 grant connect on database :"DBNAME" to "longitudinal-processor";
 
 grant usage
@@ -25,7 +33,8 @@ grant update (processing_log)
 grant select
    on warehouse.identifier,
       warehouse.identifier_set,
-      warehouse.sample
+      warehouse.sample,
+      warehouse.location
    to "longitudinal-processor";
 
 grant update (encounter_id)
@@ -34,7 +43,8 @@ grant update (encounter_id)
 
 grant select, insert, update
     on warehouse.encounter,
-       warehouse.individual
+       warehouse.individual,
+       warehouse.encounter_location
     to "longitudinal-processor";
 
 grant select, insert

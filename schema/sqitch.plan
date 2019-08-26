@@ -116,3 +116,4 @@ warehouse/location/triggers/point-default-from-polygon [warehouse/location] 2019
 warehouse/encounter-location [warehouse/location] 2019-07-01T19:37:26Z Thomas Sibley <tsibley@fredhutch.org> # Associate encounters with locations
 roles/enrollment-processor/grants [roles/enrollment-processor/grants@2019-08-22 warehouse/location warehouse/encounter-location] 2019-08-22T18:13:35Z Thomas Sibley <tsibley@fredhutch.org> # Allow enrollment-processor to process locations
 roles/clinical-processor/grants [roles/clinical-processor/grants@2019-08-22 warehouse/location warehouse/encounter-location] 2019-08-23T23:33:03Z Thomas Sibley <tsibley@fredhutch.org> # Grant clinical-processor privileges to set locations
+roles/longitudinal-processor/grants [roles/longitudinal-processor/grants@2019-08-22 warehouse/location warehouse/encounter-location] 2019-08-26T16:52:59Z Thomas Sibley <tsibley@fredhutch.org> # Grant longitudinal-processor privileges to set locations
