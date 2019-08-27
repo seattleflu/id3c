@@ -110,3 +110,4 @@ roles/redcap-det-uploader/create 2019-08-16T19:07:18Z Kairsten Fay <kfay@fredhut
 roles/redcap-det-uploader/grants [receiving/redcap-det roles/redcap-det-uploader/create] 2019-08-16T19:20:57Z Kairsten Fay <kfay@fredhutch.org> # Grants to redcap-det-uploader
 @2019-08-22 2019-08-22T17:53:49Z Thomas Sibley <tsibley@fredhutch.org> # Schema as of 22 August 2019
 shipping/views [shipping/views@2019-08-22] 2019-08-27T17:46:28Z Jover Lee <joverlee@fredhutch.org> # Add flu specific assembly jobs view
+@2019-08-27 2019-08-27T18:04:52Z Jover Lee <joverlee@fredhutch.org> # Schema as of 27 August 2019
