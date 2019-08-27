@@ -55,12 +55,11 @@ create or replace view shipping.incidence_model_observation_v1 as
            encounter_responses.race,
            encounter_responses.hispanic_or_latino,
 
-           sample.identifier as sample
+           encounter_sample.sample
 
       from warehouse.encounter
       join warehouse.individual using (individual_id)
       join warehouse.site using (site_id)
-      left join warehouse.sample using (encounter_id)
       left join shipping.age_bin_fine on age_bin_fine.range @> ceiling(age_in_years(age))::int
       left join shipping.age_bin_coarse on age_bin_coarse.range @> ceiling(age_in_years(age))::int,
 
@@ -89,7 +88,13 @@ create or replace view shipping.incidence_model_observation_v1 as
                   "Symptoms" text[],
                   "Race" text[],
                   "HispanicLatino" text[]))
-        as encounter_responses
+        as encounter_responses,
+
+      lateral (
+        select first_value(sample.identifier) over (order by sample_id) as sample
+          from warehouse.sample
+         where sample.encounter_id = encounter.encounter_id)
+        as encounter_sample
 
      order by encountered;
 
@@ -121,7 +126,7 @@ comment on view shipping.presence_absence_result_v1 is
 revoke all
     on shipping.presence_absence_result_v1
   from "incidence-modeler";
-
+  
 grant select
     on shipping.presence_absence_result_v1
     to "incidence-modeler";
@@ -165,12 +170,11 @@ create or replace view shipping.incidence_model_observation_v2 as
            encounter_responses.race,
            encounter_responses.hispanic_or_latino,
 
-           sample.identifier as sample
+           encounter_sample.sample
 
       from warehouse.encounter
       join warehouse.individual using (individual_id)
       join warehouse.site using (site_id)
-      left join warehouse.sample using (encounter_id)
       left join shipping.age_bin_fine_v2 on age_bin_fine_v2.range @> age
       left join shipping.age_bin_coarse_v2 on age_bin_coarse_v2.range @> age,
 
@@ -199,7 +203,13 @@ create or replace view shipping.incidence_model_observation_v2 as
                   "Symptoms" text[],
                   "Race" text[],
                   "HispanicLatino" text[]))
-        as encounter_responses
+        as encounter_responses,
+
+      lateral (
+        select first_value(sample.identifier) over (order by sample_id) as sample
+          from warehouse.sample
+         where sample.encounter_id = encounter.encounter_id)
+        as encounter_sample
 
      order by encountered;
 
@@ -224,7 +234,5 @@ create or replace view shipping.observation_with_presence_absence_result_v1 as
       from shipping.incidence_model_observation_v2 as observation
       join shipping.presence_absence_result_v1 using (sample)
       order by site, encounter, sample, target;
-
-drop view shipping.flu_assembly_jobs_v1;
 
 commit;

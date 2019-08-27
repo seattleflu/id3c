@@ -121,7 +121,7 @@ comment on view shipping.presence_absence_result_v1 is
 revoke all
     on shipping.presence_absence_result_v1
   from "incidence-modeler";
-
+  
 grant select
     on shipping.presence_absence_result_v1
     to "incidence-modeler";
@@ -224,7 +224,5 @@ create or replace view shipping.observation_with_presence_absence_result_v1 as
       from shipping.incidence_model_observation_v2 as observation
       join shipping.presence_absence_result_v1 using (sample)
       order by site, encounter, sample, target;
-
-drop view shipping.flu_assembly_jobs_v1;
 
 commit;

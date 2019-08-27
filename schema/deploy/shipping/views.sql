@@ -121,7 +121,7 @@ comment on view shipping.presence_absence_result_v1 is
 revoke all
     on shipping.presence_absence_result_v1
   from "incidence-modeler";
-  
+
 grant select
     on shipping.presence_absence_result_v1
     to "incidence-modeler";
@@ -224,5 +224,34 @@ create or replace view shipping.observation_with_presence_absence_result_v1 as
       from shipping.incidence_model_observation_v2 as observation
       join shipping.presence_absence_result_v1 using (sample)
       order by site, encounter, sample, target;
+
+
+create or replace view shipping.flu_assembly_jobs_v1 as
+
+    select sample.identifier as sfs_uuid,
+           sample.details ->> 'nwgc_id' as nwgc_id,
+           sequence_read_set.urls,
+           target.identifier as target,
+           o1.lineage as target_linked_organism,
+           case (o2.lineage) is not null
+             when true
+             then o2.lineage
+             else o1.lineage
+           end as assembly_job_organism,
+           sequence_read_set.details
+
+      from warehouse.sequence_read_set
+      join warehouse.sample using (sample_id)
+      join warehouse.presence_absence using (sample_id)
+      join warehouse.target using (target_id)
+      join warehouse.organism o1 using (organism_id)
+      left join warehouse.organism o2 on (o2.lineage ~ concat(o1.lineage::text, '.*{1}')::lquery)
+
+    where target.identifier like 'Flu%'
+    and present
+    and (sequence_read_set.details is null
+         or not o2.lineage @> array(select jsonb_object_keys(sequence_read_set.details)::ltree))
+
+    order by sample.details ->> 'nwgc_id';
 
 commit;
