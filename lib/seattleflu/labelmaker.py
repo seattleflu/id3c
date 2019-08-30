@@ -101,6 +101,27 @@ class CollectionsSeattleFluLayout(LabelLayout):
     reference = "seattleflu.org"
 
 
+class CollectionsKiosksLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = "KIOSK"
+    copies_per_barcode = 2
+    reference = "seattleflu.org"
+
+
+class CollectionsEnvironmentalLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = "ENVIRON"
+    copies_per_barcode = 1
+    reference = "seattleflu.org"
+
+
+class CollectionsSwabAndSendLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = "SWAB & SEND"
+    copies_per_barcode = 1
+    reference = "seattleflu.org"
+
+
 class CollectionsFluAtHomeLayout(LabelLayout):
     sku = "LCRY-2380"
     barcode_type = "COLLECTION"
@@ -125,6 +146,9 @@ class TestStripsFluAtHomeLayout(LabelLayout):
 LAYOUTS = {
     "samples": SamplesLayout,
     "collections-seattleflu.org": CollectionsSeattleFluLayout,
+    "collections-kiosks": CollectionsKiosksLayout,
+    "collections-environmental": CollectionsEnvironmentalLayout,
+    "collections-swab&send": CollectionsSwabAndSendLayout,
     "collections-fluathome.org": CollectionsFluAtHomeLayout,
     "kits-fluathome.org": KitsFluAtHomeLayout,
     "test-strips-fluathome.org": TestStripsFluAtHomeLayout,
