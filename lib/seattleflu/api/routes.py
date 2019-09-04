@@ -140,3 +140,20 @@ def get_metadata(session):
     metadata = datastore.fetch_metadata_for_augur_build(session)
 
     return Response((json.dumps(row[0]) + '\n' for row in metadata), mimetype="application/x-ndjson")
+
+
+@api_v1.route("/shipping/genomic-data/<lineage>/<segment>", methods = ['GET'])
+@authenticated_datastore_session_required
+def get_genomic_data(lineage, segment, session):
+    """
+    Export genomic data needed for SFS augur build based on provided
+    *lineage* and *segment*.
+
+    The *lineage* should be in the full lineage in ltree format
+    such as 'Influenza.A.H1N1'
+    """
+    LOG.debug(f"Exporting genomic data for lineage <{lineage}> and segment <{segment}>")
+
+    sequences = datastore.fetch_genomic_sequences(session, lineage, segment)
+
+    return Response((json.dumps(row[0]) + '\n' for row in sequences), mimetype="application/x-ndjson")
