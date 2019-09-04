@@ -82,14 +82,10 @@ def notify(*, action: str):
         select reportable_condition_v1.*, presence_absence_id as id
             from shipping.reportable_condition_v1
             join warehouse.presence_absence using (presence_absence_id)
-        where (
-            not details ? 'reporting_status'
-              or
-            not details @> %s
-        )
+        where details @> %s is not true
         order by id
             for update of presence_absence;
-        """, (Json({ "revision": REVISION }),))
+        """, (Json({"reporting_log":[{ "revision": REVISION }]}),))
 
     processed_without_error = None
 
@@ -105,7 +101,7 @@ def notify(*, action: str):
                 response = send_slack_post_request(record, url)
 
                 if response.status_code == 200:
-                    mark_processed(db, record.id, {"reporting_status": "sent Slack notification"})
+                    mark_processed(db, record.id, {"status": "sent Slack notification"})
                     LOG.info(f"Finished processing presence_absence_id «{record.id}»")
 
                 else:
@@ -214,6 +210,6 @@ def mark_processed(db, presence_absence_id: int, entry: {}) -> None:
     with db.cursor() as cursor:
         cursor.execute("""
             update warehouse.presence_absence
-               set details = coalesce(details, '{}') || %(log_entry)s
+               set details = jsonb_insert('{"reporting_log":[]}' || coalesce(details, '{}'), '{reporting_log, -1}', %(log_entry)s, insert_after => true)
              where presence_absence_id = %(presence_absence_id)s
             """, data)
