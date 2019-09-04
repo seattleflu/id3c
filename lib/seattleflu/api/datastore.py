@@ -157,6 +157,20 @@ def store_redcap_det(session: DatabaseSession, document: str) -> None:
 
 
 @export
+@catch_permission_denied
+def fetch_metadata_for_augur_build(session: DatabaseSession) -> dict:
+    """
+    Export metadata for augur build from shipping view
+    """
+    with session, session.cursor() as cursor:
+        cursor.execute("""
+            select row_to_json(r)
+            from shipping.metadata_for_augur_build_v1 as r
+            """)
+
+        yield from cursor
+
+@export
 class BadRequestDatabaseError(BadRequest):
     """
     Subclass of :class:`seattleflu.api.exceptions.BadRequest` which takes a
