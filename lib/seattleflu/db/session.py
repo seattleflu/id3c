@@ -143,6 +143,16 @@ class DatabaseSession:
             return cursor.fetchone()
 
 
+    def fetch_all(self, sql: str, values: Union[Tuple, Mapping] = None) -> Any:
+        """
+        Fetches all rows from the results of the *sql* query. Useful for
+        writing alerts for new rows in queries of interest.
+        """
+        with self.cursor() as cursor:
+            cursor.execute(sql, values)
+            return cursor.fetchall()
+
+
     def copy_from_ndjson(self, qualified_column: Tuple, stream) -> int:
         """
         Copies JSON documents (one per line) from the file-like object *stream*
