@@ -4,6 +4,7 @@ Process clinical documents into the relational warehouse.
 import click
 import logging
 import re
+from typing import Union
 from datetime import datetime, timezone
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
@@ -244,14 +245,17 @@ def encounter_details(document: dict) -> dict:
         }
 
 
-def race(race_name: str) -> list:
+def race(races: Union[str, list]) -> list:
     """
-    Given a *race_name*, returns the matching race identifier found in Audere
-    survey data.
+    Given one or more *races*, returns the matching race identifier found in
+    Audere survey data.
     """
-    if race_name is None:
+    if races is None:
         LOG.debug("No race response found.")
         return [None]
+
+    if not isinstance(races, list):
+        races = [races]
 
     race_map = {
         "American Indian or Alaska Native": "americanIndianOrAlaskaNative",
@@ -262,10 +266,15 @@ def race(race_name: str) -> list:
         "Multiple races": "other",
     }
 
-    if race_name not in race_map:
-        raise UnknownRaceError(f"Unknown race name «{race_name}»")
+    def standardize_race(race):
+        try:
+            return race if race in race_map.values() else race_map[race]
+        except KeyError:
+            raise UnknownRaceError(f"Unknown race name «{race}»") from None
 
-    return [race_map[race_name]]
+    return list(map(standardize_race, races))
+
+
 
 def hispanic_latino(ethnic_group: str) -> list:
     """
