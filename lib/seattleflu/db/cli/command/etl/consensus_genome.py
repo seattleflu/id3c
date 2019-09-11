@@ -322,10 +322,12 @@ def upsert_genomic_sequence(db: DatabaseSession, genome: NamedTuple, masked_cons
     Upsert genomic sequence given a *genome* record and some information from a
     given *masked_consensus*.
     """
-    LOG.info(f"Upserting genomic sequence «{masked_consensus['sequence_identifier']}»")
+    sequence_identifier = "".join(
+        [masked_consensus['sequence_identifier'], "-", str(genome.sequence_read_set_id)])
+    LOG.info(f"Upserting genomic sequence «{sequence_identifier}»")
 
     data = {
-        "identifier": masked_consensus['sequence_identifier'],
+        "identifier": sequence_identifier,
         "segment": masked_consensus['sequence_segment'],
         "seq": masked_consensus['genomic_sequence'],
         "genome_id": genome.id,
@@ -342,7 +344,8 @@ def upsert_genomic_sequence(db: DatabaseSession, genome: NamedTuple, masked_cons
         returning genomic_sequence_id as id, identifier, segment, seq, consensus_genome_id
         """, data)
 
-
+    assert genomic_sequence.consensus_genome_id == genome.id, \
+        "Provided sequence identifier was not unique, matched a sequence linked to another consensus genome!"
     assert genomic_sequence.id, "Upsert affected no rows!"
 
     LOG.info(f"Upserted genomic sequence {genomic_sequence.id}»")
