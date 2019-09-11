@@ -197,7 +197,8 @@ def site_identifier(site_name: str) -> str:
         "HMC": "RetrospectiveHarborview",
         "NWH":"RetrospectiveNorthwest",
         "UWNC": "RetrospectiveUWMedicalCenter",
-        "SCH": "RetrospectiveChildrensHospitalSeattle"
+        "SCH": "RetrospectiveChildrensHospitalSeattle",
+        "KP": "KaiserPermanente",
     }
     if site_name not in site_map:
         raise UnknownSiteError(f"Unknown site name «{site_name}»")
@@ -259,11 +260,15 @@ def race(races: Union[str, list]) -> list:
 
     race_map = {
         "American Indian or Alaska Native": "americanIndianOrAlaskaNative",
+        "amerind": "americanIndianOrAlaskaNative",
         "Asian": "asian",
         "Black or African American": "blackOrAfricanAmerican",
+        "black": "blackOrAfricanAmerican",
         "Native Hawaiian or Other Pacific Islander": "nativeHawaiian",
+        "nativehi": "nativeHawaiian",
         "White": "white",
         "Multiple races": "other",
+        "refused": None,
     }
 
     def standardize_race(race):
@@ -287,6 +292,8 @@ def hispanic_latino(ethnic_group: str) -> list:
     ethnic_map = {
         "Not Hispanic or Latino": "no",
         "Hispanic or Latino": "yes",
+        0.0: "no",
+        1.0: "yes",
     }
 
     if ethnic_group not in ethnic_map:
