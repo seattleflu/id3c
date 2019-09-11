@@ -123,10 +123,10 @@ def load_data(uw_filename: str, uw_nwh_file: str, hmc_sch_file: str):
     """
     clinical_records = load_uw_metadata(uw_filename, date='Collection.Date')
 
-    uw_manifest = load_manifest_data(uw_nwh_file, 'UWMC', 'Collection Date')
-    nwh_manifest = load_manifest_data(uw_nwh_file, 'NWH',
+    uw_manifest = load_uw_manifest_data(uw_nwh_file, 'UWMC', 'Collection Date')
+    nwh_manifest = load_uw_manifest_data(uw_nwh_file, 'NWH',
                                       'Collection Date (per tube)')
-    hmc_manifest = load_manifest_data(hmc_sch_file, 'HMC', 'Collection date')
+    hmc_manifest = load_uw_manifest_data(hmc_sch_file, 'HMC', 'Collection date')
 
     return clinical_records, uw_manifest, nwh_manifest, hmc_manifest
 
@@ -157,7 +157,7 @@ def load_uw_metadata(uw_filename: str, date: str) -> pd.DataFrame:
     return df
 
 
-def load_manifest_data(filename: str, sheet_name: str, date: str) -> pd.DataFrame:
+def load_uw_manifest_data(filename: str, sheet_name: str, date: str) -> pd.DataFrame:
     """
     Given a *filename* and *sheet_name*, returns a pandas DataFrame containing
     barcode manifest data.
