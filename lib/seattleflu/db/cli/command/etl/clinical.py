@@ -101,7 +101,7 @@ def etl_clinical(*, action: str):
 
                 # Skip row if sample does not exist
                 if sample is None:
-                    LOG.info("Skipping due to missing sample with identifier" + \
+                    LOG.info("Skipping due to missing sample with identifier " + \
                                 f"{received_sample_identifier}")
                     mark_skipped(db, record.id)
                     continue
