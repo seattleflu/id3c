@@ -164,7 +164,7 @@ def fetch_metadata_for_augur_build(session: DatabaseSession) -> dict:
     """
     with session, session.cursor() as cursor:
         cursor.execute("""
-            select row_to_json(r)
+            select row_to_json(r)::text
             from shipping.metadata_for_augur_build_v1 as r
             """)
 
@@ -181,7 +181,7 @@ def fetch_genomic_sequences(session: DatabaseSession,
     """
     with session, session.cursor() as cursor:
         cursor.execute("""
-            select row_to_json(r)
+            select row_to_json(r)::text
             from (select sample, seq
                     from shipping.genomic_sequences_for_augur_build_v1
                    where organism = %s and segment = %s) as r

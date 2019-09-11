@@ -139,7 +139,7 @@ def get_metadata(session):
 
     metadata = datastore.fetch_metadata_for_augur_build(session)
 
-    return Response((json.dumps(row[0]) + '\n' for row in metadata), mimetype="application/x-ndjson")
+    return Response((row[0] + '\n' for row in metadata), mimetype="application/x-ndjson")
 
 
 @api_v1.route("/shipping/genomic-data/<lineage>/<segment>", methods = ['GET'])
@@ -156,4 +156,4 @@ def get_genomic_data(lineage, segment, session):
 
     sequences = datastore.fetch_genomic_sequences(session, lineage, segment)
 
-    return Response((json.dumps(row[0]) + '\n' for row in sequences), mimetype="application/x-ndjson")
+    return Response((row[0] + '\n' for row in sequences), mimetype="application/x-ndjson")
