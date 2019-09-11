@@ -250,6 +250,76 @@ def find_sample(db: DatabaseSession, identifier: str, for_update = True) -> Any:
     return sample
 
 
+def find_location(db: DatabaseSession, scale: str, identifier: str) -> Any:
+    """
+    Find a location by *scale* and *identifier*.
+    """
+    LOG.debug(f"Looking up location {(scale, identifier)}")
+
+    location = db.fetch_row("""
+        select location_id as id, scale, identifier, hierarchy
+          from warehouse.location
+         where (scale, identifier) = (%s, %s)
+        """, (scale, identifier))
+
+    if not location:
+        LOG.error(f"No location for {(scale, identifier)}")
+        return None
+
+    LOG.info(f"Found location {location.id} as {(scale, identifier)}")
+    return location
+
+
+def upsert_location(db: DatabaseSession,
+                    scale: str,
+                    identifier: str,
+                    hierarchy: str) -> Any:
+    """
+    Upserts a location by its *scale* and *identifier*.
+
+    If *hierarchy* is None and the location already exists, any existing
+    hierarchy is preserved.
+    """
+    LOG.debug(f"Upserting location {(scale, identifier)}")
+
+    location = db.fetch_row("""
+        insert into warehouse.location (scale, identifier, hierarchy)
+        values (%s, %s, %s)
+
+        on conflict (scale, identifier) do update
+            set hierarchy = coalesce(excluded.hierarchy, location.hierarchy)
+                    || hstore(lower(location.scale), lower(location.identifier))
+
+        returning location_id as id, scale, identifier, hierarchy
+        """, (scale, identifier, hierarchy))
+
+    assert location.id, "Upsert affected no rows!"
+
+    LOG.info(f"Upserted location {location.id} as {(location.scale,location.identifier)}")
+
+    return location
+
+
+def upsert_encounter_location(db: DatabaseSession,
+                              encounter_id: int,
+                              relation: str,
+                              location_id: int) -> Any:
+    """
+    Upserts an encounter location by its *encounter_id* and *relation*.
+    """
+    LOG.debug(f"Upserting encounter {relation} location")
+
+    with db.cursor() as cursor:
+        cursor.execute("""
+            insert into warehouse.encounter_location (encounter_id, relation, location_id)
+                values (%s, %s, %s)
+                on conflict (encounter_id, relation) do update
+                    set location_id = excluded.location_id
+            """, (encounter_id, relation, location_id))
+
+        assert cursor.rowcount == 1, "Upsert affected no rows!"
+
+
 class SampleNotFoundError(ValueError):
     """
     Raised when a function is unable to find an existing sample with the given

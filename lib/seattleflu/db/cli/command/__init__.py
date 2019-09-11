@@ -8,6 +8,7 @@ import pandas as pd
 __all__ = [
     "etl",
     "identifier",
+    "location",
     "manifest",
     "clinical",
     "user",
