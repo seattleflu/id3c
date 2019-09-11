@@ -47,8 +47,8 @@ create index location_hierarchy_idx on location using gist (hierarchy);
 
 -- Geospatial indexes speed up geospatial functions and operators
 create index location_point_idx on location using gist (point);
-create index location_polygon_idx on location using spgist (polygon);
-create index location_simplified_polygon_idx on location using spgist (simplified_polygon);
+create index location_polygon_idx on location using gist (polygon);
+create index location_simplified_polygon_idx on location using gist (simplified_polygon);
 
 -- Index details document by default so containment queries on it are quick
 create index location_details_idx on location using gin (details jsonb_path_ops);
