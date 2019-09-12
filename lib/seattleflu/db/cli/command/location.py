@@ -202,13 +202,13 @@ def import_(features_path,
                     as location ( scale text
                                 , identifier text
                                 , hierarchy text
-                                , point jsonb
-                                , polygon jsonb
+                                , point text
+                                , polygon text
                                 , details jsonb
                                 )
                 left join jsonb_to_recordset(%s)
                     as simplified ( identifier text
-                                  , polygon jsonb
+                                  , polygon text
                                   )
                     using (identifier)
             ),
