@@ -157,6 +157,40 @@ def store_redcap_det(session: DatabaseSession, document: str) -> None:
 
 
 @export
+@catch_permission_denied
+def fetch_metadata_for_augur_build(session: DatabaseSession) -> dict:
+    """
+    Export metadata for augur build from shipping view
+    """
+    with session, session.cursor() as cursor:
+        cursor.execute("""
+            select row_to_json(r)::text
+            from shipping.metadata_for_augur_build_v1 as r
+            """)
+
+        yield from cursor
+
+@export
+@catch_permission_denied
+def fetch_genomic_sequences(session: DatabaseSession,
+                        lineage: str,
+                        segment: str) -> dict:
+    """
+    Export sample identifier and sequence from shipping view based on the
+    provided *lineage* and *segment*
+    """
+    with session, session.cursor() as cursor:
+        cursor.execute("""
+            select row_to_json(r)::text
+            from (select sample, seq
+                    from shipping.genomic_sequences_for_augur_build_v1
+                   where organism = %s and segment = %s) as r
+            """,(lineage, segment))
+
+        yield from cursor
+
+
+@export
 class BadRequestDatabaseError(BadRequest):
     """
     Subclass of :class:`seattleflu.api.exceptions.BadRequest` which takes a

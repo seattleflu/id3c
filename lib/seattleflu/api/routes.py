@@ -3,7 +3,7 @@ API route definitions.
 """
 import json
 import logging
-from flask import Blueprint, request, send_file
+from flask import Blueprint, request, send_file, Response
 from . import datastore
 from .utils.routes import authenticated_datastore_session_required, content_types_accepted, check_content_length
 
@@ -127,3 +127,33 @@ def receive_redcap_det(*, session):
     datastore.store_redcap_det(session, json.dumps(document))
 
     return "", 204
+
+
+@api_v1.route("/shipping/augur-build-metadata", methods = ['GET'])
+@authenticated_datastore_session_required
+def get_metadata(session):
+    """
+    Export metadata needed for SFS augur build
+    """
+    LOG.debug("Exporting metadata for SFS augur build")
+
+    metadata = datastore.fetch_metadata_for_augur_build(session)
+
+    return Response((row[0] + '\n' for row in metadata), mimetype="application/x-ndjson")
+
+
+@api_v1.route("/shipping/genomic-data/<lineage>/<segment>", methods = ['GET'])
+@authenticated_datastore_session_required
+def get_genomic_data(lineage, segment, session):
+    """
+    Export genomic data needed for SFS augur build based on provided
+    *lineage* and *segment*.
+
+    The *lineage* should be in the full lineage in ltree format
+    such as 'Influenza.A.H1N1'
+    """
+    LOG.debug(f"Exporting genomic data for lineage <{lineage}> and segment <{segment}>")
+
+    sequences = datastore.fetch_genomic_sequences(session, lineage, segment)
+
+    return Response((row[0] + '\n' for row in sequences), mimetype="application/x-ndjson")
