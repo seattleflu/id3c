@@ -1,0 +1,22 @@
+language: python
+
+matrix:
+  include:
+    - dist: xenial
+      python: 3.6
+
+    - dist: xenial
+      python: 3.7
+
+env:
+  global:
+    - PIPENV_DEV=1
+
+    # Some Travis Python environments are in a virtualenv
+    - PIPENV_IGNORE_VIRTUALENVS=1
+
+install:
+  - pipenv sync
+
+script:
+  - ./dev/show-help ./bin/id3c
