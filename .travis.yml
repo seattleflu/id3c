@@ -20,3 +20,4 @@ install:
 
 script:
   - ./dev/show-help ./bin/id3c
+  - ./dev/mypy
