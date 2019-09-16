@@ -3,7 +3,7 @@ Process longitudinal documents into the relational warehouse.
 """
 import click
 import logging
-from typing import Any
+from typing import Any, Mapping, Optional
 from datetime import datetime, timezone
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
@@ -87,8 +87,11 @@ def etl_longitudinal(*, action: str):
                                                                record.document)
 
                 # Check sample exists in database
-                sample = find_sample(db,
-                    identifier = received_sample_identifier)
+                if received_sample_identifier:
+                    sample = find_sample(db,
+                        identifier = received_sample_identifier)
+                else:
+                    sample = None
 
 
                 # Most of the time we expect to see existing sites so a
@@ -166,12 +169,15 @@ def etl_longitudinal(*, action: str):
             db.rollback()
 
 
-def sample_identifier(db: DatabaseSession, document: dict) -> str:
+def sample_identifier(db: DatabaseSession, document: dict) -> Optional[str]:
     """
     Given a *document*, find corresponding UUID for scanned sample or collection
     barcode within warehouse.identifier.
     """
     barcode = document.get('barcode')
+
+    if not barcode:
+        return None
 
     identifier = find_identifier(db, barcode)
     set_name = 'collections-seattleflu.org'
@@ -180,7 +186,7 @@ def sample_identifier(db: DatabaseSession, document: dict) -> str:
         assert identifier.set_name == set_name, \
             f"Identifier found in set «{identifier.set_name}», not «{set_name}»"
 
-    return str(identifier.uuid) if identifier else None
+    return identifier.uuid if identifier else None
 
 
 def site_identifier(document: dict) -> str:
@@ -265,7 +271,7 @@ def sex(document: dict) -> str:
     """
     sex_name = document.get("AssignedSex")
 
-    sex_map = {
+    sex_map: Mapping[Any, str] = {
         1: "male",
         2: "female"
     }
@@ -273,7 +279,7 @@ def sex(document: dict) -> str:
     return sex_map.get(sex_name, "other")
 
 
-def race(races: list) -> list:
+def race(races: Optional[list]) -> list:
     """
     Given a *race_name*, returns the matching race identifier found in Audere
     survey data.
@@ -365,7 +371,7 @@ def insurance(document: dict) -> list:
     return [insurance_map.get(insurance_response, None)]
 
 
-def mark_processed(db, longitudinal_id: int, entry: {}) -> None:
+def mark_processed(db, longitudinal_id: int, entry: Mapping) -> None:
     LOG.debug(f"Marking longitudinal document {longitudinal_id} as processed")
 
     data = {

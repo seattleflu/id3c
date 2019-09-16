@@ -16,7 +16,7 @@ or updated records.
 import click
 import logging
 from datetime import datetime, timezone
-from typing import Any, Tuple
+from typing import Any, Tuple, Optional
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
@@ -126,7 +126,7 @@ def etl_manifest(*, action: str):
 
                 assert not collection_identifier \
                     or collection_identifier.set_name in expected_identifier_sets["collections"], \
-                        f"Collection identifier found in set «{collection_identifier.set_name}», not {expected_identifier_sets['collections']}"
+                        f"Collection identifier found in set «{collection_identifier.set_name}», not {expected_identifier_sets['collections']}" # type: ignore
 
                 # Upsert sample cooperatively with enrollments ETL routine
                 #
@@ -177,7 +177,7 @@ def etl_manifest(*, action: str):
 
 def upsert_sample(db: DatabaseSession,
                   identifier: str,
-                  collection_identifier: str,
+                  collection_identifier: Optional[str],
                   additional_details: dict) -> Tuple[Any, str]:
     """
     Upsert sample by its *identifier* and/or *collection_identifier*.

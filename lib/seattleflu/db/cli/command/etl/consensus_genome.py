@@ -26,11 +26,12 @@ if "status" is "notMapped"
 """
 import click
 import logging
-from typing import Any, NamedTuple
+from typing import Any, Mapping, NamedTuple, Optional
 from textwrap import dedent
 from datetime import datetime, timezone
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
+from seattleflu.db.types import GenomeRecord, MinimalSampleRecord, OrganismRecord, SequenceReadSetRecord
 from . import etl, find_sample
 
 
@@ -110,6 +111,8 @@ def etl_consensus_genome(*, action: str):
                 organism_name = get_lineage(db, record.document)
                 organism = find_organism(db, organism_name)
 
+                assert organism, f"No organism found with name «{organism_name}»"
+
                 # Only upsert genome and genomic sequences if the assembly job
                 # was marked as complete.
                 if status == 'complete':
@@ -164,7 +167,7 @@ def etl_consensus_genome(*, action: str):
             db.rollback()
 
 
-def find_or_create_sequence_read_set(db: DatabaseSession, document: dict, sample: Any) -> Any:
+def find_or_create_sequence_read_set(db: DatabaseSession, document: dict, sample: MinimalSampleRecord) -> SequenceReadSetRecord:
     """
     Find sequence read set given a *sample* and consensus genome record
     *document*, inserting the sequence read set if it does not exist.
@@ -175,7 +178,7 @@ def find_or_create_sequence_read_set(db: DatabaseSession, document: dict, sample
     Looking up sequence read set with sample ID «{sample.id}» and urls {urls}
     """))
 
-    sequence_read_set = db.fetch_row("""
+    sequence_read_set: SequenceReadSetRecord = db.fetch_row("""
         select sequence_read_set_id as id, sample_id, urls
           from warehouse.sequence_read_set
          where sample_id = %s
@@ -198,7 +201,7 @@ def find_or_create_sequence_read_set(db: DatabaseSession, document: dict, sample
         sequence_read_set = db.fetch_row("""
             insert into warehouse.sequence_read_set (sample_id, urls)
                 values (%(sample_id)s, %(urls)s)
-            returning sequence_read_set_id as id, sample_id
+            returning sequence_read_set_id as id, sample_id, urls
             """, data)
 
         LOG.info(f"Created sequence read set {sequence_read_set.id}")
@@ -207,7 +210,7 @@ def find_or_create_sequence_read_set(db: DatabaseSession, document: dict, sample
 
 
 def update_sequence_read_set_details(db, sequence_read_set_id: int,
-                                     organism: dict, status: str) -> None:
+                                     organism: OrganismRecord, status: str) -> None:
     """
     This function is a workaround to the order-specific unique constraint for
     arrays in Postgres. It searches for an existing *sequence_read_set* by its
@@ -258,7 +261,7 @@ def get_lineage(db: DatabaseSession, document: dict) -> str:
     return organism_map[organism_name]
 
 
-def find_organism(db: DatabaseSession, lineage: str) -> Any:
+def find_organism(db: DatabaseSession, lineage: str) -> Optional[OrganismRecord]:
     """
     Find organism by *lineage* and return organism.
     """
@@ -278,8 +281,8 @@ def find_organism(db: DatabaseSession, lineage: str) -> Any:
     return organism
 
 
-def upsert_genome(db: DatabaseSession, sequence_read_set: NamedTuple,
-                  organism: NamedTuple, document: dict) -> Any:
+def upsert_genome(db: DatabaseSession, sequence_read_set: SequenceReadSetRecord,
+                  organism: OrganismRecord, document: dict) -> GenomeRecord:
     """
     Upsert consensus genomes with the given *sequence_read_set*, *organism*,
     and consensus genome *document*.
@@ -295,7 +298,7 @@ def upsert_genome(db: DatabaseSession, sequence_read_set: NamedTuple,
         "additional_details": Json(document['summary_stats'])
     }
 
-    genome = db.fetch_row("""
+    genome: GenomeRecord = db.fetch_row("""
         insert into warehouse.consensus_genome (sample_id, organism_id,
             sequence_read_set_id, details)
           values (%(sample_id)s, %(organism_id)s, %(sequence_read_set_id)s,
@@ -317,7 +320,7 @@ def upsert_genome(db: DatabaseSession, sequence_read_set: NamedTuple,
     return genome
 
 
-def upsert_genomic_sequence(db: DatabaseSession, genome: NamedTuple, masked_consensus: dict) -> Any:
+def upsert_genomic_sequence(db: DatabaseSession, genome: GenomeRecord, masked_consensus: dict) -> Any:
     """
     Upsert genomic sequence given a *genome* record and some information from a
     given *masked_consensus*.
@@ -353,7 +356,7 @@ def upsert_genomic_sequence(db: DatabaseSession, genome: NamedTuple, masked_cons
     return genomic_sequence
 
 
-def mark_processed(db, consensus_genome_id: int, entry: {}) -> None:
+def mark_processed(db, consensus_genome_id: int, entry: Mapping) -> None:
     LOG.debug(f"Marking consensus genome document {consensus_genome_id} as processed")
 
     data = {

@@ -4,10 +4,11 @@ Run ETL routines
 import click
 import logging
 from math import ceil
-from typing import Any
+from typing import Any, Optional
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
 from seattleflu.db.cli import cli
+from seattleflu.db.types import MinimalSampleRecord
 
 
 LOG = logging.getLogger(__name__)
@@ -95,7 +96,7 @@ def upsert_encounter(db: DatabaseSession,
                      encountered: str,
                      individual_id: int,
                      site_id: int,
-                     age: str,
+                     age: Optional[str],
                      details: dict) -> Any:
     """
     Upsert encounter by its *identifier*.
@@ -167,7 +168,7 @@ def find_sample_by_id(db: DatabaseSession, sample_id: int) -> Any:
 
 def update_sample(db: DatabaseSession,
                   sample,
-                  encounter_id: int) -> Any:
+                  encounter_id: Optional[int]) -> Optional[MinimalSampleRecord]:
     """
     Update sample's encounter_id.
     """
@@ -176,7 +177,7 @@ def update_sample(db: DatabaseSession,
     if sample.encounter_id:
         assert sample.encounter_id == encounter_id, \
             f"Sample {sample.id} already linked to another encounter {sample.encounter_id}"
-        return
+        return None
 
     sample = db.fetch_row("""
         update warehouse.sample
@@ -192,7 +193,7 @@ def update_sample(db: DatabaseSession,
     return sample
 
 
-def age(document: dict) -> str:
+def age(document: dict) -> Optional[str]:
     """
     Given a *document*, retrieve age value and
     return as a string to fit the interval format.
@@ -205,7 +206,7 @@ def age(document: dict) -> str:
     return f"{float(age)} years"
 
 
-def age_to_delete(age: float) -> str:
+def age_to_delete(age: Optional[Any]) -> Optional[dict]:
     """
     TODO: Delete this function once we remove age from details
     Given an *age*, return a dict containing its 'value' and a boolean for
@@ -219,8 +220,8 @@ def age_to_delete(age: float) -> str:
         return None
 
     return {
-        "value": min(ceil(age), 90),
-        "ninetyOrAbove": ceil(age) >= 90
+        "value": min(ceil(float(age)), 90),
+        "ninetyOrAbove": ceil(float(age)) >= 90
     }
 
 

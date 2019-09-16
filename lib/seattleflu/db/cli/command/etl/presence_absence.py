@@ -18,7 +18,7 @@ The presence-absence ETL process will abort under these conditions:
 import click
 import logging
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
@@ -251,7 +251,7 @@ def update_sample(db: DatabaseSession,
     return sample
 
 
-def sample_identifier(db: DatabaseSession, barcode: str) -> str:
+def sample_identifier(db: DatabaseSession, barcode: str) -> Optional[str]:
     """
     Find corresponding UUID for scanned sample barcode within
     warehouse.identifier.
@@ -262,7 +262,7 @@ def sample_identifier(db: DatabaseSession, barcode: str) -> str:
         assert identifier.set_name == "samples", \
             f"Identifier found in set «{identifier.set_name}», not «samples»"
 
-    return str(identifier.uuid) if identifier else None
+    return identifier.uuid if identifier else None
 
 
 def sample_details(document: dict) -> dict:

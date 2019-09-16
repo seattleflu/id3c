@@ -28,8 +28,8 @@ def export(function):
     module = sys.modules[function.__module__]
 
     if hasattr(module, '__all__'):
-        module.__all__.append(function.__name__)
+        module.__all__.append(function.__name__) # type: ignore
     else:
-        module.__all__ = [function.__name__]
+        module.__all__ = [function.__name__] # type: ignore
 
     return function

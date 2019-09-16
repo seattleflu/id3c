@@ -7,7 +7,8 @@ from psycopg2 import IntegrityError
 from psycopg2.errors import ExclusionViolation
 from psycopg2.sql import SQL, Identifier
 from statistics import median, mode
-from typing import Any, Iterable, NamedTuple
+from typing import Any, Dict, Iterable, List, NamedTuple, Optional
+from .types import IdentifierRecord
 from .session import DatabaseSession
 
 
@@ -51,8 +52,8 @@ def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
     happen, then a :class:`~werkzeug.exceptions.ServiceUnavailable` exception
     is raised.
     """
-    minted = []
-    failures = {}
+    minted: List[Any] = []
+    failures: Dict[int, int] = {}
 
     # This is a guess at a threshold that indicates an "unreasonable" level of
     # effort to mint identifiers, but I don't know the chance of hitting it
@@ -109,14 +110,14 @@ def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
     return minted
 
 
-def find_identifier(db: DatabaseSession, barcode: str) -> NamedTuple:
+def find_identifier(db: DatabaseSession, barcode: str) -> Optional[IdentifierRecord]:
     """
     Lookup a known identifier by *barcode*.
     """
     LOG.debug(f"Looking up barcode {barcode}")
 
-    identifier = db.fetch_row("""
-        select uuid,
+    identifier: IdentifierRecord = db.fetch_row("""
+        select uuid::text,
                barcode,
                generated,
                identifier_set.name as set_name

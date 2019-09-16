@@ -415,7 +415,7 @@ def select_column(table: pandas.DataFrame, name: str) -> pandas.Series:
     return matching[matching.columns[0]]
 
 
-def select_columns(table: pandas.DataFrame, name: str) -> List[str]:
+def select_columns(table: pandas.DataFrame, name: str) -> pandas.DataFrame:
     """
     Select one or more columns matching *name* in *table*.
 
@@ -437,7 +437,7 @@ def select_columns(table: pandas.DataFrame, name: str) -> List[str]:
     return table[matches]
 
 
-def qc_barcodes(df: pandas.DataFrame, columns: list) -> pandas.DataFrame:
+def qc_barcodes(df: pandas.DataFrame, columns: Iterable) -> pandas.DataFrame:
     """
     Check all barcode columns for duplicates and drops records that have
     duplicated barcodes.
