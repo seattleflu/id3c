@@ -10,12 +10,19 @@ import click
 import hashlib
 import logging
 import os
+import re
 import pandas as pd
 import seattleflu.db as db
 from math import ceil
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.cli import cli
-from . import add_metadata, barcode_quality_control, dump_ndjson, trim_whitespace
+from . import (
+    add_metadata,
+    barcode_quality_control,
+    dump_ndjson,
+    group_true_values_into_list,
+    trim_whitespace,
+)
 
 
 LOG = logging.getLogger(__name__)
@@ -123,10 +130,10 @@ def load_data(uw_filename: str, uw_nwh_file: str, hmc_sch_file: str):
     """
     clinical_records = load_uw_metadata(uw_filename, date='Collection.Date')
 
-    uw_manifest = load_manifest_data(uw_nwh_file, 'UWMC', 'Collection Date')
-    nwh_manifest = load_manifest_data(uw_nwh_file, 'NWH',
+    uw_manifest = load_uw_manifest_data(uw_nwh_file, 'UWMC', 'Collection Date')
+    nwh_manifest = load_uw_manifest_data(uw_nwh_file, 'NWH',
                                       'Collection Date (per tube)')
-    hmc_manifest = load_manifest_data(hmc_sch_file, 'HMC', 'Collection date')
+    hmc_manifest = load_uw_manifest_data(hmc_sch_file, 'HMC', 'Collection date')
 
     return clinical_records, uw_manifest, nwh_manifest, hmc_manifest
 
@@ -157,7 +164,7 @@ def load_uw_metadata(uw_filename: str, date: str) -> pd.DataFrame:
     return df
 
 
-def load_manifest_data(filename: str, sheet_name: str, date: str) -> pd.DataFrame:
+def load_uw_manifest_data(filename: str, sheet_name: str, date: str) -> pd.DataFrame:
     """
     Given a *filename* and *sheet_name*, returns a pandas DataFrame containing
     barcode manifest data.
@@ -273,6 +280,157 @@ def parse_sch(sch_filename, output):
     clinical_records["MedicalInsurace"] = None
 
     dump_ndjson(clinical_records)
+
+
+
+@clinical.command("parse-kp")
+@click.argument("kp_filename", metavar = "<KP Clinical Data filename>")
+@click.argument("kp_specimen_manifest_filename", metavar = "<KP Specimen Manifest filename>")
+@click.option("-o", "--output", metavar="<output filename>",
+    help="The filename for the output of missing barcodes")
+
+def parse_kp(kp_filename, kp_specimen_manifest_filename, output):
+    """
+    Process and insert clinical data from KP.
+
+    All clinical records parsed are output to stdout as newline-delimited JSON
+    records.  You will likely want to redirect stdout to a file.
+    """
+    clinical_records = pd.read_csv(kp_filename)
+    clinical_records.columns = clinical_records.columns.str.lower()
+
+    clinical_records = trim_whitespace(clinical_records)
+    clinical_records = add_metadata(clinical_records, kp_filename)
+    clinical_records = add_kp_manifest_data(clinical_records, kp_specimen_manifest_filename)
+
+    clinical_records = convert_numeric_columns_to_binary(clinical_records)
+    clinical_records = rename_symptoms_columns(clinical_records)
+    clinical_records = collapse_columns(clinical_records, 'symptom')
+    clinical_records = collapse_columns(clinical_records, 'race')
+
+    clinical_records['FluShot'] = clinical_records['fluvaxdt'].notna()
+
+    column_map = {  # Missing census_tract
+        "enrollid": "individual",
+        "enrolldate": "encountered",
+        "barcode": "barcode",
+        "age": "age",
+        "sex": "AssignedSex",
+        "race": "Race",
+        "hispanic": "HispanicLatino",
+        "symptom": "Symptoms",
+        "FluShot": "FluShot",
+    }
+    clinical_records = clinical_records.rename(columns=column_map)
+
+    barcode_quality_control(clinical_records, output)
+
+    # Drop unnecessary columns
+    clinical_records = clinical_records[column_map.values()]
+
+    # Convert dtypes
+    clinical_records["encountered"] = pd.to_datetime(clinical_records["encountered"])
+
+    # Insert static value columns
+    clinical_records["site"] = "KP"
+
+    #Create encounter identifier (individual + encountered)
+    clinical_records["identifier"] = (clinical_records["individual"] + \
+        clinical_records["encountered"].astype(str)).str.lower()
+
+    # Remove PII
+    clinical_records['age'] = clinical_records['age'].apply(age_ceiling)
+    clinical_records["individual"] = clinical_records["individual"].apply(generate_hash)
+    clinical_records["identifier"] = clinical_records["identifier"].apply(generate_hash)
+
+    # Placeholder columns for future data.
+    # See https://seattle-flu-study.slack.com/archives/CCAA9RBFS/p1568156642033700?thread_ts=1568145908.029300&cid=CCAA9RBFS
+    clinical_records["MedicalInsurace"] = None
+
+    dump_ndjson(clinical_records)
+
+
+def add_kp_manifest_data(df: pd.DataFrame, manifest_filename: str) -> pd.DataFrame:
+    """
+    Join the specimen manifest data from the given *manifest_filename* with the
+    given clinical records DataFrame *df*
+    """
+    barcode = 'Barcode ID (Sample ID)'
+    dtypes = {barcode: str}
+
+    manifest_data = pd.read_excel(manifest_filename, sheet_name='KP', dtype=dtypes)
+
+    regex = re.compile(r"^KP-([0-9]{6,})-[0-9]$", re.IGNORECASE)
+    manifest_data.kp_id = manifest_data.kp_id.apply(lambda x: regex.sub('WA\\1', x))
+
+    rename_map = {
+        barcode: 'barcode',
+        'kp_id': 'enrollid',
+    }
+
+    manifest_data = manifest_data.rename(columns=rename_map)
+    manifest_data = trim_whitespace(manifest_data)
+
+    return df.merge(manifest_data[['barcode', 'enrollid']], how='left')
+
+
+def convert_numeric_columns_to_binary(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    In a given DataFrame *df* of clinical records, convert a hard-coded list of
+    columns from numeric coding to binary.
+
+    See Kaiser Permanente data dictionary for details
+    """
+    numeric_columns = [
+        'runnynose',
+        'hispanic',
+        'racewhite',
+        'raceblack',
+        'raceasian',
+        'raceamerind',
+        'racenativehi',
+    ]
+    for col in numeric_columns:
+        df.loc[df[col] > 1, col] = None
+
+    return df
+
+
+def rename_symptoms_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """ Renames the hard-coded symptoms columns in a given DataFrame *df* """
+    symptoms_columns = [
+        'fever',
+        'sorethroat',
+        'runnynose',
+        'cough'
+    ]
+
+    symptoms_map = {}
+    for symptom in symptoms_columns:
+        symptoms_map[symptom] = 'symptom' + symptom
+
+    return df.rename(columns=symptoms_map)
+
+
+def collapse_columns(df: pd.DataFrame, stub: str, pid='enrollid') -> pd.DataFrame:
+    """
+    Given a pandas DataFrame *df* of clinical records, collapses the 0/1
+    encoding of multiple race options into a single array in a resulting
+    column called "Race". Removes the original "Race*" option columns. Returns
+    the new DataFrame.
+    """
+    stub_data = df.filter(regex=f'{pid}|{stub}*', axis=1)
+    stub_columns = list(stub_data)
+    stub_columns.remove(pid)
+
+    df = df.drop(columns=stub_columns)
+
+    stub_data_long = pd.wide_to_long(stub_data, stub, i=pid, j=f"new_{stub}",
+                        suffix='\\w+').reset_index()
+
+    stub_data_new = group_true_values_into_list(stub_data_long, stub, [pid])
+
+    return df.merge(stub_data_new, how='left')
 
 
 @clinical.command("upload")

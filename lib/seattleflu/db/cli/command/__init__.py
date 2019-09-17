@@ -108,3 +108,22 @@ def dump_ndjson(df):
     Dates are formatted according to ISO 8601.
     """
     print(df.to_json(orient = "records", lines = True, date_format = "iso"))
+
+
+def group_true_values_into_list(long_subset: pd.DataFrame, stub: str,
+                                pid: [str]) -> pd.DataFrame:
+    """
+    Given a long DataFrame *long_subset*, collapses rows with the same *pid*
+    such that every *pid* is represented once in the resulting DataFrame. True
+    values for each category in the given *stub* are collapsed into a
+    human-readable list.
+    """
+    long_subset.dropna(inplace=True)
+    long_subset[stub] = long_subset[stub].astype('bool')
+    true_subset = long_subset[long_subset[stub]]
+
+    return true_subset.groupby(pid + [stub]) \
+                      .agg(lambda x: x.tolist()) \
+                      .reset_index() \
+                      .drop(stub, axis=1) \
+                      .rename(columns={f'new_{stub}': stub})

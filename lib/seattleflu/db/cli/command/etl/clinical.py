@@ -4,6 +4,7 @@ Process clinical documents into the relational warehouse.
 import click
 import logging
 import re
+from typing import Union
 from datetime import datetime, timezone
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
@@ -100,7 +101,7 @@ def etl_clinical(*, action: str):
 
                 # Skip row if sample does not exist
                 if sample is None:
-                    LOG.info("Skipping due to missing sample with identifier" + \
+                    LOG.info("Skipping due to missing sample with identifier " + \
                                 f"{received_sample_identifier}")
                     mark_skipped(db, record.id)
                     continue
@@ -196,7 +197,8 @@ def site_identifier(site_name: str) -> str:
         "HMC": "RetrospectiveHarborview",
         "NWH":"RetrospectiveNorthwest",
         "UWNC": "RetrospectiveUWMedicalCenter",
-        "SCH": "RetrospectiveChildrensHospitalSeattle"
+        "SCH": "RetrospectiveChildrensHospitalSeattle",
+        "KP": "KaiserPermanente",
     }
     if site_name not in site_map:
         raise UnknownSiteError(f"Unknown site name «{site_name}»")
@@ -244,28 +246,40 @@ def encounter_details(document: dict) -> dict:
         }
 
 
-def race(race_name: str) -> list:
+def race(races: Union[str, list]) -> list:
     """
-    Given a *race_name*, returns the matching race identifier found in Audere
-    survey data.
+    Given one or more *races*, returns the matching race identifier found in
+    Audere survey data.
     """
-    if race_name is None:
+    if races is None:
         LOG.debug("No race response found.")
         return [None]
 
+    if not isinstance(races, list):
+        races = [races]
+
     race_map = {
         "American Indian or Alaska Native": "americanIndianOrAlaskaNative",
+        "amerind": "americanIndianOrAlaskaNative",
         "Asian": "asian",
         "Black or African American": "blackOrAfricanAmerican",
+        "black": "blackOrAfricanAmerican",
         "Native Hawaiian or Other Pacific Islander": "nativeHawaiian",
+        "nativehi": "nativeHawaiian",
         "White": "white",
         "Multiple races": "other",
+        "refused": None,
     }
 
-    if race_name not in race_map:
-        raise UnknownRaceError(f"Unknown race name «{race_name}»")
+    def standardize_race(race):
+        try:
+            return race if race in race_map.values() else race_map[race]
+        except KeyError:
+            raise UnknownRaceError(f"Unknown race name «{race}»") from None
 
-    return [race_map[race_name]]
+    return list(map(standardize_race, races))
+
+
 
 def hispanic_latino(ethnic_group: str) -> list:
     """
@@ -278,6 +292,8 @@ def hispanic_latino(ethnic_group: str) -> list:
     ethnic_map = {
         "Not Hispanic or Latino": "no",
         "Hispanic or Latino": "yes",
+        0.0: "no",
+        1.0: "yes",
     }
 
     if ethnic_group not in ethnic_map:

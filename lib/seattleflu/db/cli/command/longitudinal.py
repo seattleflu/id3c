@@ -16,7 +16,13 @@ from typing import List
 from itertools import combinations
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.cli import cli
-from . import add_metadata, barcode_quality_control, dump_ndjson, trim_whitespace
+from . import (
+    add_metadata,
+    barcode_quality_control,
+    group_true_values_into_list,
+    dump_ndjson,
+    trim_whitespace,
+)
 
 
 LOG = logging.getLogger(__name__)
@@ -285,25 +291,6 @@ def collapse_wide_stubbed_columns(df: pd.DataFrame, stub: str,
                                   ).reset_index()
 
     return group_true_values_into_list(long_stubset, stub, pid)
-
-
-def group_true_values_into_list(long_subset: pd.DataFrame, stub: str,
-                                pid: [str]) -> pd.DataFrame:
-    """
-    Given a long DataFrame *long_subset*, collapses rows with the same *pid*
-    such that every *pid* is represented once in the resulting DataFrame. True
-    values for each category in the given *stub* are collapsed into a
-    human-readable list.
-    """
-    long_subset.dropna(inplace=True)
-    long_subset[stub] = long_subset[stub].astype('bool')
-    true_subset = long_subset[long_subset[stub]]
-
-    return true_subset.groupby(pid + [stub]) \
-                      .agg(lambda x: x.tolist()) \
-                      .reset_index() \
-                      .drop(stub, axis=1) \
-                      .rename(columns={f'new_{stub}': stub})
 
 
 def duplicate_audere_keys(df: pd.DataFrame) -> pd.DataFrame:
