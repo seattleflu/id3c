@@ -314,7 +314,6 @@ def duplicate_audere_keys(df: pd.DataFrame) -> pd.DataFrame:
         "smoking": "HouseholdSmoke",
         "enroll_site": "site",
         "flu_shot": "FluShot",
-        "sx_specific": "Symptoms",
         "illness_impact": "DailyInterference",
         "travel_type": "ChildrensRecentTravel",
         "sample_id": "barcode",

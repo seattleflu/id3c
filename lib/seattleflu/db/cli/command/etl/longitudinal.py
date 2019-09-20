@@ -37,7 +37,7 @@ LOG = logging.getLogger(__name__)
 # longitudinal records lacking this revision number in their log.  If a
 # change to the ETL routine necessitates re-processing all longitudinal records,
 # this revision number should be incremented.
-REVISION = 2
+REVISION = 3
 
 
 @etl.command("longitudinal", help = __doc__)
@@ -224,7 +224,8 @@ def encounter_details(document: dict) -> dict:
                 "FluShot": flu_shot(document),
                 "AssignedSex": [sex(document)],
                 "HispanicLatino": hispanic_latino(document),
-                "MedicalInsurance": insurance(document)
+                "MedicalInsurance": insurance(document),
+                "Symptoms": symptoms(document),
             },
         }
 
@@ -369,6 +370,17 @@ def insurance(document: dict) -> list:
     }
 
     return [insurance_map.get(insurance_response, None)]
+
+
+def symptoms(document: dict) -> list:
+    """
+    Given a *document*, combines the unique parent-reported and RN-reported
+    symptoms into a list.
+    """
+    parent_reported_symptoms = document.get("sx_specific") or []
+    rn_reported_symptoms = document.get("rn_sx") or []
+
+    return list(set(parent_reported_symptoms + rn_reported_symptoms))
 
 
 def mark_processed(db, longitudinal_id: int, entry: Mapping) -> None:
