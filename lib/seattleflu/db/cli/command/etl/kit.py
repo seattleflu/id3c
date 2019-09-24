@@ -233,7 +233,7 @@ def upsert_kit_with_encounter(db: DatabaseSession,
         status = "updated"
         # Warn if kit is already linked to a different encounter!
         if kit.encounter_id and kit.encounter_id != encounter_id:
-            LOG.warning(f"Kit «{kit.id}» already linked to another encounter «{kit.encounter_id}»")
+            LOG.warning(f"Kit «{kit.id}» already linked to another encounter «{kit.encounter_id}», linking with «{encounter_id}» instead")
 
         kit = db.fetch_row("""
             update warehouse.kit
@@ -519,7 +519,7 @@ def upsert_kit_with_sample(db: DatabaseSession,
         # Warn if kit is already linked to a different sample!
         if (kit_sample_id and (sample.id != kit_sample_id)):
             LOG.warning(f"Kit «{kit.id}» already linked to another " +
-                        f"{sample_type} «{kit_sample_id}»")
+                        f"{sample_type} «{kit_sample_id}», linking with «{sample.id}» instead")
 
         kit = db.fetch_row(sql.SQL("""
             update warehouse.kit
