@@ -4,6 +4,7 @@ Unified logging setup for modules in this package.
 import logging
 import os
 import os.path
+import sys
 from logging import StreamHandler
 from logging.handlers import SysLogHandler
 
@@ -65,3 +66,8 @@ if syslog_socket:
     )
 
     root_logger.addHandler(syslog)
+
+
+# Log any uncaught exceptions
+sys.excepthook = (lambda *args:
+    root_logger.error("Uncaught exception:", exc_info = args)) # type: ignore
