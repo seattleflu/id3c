@@ -10,10 +10,11 @@ import click
 import logging
 from psycopg2 import sql
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Optional, Tuple
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
+from seattleflu.db.types import KitRecord, SampleRecord
 from . import etl, update_sample, find_sample_by_id
 
 LOG = logging.getLogger(__name__)
@@ -196,7 +197,7 @@ def find_encounter(db: DatabaseSession, identifier: str) -> Any:
 def upsert_kit_with_encounter(db: DatabaseSession,
                               identifier: str,
                               encounter_id: int,
-                              additional_details: dict) -> Any:
+                              additional_details: dict) -> Tuple[KitRecord, str]:
     """
     Upsert kit by its *identifier* to include link to encounter.
 
@@ -224,7 +225,7 @@ def upsert_kit_with_encounter(db: DatabaseSession,
                 values(%(identifier)s,
                        %(encounter_id)s,
                        %(additional_details)s)
-            returning kit_id as id, identifier, encounter_id
+            returning kit_id as id, identifier, encounter_id, null rdt_sample_id, null utm_sample_id
             """, data)
 
     # Found kit → update
@@ -418,7 +419,7 @@ def kit_manifests(*, action: str):
             db.rollback()
 
 
-def find_sample(db: DatabaseSession, identifier: str) -> Any:
+def find_sample(db: DatabaseSession, identifier: str) -> Optional[SampleRecord]:
     """
     Given an *identifier* find the corresponding sample within the
     database.
@@ -470,8 +471,8 @@ def update_test_strip(db: DatabaseSession, document: dict):
 
 def upsert_kit_with_sample(db: DatabaseSession,
                            identifier: str,
-                           sample: dict,
-                           additional_details: dict) -> Any:
+                           sample: SampleRecord,
+                           additional_details: dict) -> Tuple[KitRecord, str]:
     """
     Upsert kit by its *identifier* to include link to a sample.
 
@@ -507,7 +508,7 @@ def upsert_kit_with_sample(db: DatabaseSession,
             returning kit_id as id,
                       identifier,
                       encounter_id,
-                      {} as sample_id
+                      {}
             """).format(sql.Identifier(sample_type),
                         sql.Identifier(sample_type)), data)
 
@@ -518,7 +519,7 @@ def upsert_kit_with_sample(db: DatabaseSession,
         # Warn if kit is already linked to a different sample!
         if (kit_sample_id and (sample.id != kit_sample_id)):
             LOG.warning(f"Kit «{kit.id}» already linked to another " +
-                        f"{data['sample_type']} «{kit[data['sample_type']]}»")
+                        f"{sample_type} «{kit_sample_id}»")
 
         kit = db.fetch_row(sql.SQL("""
             update warehouse.kit
@@ -530,7 +531,7 @@ def upsert_kit_with_sample(db: DatabaseSession,
             returning kit_id as id,
                       identifier,
                       encounter_id,
-                      {} as sample_id
+                      {}
             """).format(sql.Identifier(sample_type),
                         sql.Literal(Json({})),
                         sql.Identifier(sample_type)),
@@ -539,7 +540,7 @@ def upsert_kit_with_sample(db: DatabaseSession,
     assert kit.id, "Upsert affected no rows!"
 
     LOG.info(f"Upserted kit {kit.id} with identifier «{kit.identifier}» " +
-             f"linked to {sample_type} «{kit.sample_id}»")
+             f"linked to {sample_type} «{getattr(kit, sample_type)}»")
 
     return kit, status
 
@@ -575,11 +576,11 @@ def mark_manifest_processed(db, manifest_id: int, entry = {}) -> None:
             """, data)
 
 
-def find_kit(db: DatabaseSession, identifier: str) -> Any:
+def find_kit(db: DatabaseSession, identifier: str) -> KitRecord:
     """
     Look for kit using *identifier* within the database
     """
-    kit = db.fetch_row("""
+    kit: KitRecord = db.fetch_row("""
         select kit_id as id, identifier, encounter_id, rdt_sample_id, utm_sample_id
           from warehouse.kit
          where identifier = %s
@@ -589,7 +590,7 @@ def find_kit(db: DatabaseSession, identifier: str) -> Any:
     return kit
 
 
-def update_kit_samples(db: DatabaseSession, kit: dict):
+def update_kit_samples(db: DatabaseSession, kit: KitRecord):
     """
     After upserting kit, update the samples linked to the kit.
     """

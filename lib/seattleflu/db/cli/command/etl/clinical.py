@@ -4,8 +4,8 @@ Process clinical documents into the relational warehouse.
 import click
 import logging
 import re
-from typing import Union
 from datetime import datetime, timezone
+from typing import Any, Mapping, Optional
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
@@ -246,7 +246,7 @@ def encounter_details(document: dict) -> dict:
         }
 
 
-def race(races: Union[str, list]) -> list:
+def race(races: Optional[Any]) -> list:
     """
     Given one or more *races*, returns the matching race identifier found in
     Audere survey data.
@@ -281,7 +281,7 @@ def race(races: Union[str, list]) -> list:
 
 
 
-def hispanic_latino(ethnic_group: str) -> list:
+def hispanic_latino(ethnic_group: Optional[Any]) -> list:
     """
     Given an *ethnic_group*, returns yes/no value for HispanicLatino key.
     """
@@ -301,7 +301,7 @@ def hispanic_latino(ethnic_group: str) -> list:
 
     return [ethnic_map[ethnic_group]]
 
-def flu_shot(flu_shot_response: str) -> list:
+def flu_shot(flu_shot_response: Optional[Any]) -> list:
     """
     Given a *flu_shot_response*, returns yes/no value for FluShot key.
     """
@@ -320,7 +320,7 @@ def flu_shot(flu_shot_response: str) -> list:
 
     return [flu_shot_map[flu_shot_response]]
 
-def insurance(insurance_response: str) -> list:
+def insurance(insurance_response: Optional[Any]) -> list:
     """
     Given an *insurance_response*, returns corresponding insurance
     identifier.
@@ -340,7 +340,7 @@ def insurance(insurance_response: str) -> list:
     return [insurance_map.get(insurance_response, None)]
 
 
-def sample_identifier(db: DatabaseSession, barcode: str) -> str:
+def sample_identifier(db: DatabaseSession, barcode: str) -> Optional[str]:
     """
     Find corresponding UUID for scanned sample or collection barcode within
     warehouse.identifier.
@@ -354,14 +354,14 @@ def sample_identifier(db: DatabaseSession, barcode: str) -> str:
             identifier.set_name == "collections-seattleflu.org", \
             f"Identifier found in set «{identifier.set_name}», not «samples»"
 
-    return str(identifier.uuid) if identifier else None
+    return identifier.uuid if identifier else None
 
 def mark_skipped(db, clinical_id: int) -> None:
     LOG.debug(f"Marking clinical record {clinical_id} as skipped")
     mark_processed(db, clinical_id, { "status": "skipped" })
 
 
-def mark_processed(db, clinical_id: int, entry: {}) -> None:
+def mark_processed(db, clinical_id: int, entry: Mapping) -> None:
     LOG.debug(f"Marking clinical document {clinical_id} as processed")
 
     data = {

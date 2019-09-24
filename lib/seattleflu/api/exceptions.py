@@ -63,4 +63,4 @@ class BadRequest(werkzeug.exceptions.BadRequest):
             **(extra or {})
         })
 
-        self.response.status_code = self.code
+        self.response.status_code = self.code # type: ignore

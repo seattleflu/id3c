@@ -3,6 +3,7 @@ Commands for the database CLI.
 """
 import logging
 import pandas as pd
+from typing import List
 
 
 __all__ = [
@@ -111,7 +112,7 @@ def dump_ndjson(df):
 
 
 def group_true_values_into_list(long_subset: pd.DataFrame, stub: str,
-                                pid: [str]) -> pd.DataFrame:
+                                pid: List[str]) -> pd.DataFrame:
     """
     Given a long DataFrame *long_subset*, collapses rows with the same *pid*
     such that every *pid* is represented once in the resulting DataFrame. True

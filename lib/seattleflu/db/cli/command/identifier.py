@@ -129,9 +129,9 @@ def labels(filename):
         "\nFor which batch would you like to make labels",
         prompt_suffix = "? ",
         type = click.IntRange(1, len(batches)),
-        default = len(batches))
+        default = str(len(batches)))
 
-    chosen_batch = batches[choice - 1]
+    chosen_batch = batches[int(choice) - 1]
 
     # Fetch identifiers for the chosen batch
     with session.cursor() as cursor:

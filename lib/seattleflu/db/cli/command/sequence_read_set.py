@@ -10,6 +10,7 @@ import json
 import re
 from collections import defaultdict
 from pathlib import Path
+from typing import Dict, Optional
 from urllib.parse import urljoin
 from seattleflu.db.cli import cli
 from seattleflu.db.session import DatabaseSession
@@ -54,7 +55,7 @@ def parse(fastq_directory, filename_pattern, url_prefix):
     All sequence read sets are output to stdout as newline-delimited JSON
     records.  You will likely want to redirect stdout to a file.
     """
-    sequence_read_sets = defaultdict(list)
+    sequence_read_sets: Dict[str, list] = defaultdict(list)
     filename_pattern = re.compile(filename_pattern)
 
     for filepath in list(Path(fastq_directory).glob("*.fastq.gz")):
@@ -151,7 +152,7 @@ def upload(sequence_read_set_file, unknown_sample_output, action: str):
             db.rollback()
 
 
-def find_sample(db: DatabaseSession, nwgc_id: str) -> int:
+def find_sample(db: DatabaseSession, nwgc_id: str) -> Optional[int]:
     """
     Find sample within warehouse that has *nwgc_id* in the sample details.
     """

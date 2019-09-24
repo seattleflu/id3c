@@ -6,7 +6,7 @@ import logging
 from datetime import datetime, timezone
 from itertools import groupby
 from operator import itemgetter
-from typing import Any
+from typing import Any, Optional
 from seattleflu.db import find_identifier
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import Json
@@ -273,7 +273,7 @@ def site_details(site: dict) -> dict:
     }
 
 
-def age(document: dict) -> str:
+def age(document: dict) -> Optional[str]:
     """
     Retrieves the age of the individual at the time of encounter from
     *document*.

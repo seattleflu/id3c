@@ -225,7 +225,7 @@ def rename_stub(df: pd.DataFrame, regex: str, current_stub: str,
     return df.rename(columns=rename_map)
 
 
-def longitudinal_stubnames(df: pd.DataFrame) -> [str]:
+def longitudinal_stubnames(df: pd.DataFrame) -> List[str]:
     """
     Returns a list of the stubnames of longitudinal columns that have suffixes
     indicating the week number of the study (e.g. 'swab_date_11').

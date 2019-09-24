@@ -24,7 +24,7 @@ import json
 import click
 import logging
 import requests
-from typing import List
+from typing import Mapping, List
 from textwrap import dedent
 from datetime import datetime, timezone
 from psycopg2.extras import NamedTupleCursor
@@ -151,7 +151,7 @@ def get_childrens_sites(db) -> List:
     return [site.identifier for site in childrens_sites]
 
 
-def send_slack_post_request(record: NamedTupleCursor.Record, url: str) -> requests.PreparedRequest:
+def send_slack_post_request(record: NamedTupleCursor.Record, url: str) -> requests.Response:
     """
     Sends a POST request to a channel-specific Slack webhook *url*. The payload
     of this POST request is composed using Slack blocks. These blocks provide
@@ -193,7 +193,7 @@ def send_slack_post_request(record: NamedTupleCursor.Record, url: str) -> reques
                          headers={'Content-type': 'application/json'})
 
 
-def mark_processed(db, presence_absence_id: int, entry: {}) -> None:
+def mark_processed(db, presence_absence_id: int, entry: Mapping) -> None:
     LOG.debug(dedent(f"""
     Marking reportable condition «{presence_absence_id}» as processed in the
     presence_absence table"""))

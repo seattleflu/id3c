@@ -1,0 +1,37 @@
+#!/bin/bash
+# usage: show-help COMMAND [SUBCOMMAND [SUBCOMMAND [...]]]
+#
+# Recursively prints --help output for the given COMMAND and any subcommands it
+# supports.  You may provide one or more SUBCOMMANDs initially to limit output
+# to that command tree.
+#
+# Currently only handles click's subcommand formatting.
+#
+# This is useful to make sure all commands are loading correctly.
+set -euo pipefail
+
+main() {
+    if [[ $# -eq 0 || $1 == "-h" || $1 == "--help" ]]; then
+        usage; exit
+    fi
+
+    echo '$' "$@"
+    echo ---
+    help="$("$@" --help)"
+    echo "$help"
+    echo "---"
+
+    for subcmd in $(subcommands <<<"$help"); do
+        "$0" "$@" "$subcmd"
+    done
+}
+
+subcommands() {
+    perl -ne 'print if /^Commands/.../^(\S|$)/ and /^  \S/' | tail -n +2 | awk '{print $1}'
+}
+
+usage() {
+    perl -ne '2 .. not s/^# ?// ? print : exit' -- "$0"
+}
+
+main "$@"

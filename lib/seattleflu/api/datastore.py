@@ -6,7 +6,7 @@ import psycopg2
 from functools import wraps
 from psycopg2 import DataError, DatabaseError, IntegrityError, ProgrammingError
 from psycopg2.errors import InsufficientPrivilege
-from typing import Any
+from typing import Any, Iterable, Tuple
 from werkzeug.exceptions import Forbidden
 from ..db.session import DatabaseSession
 from .exceptions import AuthenticationRequired, BadRequest
@@ -158,7 +158,7 @@ def store_redcap_det(session: DatabaseSession, document: str) -> None:
 
 @export
 @catch_permission_denied
-def fetch_metadata_for_augur_build(session: DatabaseSession) -> dict:
+def fetch_metadata_for_augur_build(session: DatabaseSession) -> Iterable[Tuple[str]]:
     """
     Export metadata for augur build from shipping view
     """
@@ -174,7 +174,7 @@ def fetch_metadata_for_augur_build(session: DatabaseSession) -> dict:
 @catch_permission_denied
 def fetch_genomic_sequences(session: DatabaseSession,
                         lineage: str,
-                        segment: str) -> dict:
+                        segment: str) -> Iterable[Tuple[str]]:
     """
     Export sample identifier and sequence from shipping view based on the
     provided *lineage* and *segment*
