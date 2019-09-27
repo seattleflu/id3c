@@ -3,6 +3,7 @@ Process longitudinal documents into the relational warehouse.
 """
 import click
 import logging
+from itertools import chain
 from typing import Any, Mapping, Optional
 from datetime import datetime, timezone
 from seattleflu.db import find_identifier
@@ -380,7 +381,31 @@ def symptoms(document: dict) -> list:
     parent_reported_symptoms = document.get("sx_specific") or []
     rn_reported_symptoms = document.get("rn_sx") or []
 
-    return list(set(parent_reported_symptoms + rn_reported_symptoms))
+    symptoms = parent_reported_symptoms + rn_reported_symptoms
+
+    symptoms_map = {
+        "ear_pain": ["earPainOrDischarge"],
+        "fever": ["feelingFeverish"],
+        "headache": ["headaches"],
+        "myalgia": ["muscleOrBodyAches"],
+        "ndv": ["nauseaOrVomiting", "diarrhea"],
+        "nvd": ["nauseaOrVomiting", "diarrhea"],
+        "runny_nose": ["runnyOrStuffyNose"],
+        "sore_throat": ["soreThroat"],
+        "wob": ["increasedTroubleBreathing"],
+        "cough": ["cough"],
+        "fatigue": ["fatigue"],
+        "rash": ["rash"],
+    }
+
+    def standardize_symptom(symptom):
+        try:
+            return symptoms_map[symptom]
+        except KeyError:
+            raise Exception(f"Unknown symptom name «{symptom}»") from None
+
+    # Deduplicate symptoms at the very end
+    return list(set(chain.from_iterable(map(standardize_symptom, symptoms))))
 
 
 def mark_processed(db, longitudinal_id: int, entry: Mapping) -> None:
