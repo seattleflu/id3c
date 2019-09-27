@@ -94,8 +94,12 @@ def notify(*, action: str):
             with db.savepoint(f"reportable condition presence_absence_id {record.id}"):
                 LOG.info(f"Processing reportable condition, presence_absence_id «{record.id}»")
 
+                if not record.site:
+                    LOG.info(f"No site found for presence_absence_id «{record.id}». " +
+                        "Inferring site from manifest data.")
+
                 url = SLACK_WEBHOOK_REPORTING_GENERAL \
-                    if record.site not in childrens_sites \
+                    if record.site not in childrens_sites and record.sheet != 'SCH' \
                     else SLACK_WEBHOOK_REPORTING_CHILDRENS
 
                 response = send_slack_post_request(record, url)
@@ -165,6 +169,12 @@ def send_slack_post_request(record: NamedTupleCursor.Record, url: str) -> reques
         "site": record.site,
         "condition": record.lineage
     }
+
+    if not record.site:
+        data["manifest"] = {
+            "workbook": record.workbook,
+            "sheet": record.sheet,
+        }
 
     payload = {
         "text": f":rotating_light: {record.lineage} detected",
