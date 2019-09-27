@@ -118,8 +118,33 @@ class CollectionsEnvironmentalLayout(LabelLayout):
 class CollectionsSwabAndSendLayout(LabelLayout):
     sku = "LCRY-1100"
     barcode_type = "SWAB & SEND"
-    copies_per_barcode = 1
+    copies_per_barcode = 4
     reference = "seattleflu.org"
+
+
+class CollectionsHouseholdLayout(LabelLayout):
+    sku = "LCRY-1100"
+    copies_per_barcode = 3
+    reference = "seattleflu.org"
+
+    def blanks_before(self, barcode_number):
+        """
+        Each barcode maps to 3 labels.  Each row is 4 labels wide, so for
+        better UX we want all labels in the 4th column to be blank.  We can
+        express this without using a mutable label sequence number by inserting
+        a blank label before every barcode except the first (e.g. the 2nd
+        barcode normally would start filling in the 4th label; by inserting a
+        blank, it starts filling in from the 1st label of the next row).
+        """
+        return 1 if barcode_number > 1 else 0
+
+
+class CollectionsHouseholdObservationLayout(CollectionsHouseholdLayout):
+    barcode_type = "HH OBSERVATION"
+
+
+class CollectionsHouseholdInterventionLayout(CollectionsHouseholdLayout):
+    barcode_type = "HH INTERVENTION"
 
 
 class CollectionsFluAtHomeLayout(LabelLayout):
@@ -149,6 +174,8 @@ LAYOUTS = {
     "collections-kiosks": CollectionsKiosksLayout,
     "collections-environmental": CollectionsEnvironmentalLayout,
     "collections-swab&send": CollectionsSwabAndSendLayout,
+    "collections-household-observation": CollectionsHouseholdObservationLayout,
+    "collections-household-intervention": CollectionsHouseholdInterventionLayout,
     "collections-fluathome.org": CollectionsFluAtHomeLayout,
     "kits-fluathome.org": KitsFluAtHomeLayout,
     "test-strips-fluathome.org": TestStripsFluAtHomeLayout,
