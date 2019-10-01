@@ -279,7 +279,7 @@ def parse_features(path):
     * tabular (CSV or TSV, delimiter auto-detected, no geometry construction)
 
     Raises a :class:`Exception` if the parsed coordinate reference system (CRS)
-    is defined and is not EPSG:4269.
+    is defined and is not EPSG:4326.
 
     Returns a list of dictionaries conforming to the GeoJSON ``Feature`` spec.
     """
@@ -288,10 +288,10 @@ def parse_features(path):
     crs = fiona.crs.to_string(collection.crs or {})
 
     if not crs:
-        LOG.warning(f"No CRS defined.  EPSG:4269 will be assumed, but this may result in bad geometries.")
+        LOG.warning(f"No CRS defined.  EPSG:4326 will be assumed, but this may result in bad geometries.")
 
-    elif crs not in {"+init=epsg:4269",}:
-        LOG.error(f"CRS is «{crs}»; only EPSG:4269 is supported.  Please reproject your geospatial data into EPSG:4269.")
+    elif crs not in {"+init=epsg:4326",}:
+        LOG.error(f"CRS is «{crs}»; only EPSG:4326 is supported.  Please reproject your geospatial data into EPSG:4326.")
         raise Exception("Unsupported CRS")
 
     return list(collection)
