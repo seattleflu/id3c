@@ -104,9 +104,6 @@ grant select
    on shipping.incidence_model_observation_v1
    to "incidence-modeler";
 
-
-drop view shipping.observation_with_presence_absence_result_v1;
-drop view shipping.presence_absence_result_v1;
 create or replace view shipping.presence_absence_result_v1 as
 
     select sample.identifier as sample,
@@ -124,7 +121,7 @@ comment on view shipping.presence_absence_result_v1 is
 revoke all
     on shipping.presence_absence_result_v1
   from "incidence-modeler";
-
+  
 grant select
     on shipping.presence_absence_result_v1
     to "incidence-modeler";

@@ -118,3 +118,5 @@ roles/enrollment-processor/grants [roles/enrollment-processor/grants@2019-08-22 
 roles/clinical-processor/grants [roles/clinical-processor/grants@2019-08-22 warehouse/location warehouse/encounter-location] 2019-08-23T23:33:03Z Thomas Sibley <tsibley@fredhutch.org> # Grant clinical-processor privileges to set locations
 roles/longitudinal-processor/grants [roles/longitudinal-processor/grants@2019-08-22 warehouse/location warehouse/encounter-location] 2019-08-26T16:52:59Z Thomas Sibley <tsibley@fredhutch.org> # Grant longitudinal-processor privileges to set locations
 @2019-08-26 2019-08-26T18:13:02Z Thomas Sibley <tsibley@fredhutch.org> # schema as of 26 August 2019
+shipping/views [shipping/views@2019-08-26] 2019-10-01T00:49:00Z Kairsten Fay <kfay@fredhutch.org> # Add target organism lineage to presence_absence_result_v1
+@2019-09-30 2019-10-01T01:35:37Z Kairsten Fay <kfay@fredhutch.org> # Add target organism lineage to presence_absence_result_v1

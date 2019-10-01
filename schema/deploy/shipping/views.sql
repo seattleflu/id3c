@@ -108,11 +108,13 @@ create or replace view shipping.presence_absence_result_v1 as
 
     select sample.identifier as sample,
            target.identifier as target,
-           present
+           present,
+           organism.lineage as organism
 
     from warehouse.sample
     join warehouse.presence_absence using (sample_id)
     join warehouse.target using (target_id)
+    left join warehouse.organism using (organism_id)
     where target.control = false;
 
 comment on view shipping.presence_absence_result_v1 is
@@ -121,7 +123,7 @@ comment on view shipping.presence_absence_result_v1 is
 revoke all
     on shipping.presence_absence_result_v1
   from "incidence-modeler";
-  
+
 grant select
     on shipping.presence_absence_result_v1
     to "incidence-modeler";
