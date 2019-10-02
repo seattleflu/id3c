@@ -16,7 +16,6 @@ select 1/pg_catalog.has_column_privilege('consensus-genome-processor', 'warehous
 select 1/pg_catalog.has_column_privilege('consensus-genome-processor', 'warehouse.consensus_genome', 'details', 'update')::int;
 select 1/pg_catalog.has_column_privilege('consensus-genome-processor', 'warehouse.genomic_sequence', 'details', 'update')::int;
 select 1/pg_catalog.has_column_privilege('consensus-genome-processor', 'warehouse.genomic_sequence', 'seq', 'update')::int;
-select 1/pg_catalog.has_column_privilege('consensus-genome-processor', 'warehouse.genomic_sequence', 'segment', 'update')::int;
 
 select 1/(not pg_catalog.has_schema_privilege('consensus-genome-processor', 'shipping', 'usage'))::int;
 select 1/(not pg_catalog.has_table_privilege('consensus-genome-processor', 'receiving.consensus_genome', 'insert,delete'))::int;
@@ -36,5 +35,6 @@ select 1/(not pg_catalog.has_column_privilege('consensus-genome-processor', 'war
 select 1/(not pg_catalog.has_column_privilege('consensus-genome-processor', 'warehouse.consensus_genome', 'sequence_read_set_id', 'update'))::int;
 select 1/(not pg_catalog.has_column_privilege('consensus-genome-processor', 'warehouse.genomic_sequence', 'genomic_sequence_id', 'update'))::int;
 select 1/(not pg_catalog.has_column_privilege('consensus-genome-processor', 'warehouse.genomic_sequence', 'identifier', 'update'))::int;
+select 1/(not pg_catalog.has_column_privilege('consensus-genome-processor', 'warehouse.genomic_sequence', 'segment', 'update'))::int;
 
 rollback;
