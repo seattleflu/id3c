@@ -3,6 +3,7 @@ Process longitudinal documents into the relational warehouse.
 """
 import click
 import logging
+from itertools import chain
 from typing import Any, Mapping, Optional
 from datetime import datetime, timezone
 from seattleflu.db import find_identifier
@@ -37,7 +38,7 @@ LOG = logging.getLogger(__name__)
 # longitudinal records lacking this revision number in their log.  If a
 # change to the ETL routine necessitates re-processing all longitudinal records,
 # this revision number should be incremented.
-REVISION = 2
+REVISION = 3
 
 
 @etl.command("longitudinal", help = __doc__)
@@ -224,7 +225,8 @@ def encounter_details(document: dict) -> dict:
                 "FluShot": flu_shot(document),
                 "AssignedSex": [sex(document)],
                 "HispanicLatino": hispanic_latino(document),
-                "MedicalInsurance": insurance(document)
+                "MedicalInsurance": insurance(document),
+                "Symptoms": symptoms(document),
             },
         }
 
@@ -369,6 +371,41 @@ def insurance(document: dict) -> list:
     }
 
     return [insurance_map.get(insurance_response, None)]
+
+
+def symptoms(document: dict) -> list:
+    """
+    Given a *document*, combines the unique parent-reported and RN-reported
+    symptoms into a list.
+    """
+    parent_reported_symptoms = document.get("sx_specific") or []
+    rn_reported_symptoms = document.get("rn_sx") or []
+
+    symptoms = parent_reported_symptoms + rn_reported_symptoms
+
+    symptoms_map = {
+        "ear_pain": ["earPainOrDischarge"],
+        "fever": ["feelingFeverish"],
+        "headache": ["headaches"],
+        "myalgia": ["muscleOrBodyAches"],
+        "ndv": ["nauseaOrVomiting", "diarrhea"],
+        "nvd": ["nauseaOrVomiting", "diarrhea"],
+        "runny_nose": ["runnyOrStuffyNose"],
+        "sore_throat": ["soreThroat"],
+        "wob": ["increasedTroubleBreathing"],
+        "cough": ["cough"],
+        "fatigue": ["fatigue"],
+        "rash": ["rash"],
+    }
+
+    def standardize_symptom(symptom):
+        try:
+            return symptoms_map[symptom]
+        except KeyError:
+            raise Exception(f"Unknown symptom name «{symptom}»") from None
+
+    # Deduplicate symptoms at the very end
+    return list(set(chain.from_iterable(map(standardize_symptom, symptoms))))
 
 
 def mark_processed(db, longitudinal_id: int, entry: Mapping) -> None:
