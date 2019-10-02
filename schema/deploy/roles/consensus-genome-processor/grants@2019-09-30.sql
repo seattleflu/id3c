@@ -9,12 +9,6 @@
 
 begin;
 
--- Revoke everything…
-revoke all on database :"DBNAME" from "consensus-genome-processor";
-revoke all on schema receiving, warehouse from "consensus-genome-processor";
-revoke all on all tables in schema receiving, warehouse from "consensus-genome-processor";
-
--- then re-grant
 grant connect on database :"DBNAME" to "consensus-genome-processor";
 
 grant usage
@@ -40,7 +34,7 @@ grant update (details)
   on warehouse.sequence_read_set, warehouse.consensus_genome
   to "consensus-genome-processor";
 
-grant update (seq, details, segment)
+grant update (seq, details)
   on warehouse.genomic_sequence
   to "consensus-genome-processor";
 
