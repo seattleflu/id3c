@@ -122,3 +122,16 @@ shipping/views [shipping/views@2019-08-26] 2019-10-01T00:49:00Z Kairsten Fay <kf
 @2019-09-30 2019-10-01T01:35:37Z Kairsten Fay <kfay@fredhutch.org> # Add target organism lineage to presence_absence_result_v1
 roles/consensus-genome-processor/grants [roles/consensus-genome-processor/grants@2019-09-30] 2019-10-02T19:12:27Z Jover Lee <joverlee@fredhutch.org> # Rework grants to allow update on segment of warehouse.genomice_sequence
 @2019-10-02 2019-10-02T23:39:34Z Thomas Sibley <tsibley@fredhutch.org> # schema as of 2 October 2019
+
+functions/update-modified-timestamp 2019-10-04T01:14:53Z Kairsten Fay <kfay@fredhutch.org> # Update modified column timestamp
+warehouse/encounter/timestamp [warehouse/encounter] 2019-10-04T00:24:58Z Kairsten Fay <kfay@fredhutch.org> # Timestamp encounter records with date created and modified
+warehouse/encounter/triggers/update-modified-timestamp [warehouse/encounter functions/update-modified-timestamp] 2019-10-04T00:39:59Z Kairsten Fay <kfay@fredhutch.org> # Trigger to update modified timestamp on encounters
+warehouse/sample/timestamp [warehouse/sample] 2019-10-04T01:26:30Z Kairsten Fay <kfay@fredhutch.org> # Timestamp sample records with date created and modified
+warehouse/sample/triggers/update-modified-timestamp [warehouse/sample functions/update-modified-timestamp] 2019-10-04T01:29:39Z Kairsten Fay <kfay@fredhutch.org> # Trigger to update modified timestamp on samples
+warehouse/presence_absence/timestamp [warehouse/presence_absence] 2019-10-04T01:34:39Z Kairsten Fay <kfay@fredhutch.org> # Timestamp presence-absence records with date created and modified
+warehouse/presence_absence/triggers/update-modified-timestamp [warehouse/presence_absence functions/update-modified-timestamp] 2019-10-04T01:36:38Z Kairsten Fay <kfay@fredhutch.org> # Trigger to update modified timestamp on presence-absence tests
+warehouse/sequence-read-set/timestamp [warehouse/sequence-read-set] 2019-10-04T01:38:54Z Kairsten Fay <kfay@fredhutch.org> # Timestamp sequence read set records with date created and modified
+warehouse/sequence-read-set/triggers/update-modified-timestamp [warehouse/sequence-read-set functions/update-modified-timestamp] 2019-10-04T01:40:46Z Kairsten Fay <kfay@fredhutch.org> # Trigger to update modified timestamp on sequence read sets
+warehouse/genomic-sequence/timestamp [warehouse/genomic-sequence] 2019-10-04T01:43:50Z Kairsten Fay <kfay@fredhutch.org> # Timestamp genomic sequence records with date created and modified
+warehouse/genomic-sequence/triggers/update-modified-timestamp [warehouse/genomic-sequence functions/update-modified-timestamp] 2019-10-04T01:45:49Z Kairsten Fay <kfay@fredhutch.org> # Trigger to update modified timestamp on genomic sequences
+@2019-10-03 2019-10-04T01:46:57Z Kairsten Fay <kfay@fredhutch.org> # schema as of 3 October 2019
