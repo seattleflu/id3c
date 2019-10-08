@@ -67,7 +67,7 @@ def etl_manifest(*, action: str):
     #   -trs, 13 May 2019
     expected_identifier_sets = {
         "samples": {"samples"},
-        "collections": {"collections-seattleflu.org", "collections-fluathome.org"},
+        "collections": {"collections-seattleflu.org", "collections-fluathome.org", "collections-kiosks"},
         "rdt": {"collections-fluathome.org"}
     }
 
