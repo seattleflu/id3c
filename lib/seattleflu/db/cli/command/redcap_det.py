@@ -80,13 +80,7 @@ def get_project_instruments(api_url: str, api_token: str) -> List[str]:
     Get REDCap instruments for a given project, which is determined by the
     *api_token*
     """
-    parameters = {
-        'content': 'instrument',
-        'format': 'json',
-        'token': api_token
-    }
-
-    instruments = get_redcap_data(api_url, parameters)
+    instruments = get_redcap_data(api_url, api_token, {"content": "instrument"})
     instrument_names = []
 
     for instrument in instruments:
@@ -102,17 +96,16 @@ def get_redcap_records(api_url: str, api_token: str, since_date: str = None) -> 
     """
     parameters = {
         'content': 'record',
-        'format': 'json',
         'type': 'flat',
-        'token': api_token,
     }
 
     if since_date:
         parameters['dateRangeBegin'] = since_date
 
-    return get_redcap_data(api_url, parameters)
+    return get_redcap_data(api_url, api_token, parameters)
 
-def get_redcap_data(api_url: str, parameters: dict) -> List[dict]:
+
+def get_redcap_data(api_url: str, api_token: str, parameters: dict) -> List[dict]:
     """
     Get REDCap data by POST request to the REDCap API.
 
@@ -127,7 +120,13 @@ def get_redcap_data(api_url: str, parameters: dict) -> List[dict]:
         'Accept': 'application/json'
     }
 
-    response = requests.post(api_url, data=parameters, headers=headers)
+    data = {
+        **parameters,
+        'token': api_token,
+        'format': 'json',
+    }
+
+    response = requests.post(api_url, data=data, headers=headers)
 
     if response.status_code != 200:
         raise Exception(f"REDCap returned response status code {response.status_code}")
