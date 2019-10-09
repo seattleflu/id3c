@@ -14,6 +14,7 @@ scenarios when this happens are:
 import os
 import click
 import logging
+import re
 import requests
 from typing import List
 from seattleflu.db.cli import cli
@@ -55,9 +56,9 @@ def generate(project_id: str, token_name: str, since_date: str):
     api_token = os.environ[token_name]
     api_url = os.environ['REDCAP_API_URL']
 
-    # Assuming that the base url for a REDCap instance is
-    # just removing the 'api' from the API URL
-    redcap_url = api_url.rstrip('/').replace('api', '')
+    # Assuming that the base url for a REDCap instance is just removing the
+    # trailing 'api' from the API URL
+    redcap_url = re.sub(r'api/?$', '', api_url)
 
     if since_date:
         LOG.debug(f"Getting all records that have been created/modified since {since_date}")
