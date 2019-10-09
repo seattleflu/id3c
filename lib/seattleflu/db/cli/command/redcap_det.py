@@ -1,6 +1,15 @@
 """
-Create data entry trigger (DET) records to insert into `receiving.redcap_det`
-for the REDCap records that have been created or modified since a given date.
+Generate and upload REDCap DET notifications.
+
+This command is useful for backfilling data entry trigger (DET) notifications
+for project records which missed the normal trigger process.  Two common
+scenarios when this happens are:
+
+1. The records were created/modified before trigger was enabled.
+
+\b
+2. The records were imported via REDCap's API or mobile app, which
+   bypasses the trigger.
 """
 import os
 import click
@@ -34,11 +43,13 @@ def redcap_det():
 
 def parse(project_id: str, token_name: str, start_date: str):
     """
-    GET REDCap records and parse them into REDCap DETs.
+    Generate DET notifications for REDCap records.
 
     Requires environmental variables REDCAP_API_URL and <token_name>
 
-    All DET records parsed are output to stdout as newline-delimited JSON
+    DET notifications are only output for completed instruments.
+
+    All DET notifications are output to stdout as newline-delimited JSON
     records.  You will likely want to redirect stdout to a file.
     """
     LOG.debug(f"Getting all Kiosk Enrollment REDCap records that have been created/modified since {start_date}")
@@ -123,7 +134,7 @@ def get_redcap_data(api_url: str, parameters: dict) -> List[dict]:
 def create_det_records(redcap_url: str, project_id: str,
                        record: dict, instrument: str) -> dict:
     """
-    Create a "fake" DET record that matches the format of REDCap DETs:
+    Create a "fake" DET notification that matches the format of REDCap DETs:
 
     \b
     {
@@ -158,7 +169,7 @@ def create_det_records(redcap_url: str, project_id: str,
 
 def upload(det_file):
     """
-    Upload REDCap DET records into database receiving area.
+    Upload REDCap DET notifications into database receiving area.
 
     <det.ndjson> must be a newline-delimited JSON file produced by this
     command's sibling command.
