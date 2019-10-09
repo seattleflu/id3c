@@ -33,8 +33,8 @@ def redcap_det():
     required = True)
 @click.option("--token-name",
     metavar = "<token-name>",
-    help = "The name of the environment variable that holds the API token for the <project-id>",
-    required = True)
+    help = "The name of the environment variable that holds the API token",
+    default = "REDCAP_API_TOKEN")
 @click.option("--start-date",
     metavar = "<start-date>",
     help = "The start date of REDCap records that have been created/modified. " +
@@ -45,7 +45,8 @@ def generate(project_id: str, token_name: str, start_date: str):
     """
     Generate DET notifications for REDCap records.
 
-    Requires environmental variables REDCAP_API_URL and <token_name>
+    Requires environmental variables REDCAP_API_URL and REDCAP_API_TOKEN (or
+    whatever you passed to --token-name).
 
     DET notifications are only output for completed instruments.
 
