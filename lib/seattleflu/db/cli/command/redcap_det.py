@@ -161,7 +161,8 @@ def create_det_records(redcap_url: str, project: dict,
        'project_id': project['project_id'],
        'record': record['record_id'],
        'instrument': instrument,
-       instrument_complete: record[instrument_complete]
+       instrument_complete: record[instrument_complete],
+       '__generated_by__': 'id3c',
     }
 
     if 'redcap_event_name' in record:
