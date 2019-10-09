@@ -16,7 +16,7 @@ import click
 import logging
 import re
 import requests
-from typing import List
+from typing import Any, List
 from seattleflu.db.cli import cli
 from seattleflu.db.session import DatabaseSession
 from seattleflu.db.datatypes import as_json
@@ -28,10 +28,6 @@ def redcap_det():
     pass
 
 @redcap_det.command("generate")
-@click.option("--project-id",
-    metavar = "<project-id>",
-    help = "The project ID for the REDCap project",
-    required = True)
 @click.option("--token-name",
     metavar = "<token-name>",
     help = "The name of the environment variable that holds the API token",
@@ -41,7 +37,7 @@ def redcap_det():
     help = "Limit to REDCap records that have been created/modified since the given date. " +
            "Format must be YYYY-MM-DD HH:MM:SS (e.g. '2019-01-01 00:00:00')")
 
-def generate(project_id: str, token_name: str, since_date: str):
+def generate(token_name: str, since_date: str):
     """
     Generate DET notifications for REDCap records.
 
@@ -60,6 +56,10 @@ def generate(project_id: str, token_name: str, since_date: str):
     # trailing 'api' from the API URL
     redcap_url = re.sub(r'api/?$', '', api_url)
 
+    project = get_project(api_url, api_token)
+
+    LOG.info(f"REDCap project #{project['project_id']}: {project['project_title']}")
+
     if since_date:
         LOG.debug(f"Getting all records that have been created/modified since {since_date}")
     else:
@@ -72,7 +72,14 @@ def generate(project_id: str, token_name: str, since_date: str):
         # Find all instruments within a record that have been mark completed
         for instrument in instruments:
             if record[(instrument + '_complete')] == '2':
-                print(as_json(create_det_records(redcap_url, project_id, record, instrument)))
+                print(as_json(create_det_records(redcap_url, project, record, instrument)))
+
+
+def get_project(api_url: str, api_token: str) -> dict:
+    """
+    Get REDCap project information, which is determined by the *api_token*.
+    """
+    return get_redcap_data(api_url, api_token, {"content": "project"})
 
 
 def get_project_instruments(api_url: str, api_token: str) -> List[str]:
@@ -105,7 +112,7 @@ def get_redcap_records(api_url: str, api_token: str, since_date: str = None) -> 
     return get_redcap_data(api_url, api_token, parameters)
 
 
-def get_redcap_data(api_url: str, api_token: str, parameters: dict) -> List[dict]:
+def get_redcap_data(api_url: str, api_token: str, parameters: dict) -> Any:
     """
     Get REDCap data by POST request to the REDCap API.
 
@@ -132,7 +139,7 @@ def get_redcap_data(api_url: str, api_token: str, parameters: dict) -> List[dict
     return response.json()
 
 
-def create_det_records(redcap_url: str, project_id: str,
+def create_det_records(redcap_url: str, project: dict,
                        record: dict, instrument: str) -> dict:
     """
     Create a "fake" DET notification that matches the format of REDCap DETs:
@@ -151,7 +158,7 @@ def create_det_records(redcap_url: str, project_id: str,
 
     det_record = {
        'redcap_url': redcap_url,
-       'project_id': project_id,
+       'project_id': project['project_id'],
        'record': record['record_id'],
        'instrument': instrument,
        instrument_complete: record[instrument_complete]
