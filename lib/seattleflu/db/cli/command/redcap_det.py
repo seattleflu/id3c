@@ -26,7 +26,7 @@ LOG = logging.getLogger(__name__)
 def redcap_det():
     pass
 
-@redcap_det.command("parse")
+@redcap_det.command("generate")
 @click.option("--project-id",
     metavar = "<project-id>",
     help = "The project ID for the REDCap project",
@@ -41,7 +41,7 @@ def redcap_det():
            "Format must be in YYYY-MM-DD HH:MM:SS (e.g.'2019-01-01 00:00:00')",
     required = True)
 
-def parse(project_id: str, token_name: str, start_date: str):
+def generate(project_id: str, token_name: str, start_date: str):
     """
     Generate DET notifications for REDCap records.
 
