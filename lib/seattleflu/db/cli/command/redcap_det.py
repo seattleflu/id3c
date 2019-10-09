@@ -35,13 +35,12 @@ def redcap_det():
     metavar = "<token-name>",
     help = "The name of the environment variable that holds the API token",
     default = "REDCAP_API_TOKEN")
-@click.option("--start-date",
-    metavar = "<start-date>",
-    help = "The start date of REDCap records that have been created/modified. " +
-           "Format must be in YYYY-MM-DD HH:MM:SS (e.g.'2019-01-01 00:00:00')",
-    required = True)
+@click.option("--since-date",
+    metavar = "<since-date>",
+    help = "Limit to REDCap records that have been created/modified since the given date. " +
+           "Format must be YYYY-MM-DD HH:MM:SS (e.g. '2019-01-01 00:00:00')")
 
-def generate(project_id: str, token_name: str, start_date: str):
+def generate(project_id: str, token_name: str, since_date: str):
     """
     Generate DET notifications for REDCap records.
 
@@ -53,8 +52,6 @@ def generate(project_id: str, token_name: str, start_date: str):
     All DET notifications are output to stdout as newline-delimited JSON
     records.  You will likely want to redirect stdout to a file.
     """
-    LOG.debug(f"Getting all Kiosk Enrollment REDCap records that have been created/modified since {start_date}")
-
     api_token = os.environ[token_name]
     api_url = os.environ['REDCAP_API_URL']
 
@@ -62,8 +59,13 @@ def generate(project_id: str, token_name: str, start_date: str):
     # just removing the 'api' from the API URL
     redcap_url = api_url.rstrip('/').replace('api', '')
 
+    if since_date:
+        LOG.debug(f"Getting all records that have been created/modified since {since_date}")
+    else:
+        LOG.debug(f"Getting all records")
+
     instruments = get_project_instruments(api_url, api_token)
-    redcap_records = get_redcap_records(api_url, api_token, start_date)
+    redcap_records = get_redcap_records(api_url, api_token, since_date)
 
     for record in redcap_records:
         # Find all instruments within a record that have been mark completed
@@ -92,7 +94,7 @@ def get_project_instruments(api_url: str, api_token: str) -> List[str]:
     return instrument_names
 
 
-def get_redcap_records(api_url: str, api_token: str, start_date: str) -> List[dict]:
+def get_redcap_records(api_url: str, api_token: str, since_date: str = None) -> List[dict]:
     """
     Get REDCap records for a given project, which is determined by the
     *api_token*
@@ -102,12 +104,12 @@ def get_redcap_records(api_url: str, api_token: str, start_date: str) -> List[di
         'format': 'json',
         'type': 'flat',
         'token': api_token,
-        'dateRangeBegin': start_date
     }
 
-    records = get_redcap_data(api_url, parameters)
-    return records
+    if since_date:
+        parameters['dateRangeBegin'] = since_date
 
+    return get_redcap_data(api_url, parameters)
 
 def get_redcap_data(api_url: str, parameters: dict) -> List[dict]:
     """
