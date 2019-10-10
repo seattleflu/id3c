@@ -291,10 +291,13 @@ def race(races: Optional[Any]) -> list:
         "Black or African American": "blackOrAfricanAmerican",
         "black": "blackOrAfricanAmerican",
         "Native Hawaiian or Other Pacific Islander": "nativeHawaiian",
+        "Native Hawaiian or other Pacific Islander": "nativeHawaiian",
         "nativehi": "nativeHawaiian",
         "White": "white",
         "Multiple races": "other",
+        "Other": "other",
         "refused": None,
+        "Prefer not to say": None,
     }
 
     def standardize_race(race):
