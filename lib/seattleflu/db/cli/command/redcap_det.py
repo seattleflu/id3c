@@ -127,9 +127,7 @@ def get_redcap_data(api_url: str, api_token: str, parameters: dict) -> List[dict
     }
 
     response = requests.post(api_url, data=data, headers=headers)
-
-    if response.status_code != 200:
-        raise Exception(f"REDCap returned response status code {response.status_code}")
+    response.raise_for_status()
 
     return response.json()
 
