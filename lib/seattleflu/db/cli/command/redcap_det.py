@@ -142,7 +142,7 @@ def get_redcap_data(api_url: str, api_token: str, parameters: dict) -> Any:
 def create_det_records(redcap_url: str, project: dict,
                        record: dict, instrument: str) -> dict:
     """
-    Create a "fake" DET notification that matches the format of REDCap DETs:
+    Create a "fake" DET notification that mimics the format of REDCap DETs:
 
     \b
     {
@@ -151,7 +151,9 @@ def create_det_records(redcap_url: str, project: dict,
         'record',
         'instrument',
         '<instrument>_complete',
-        'redcap_event_name' (for longitudinal projects only)
+        'redcap_event_name',      // for longitudinal projects only
+        'redcap_repeat_instance',
+        'redcap_repeat_instrument',
     }
     """
     instrument_complete = instrument + '_complete'
@@ -162,6 +164,8 @@ def create_det_records(redcap_url: str, project: dict,
        'record': record['record_id'],
        'instrument': instrument,
        instrument_complete: record[instrument_complete],
+       'redcap_repeat_instance': record['redcap_repeat_instance'],
+       'redcap_repeat_instrument': record['redcap_repeat_instrument'],
        '__generated_by__': 'id3c',
     }
 
