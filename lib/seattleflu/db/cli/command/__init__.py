@@ -17,6 +17,7 @@ __all__ = [
     "sequence_read_set",
     "consensus_genome",
     "reportable_conditions",
+    "redcap_det",
 ]
 
 
