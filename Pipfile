@@ -8,16 +8,7 @@ mypy = "*"
 pylint = "*"
 
 [packages]
-click = ">=7.0"
-colorama = "*"
-flask = "*"
-psycopg2 = ">=2.8,<3"
-requests = "*"
-pandas = "*"
-xlrd = "*"
-pyyaml = "*"
-deepdiff = "*"
-fiona = "*"
+id3c = {editable = true,path = "."}
 
 [requires]
 python_version = "3.6"

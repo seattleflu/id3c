@@ -1,6 +1,7 @@
 *.pyc
 __pycache__/
 /.mypy_cache/
+/lib/id3c.egg-info/
 
 # Some OS-generated files that should really be in people's global git
 # excludes, but which we proactively make sure don't enter the repo here.
