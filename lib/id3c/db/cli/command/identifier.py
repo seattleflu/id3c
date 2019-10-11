@@ -22,10 +22,10 @@ barcodes are printed on physical labels (the label SKU and layout).
 """
 import click
 import logging
-import seattleflu.db as db
-from seattleflu import labelmaker
-from seattleflu.db.session import DatabaseSession
-from seattleflu.db.cli import cli
+import id3c.db as db
+from id3c import labelmaker
+from id3c.db.session import DatabaseSession
+from id3c.db.cli import cli
 
 
 LOG = logging.getLogger(__name__)

@@ -11,6 +11,6 @@ def cli() -> NoReturn:
     pass
 
 
-# Load all top-level seattleflu.db.cli.command packages, giving them an
+# Load all top-level id3c.db.cli.command packages, giving them an
 # opportunity to register their commands using @cli.command(…).
 from .command import *

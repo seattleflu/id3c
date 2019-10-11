@@ -17,9 +17,9 @@ import logging
 import re
 import requests
 from typing import Any, List
-from seattleflu.db.cli import cli
-from seattleflu.db.session import DatabaseSession
-from seattleflu.db.datatypes import as_json
+from id3c.db.cli import cli
+from id3c.db.session import DatabaseSession
+from id3c.db.datatypes import as_json
 
 LOG = logging.getLogger(__name__)
 

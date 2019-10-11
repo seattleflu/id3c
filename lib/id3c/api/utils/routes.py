@@ -15,12 +15,12 @@ from .. import datastore
 def authenticated_datastore_session_required(route):
     """
     Requires requests have an ``Authorization`` header and uses it to login to
-    the :class:`~seattleflu.api.datastore`.
+    the :class:`~id3c.api.datastore`.
 
     The logged in datastore *session* is provided as a keyword-argument to the
     original route.
 
-    Raises a :class:`seattleflu.api.exceptions.AuthenticationRequired`
+    Raises a :class:`id3c.api.exceptions.AuthenticationRequired`
     exception if the request doesn't provide an ``Authorization`` header.
     """
     @wraps(route)

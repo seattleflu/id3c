@@ -11,10 +11,10 @@ import logging
 from psycopg2 import sql
 from datetime import datetime, timezone
 from typing import Any, Optional, Tuple
-from seattleflu.db import find_identifier
-from seattleflu.db.session import DatabaseSession
-from seattleflu.db.datatypes import Json
-from seattleflu.db.types import KitRecord, SampleRecord
+from id3c.db import find_identifier
+from id3c.db.session import DatabaseSession
+from id3c.db.datatypes import Json
+from id3c.db.types import KitRecord, SampleRecord
 from . import etl, update_sample, find_sample_by_id
 
 LOG = logging.getLogger(__name__)

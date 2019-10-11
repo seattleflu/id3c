@@ -28,9 +28,9 @@ from typing import Mapping, List
 from textwrap import dedent
 from datetime import datetime, timezone
 from psycopg2.extras import NamedTupleCursor
-from seattleflu.db.cli import cli
-from seattleflu.db.session import DatabaseSession
-from seattleflu.db.datatypes import Json
+from id3c.db.cli import cli
+from id3c.db.session import DatabaseSession
+from id3c.db.datatypes import Json
 
 
 LOG = logging.getLogger(__name__)

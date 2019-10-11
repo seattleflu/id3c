@@ -12,10 +12,10 @@ import logging
 import os
 import re
 import pandas as pd
-import seattleflu.db as db
+import id3c.db as db
 from math import ceil
-from seattleflu.db.session import DatabaseSession
-from seattleflu.db.cli import cli
+from id3c.db.session import DatabaseSession
+from id3c.db.cli import cli
 from . import (
     add_metadata,
     barcode_quality_control,

@@ -4,8 +4,8 @@ Backfill previously generated consensus genomes that were not uploaded to ID3C.
 import click
 import logging
 import json
-from seattleflu.db.cli import cli
-from seattleflu.db.session import DatabaseSession
+from id3c.db.cli import cli
+from id3c.db.session import DatabaseSession
 
 
 LOG = logging.getLogger(__name__)

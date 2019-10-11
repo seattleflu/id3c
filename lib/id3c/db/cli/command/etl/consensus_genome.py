@@ -29,9 +29,9 @@ import logging
 from typing import Any, Mapping, NamedTuple, Optional
 from textwrap import dedent
 from datetime import datetime, timezone
-from seattleflu.db.session import DatabaseSession
-from seattleflu.db.datatypes import Json
-from seattleflu.db.types import GenomeRecord, MinimalSampleRecord, OrganismRecord, SequenceReadSetRecord
+from id3c.db.session import DatabaseSession
+from id3c.db.datatypes import Json
+from id3c.db.types import GenomeRecord, MinimalSampleRecord, OrganismRecord, SequenceReadSetRecord
 from . import etl, find_sample
 
 

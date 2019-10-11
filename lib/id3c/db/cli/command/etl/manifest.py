@@ -17,9 +17,9 @@ import click
 import logging
 from datetime import datetime, timezone
 from typing import Any, Tuple, Optional
-from seattleflu.db import find_identifier
-from seattleflu.db.session import DatabaseSession
-from seattleflu.db.datatypes import Json
+from id3c.db import find_identifier
+from id3c.db.session import DatabaseSession
+from id3c.db.datatypes import Json
 from . import etl
 
 

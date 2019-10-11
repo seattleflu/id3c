@@ -199,7 +199,7 @@ Python 3 + [Flask](http://flask.pocoo.org)
 
 ### Starting the server
 
-The commands `pipenv run python -m seattleflu.api` or `pipenv run flask run`
+The commands `pipenv run python -m id3c.api` or `pipenv run flask run`
 will run the application's __development__ server. To provide database
 connection details while starting the development server, run the command
 `PGDATABASE=DB_NAME pipenv run flask run`, substituting `DB_NAME` with the name

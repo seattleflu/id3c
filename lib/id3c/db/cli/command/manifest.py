@@ -26,10 +26,10 @@ from hashlib import sha1
 from os import chdir
 from os.path import dirname
 from typing import Iterable, List
-from seattleflu.db.cli import cli
-from seattleflu.db.session import DatabaseSession
-from seattleflu.db.datatypes import as_json, Json
-from seattleflu.utils import format_doc
+from id3c.db.cli import cli
+from id3c.db.session import DatabaseSession
+from id3c.db.datatypes import as_json, Json
+from id3c.utils import format_doc
 
 
 LOG = logging.getLogger(__name__)

@@ -30,13 +30,13 @@ import fiona
 import fiona.crs
 import json
 import logging
-import seattleflu.db as db
+import id3c.db as db
 from io import StringIO
 from psycopg2.sql import SQL
 from textwrap import dedent
-from seattleflu.db.cli import cli
-from seattleflu.db.datatypes import Json
-from seattleflu.db.session import DatabaseSession
+from id3c.db.cli import cli
+from id3c.db.datatypes import Json
+from id3c.db.session import DatabaseSession
 
 
 LOG = logging.getLogger(__name__)

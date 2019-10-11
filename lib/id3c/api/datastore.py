@@ -193,7 +193,7 @@ def fetch_genomic_sequences(session: DatabaseSession,
 @export
 class BadRequestDatabaseError(BadRequest):
     """
-    Subclass of :class:`seattleflu.api.exceptions.BadRequest` which takes a
+    Subclass of :class:`id3c.api.exceptions.BadRequest` which takes a
     :class:`psycopg2.DatabaseError` and forms a JSON response detailing the
     error.
 

@@ -5,10 +5,10 @@ import click
 import logging
 from math import ceil
 from typing import Any, Optional
-from seattleflu.db.session import DatabaseSession
-from seattleflu.db.datatypes import Json
-from seattleflu.db.cli import cli
-from seattleflu.db.types import MinimalSampleRecord
+from id3c.db.session import DatabaseSession
+from id3c.db.datatypes import Json
+from id3c.db.cli import cli
+from id3c.db.types import MinimalSampleRecord
 
 
 LOG = logging.getLogger(__name__)
