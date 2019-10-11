@@ -272,6 +272,40 @@ def find_location(db: DatabaseSession, scale: str, identifier: str) -> Any:
     return location
 
 
+def race(races: Optional[Any]) -> list:
+    """
+    Given one or more *races*, returns the matching race identifier found in
+    Audere survey data.
+    """
+    if races is None:
+        LOG.debug("No race response found.")
+        return [None]
+
+    if not isinstance(races, list):
+        races = [races]
+
+    race_map = {
+        "American Indian or Alaska Native": "americanIndianOrAlaskaNative",
+        "amerind": "americanIndianOrAlaskaNative",
+        "Asian": "asian",
+        "Black or African American": "blackOrAfricanAmerican",
+        "black": "blackOrAfricanAmerican",
+        "Native Hawaiian or Other Pacific Islander": "nativeHawaiian",
+        "nativehi": "nativeHawaiian",
+        "White": "white",
+        "Multiple races": "other",
+        "refused": None,
+    }
+
+    def standardize_race(race):
+        try:
+            return race if race in race_map.values() else race_map[race]
+        except KeyError:
+            raise UnknownRaceError(f"Unknown race name «{race}»") from None
+
+    return list(map(standardize_race, races))
+
+
 def upsert_location(db: DatabaseSession,
                     scale: str,
                     identifier: str,
