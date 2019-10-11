@@ -11,12 +11,12 @@ export PYTHONPATH="$locallib"
 
 if [[ -n ${PIPENV_ACTIVE:-} ]]; then
     # We are already running under `pipenv run` or `pipenv shell`.
-    exec python3 -m id3c.db.cli "$@"
+    exec python3 -m id3c.cli "$@"
 else
     # We need to run under pipenv, so find our Pipfile.
     pipfile="$root/Pipfile"
     test -e "$pipfile"
     export PIPENV_PIPFILE="$pipfile"
 
-    exec pipenv run python3 -m id3c.db.cli "$@"
+    exec pipenv run python3 -m id3c.cli "$@"
 fi

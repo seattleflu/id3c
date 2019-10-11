@@ -25,7 +25,7 @@ import logging
 import id3c.db as db
 from id3c import labelmaker
 from id3c.db.session import DatabaseSession
-from id3c.db.cli import cli
+from id3c.cli import cli
 
 
 LOG = logging.getLogger(__name__)

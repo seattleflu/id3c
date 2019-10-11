@@ -7,7 +7,7 @@ from math import ceil
 from typing import Any, Optional
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
-from id3c.db.cli import cli
+from id3c.cli import cli
 from id3c.db.types import MinimalSampleRecord
 
 

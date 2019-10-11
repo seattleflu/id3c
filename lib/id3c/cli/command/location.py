@@ -34,7 +34,7 @@ import id3c.db as db
 from io import StringIO
 from psycopg2.sql import SQL
 from textwrap import dedent
-from id3c.db.cli import cli
+from id3c.cli import cli
 from id3c.db.datatypes import Json
 from id3c.db.session import DatabaseSession
 

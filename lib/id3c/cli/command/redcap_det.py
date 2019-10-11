@@ -17,7 +17,7 @@ import logging
 import re
 import requests
 from typing import Any, List
-from id3c.db.cli import cli
+from id3c.cli import cli
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json
 

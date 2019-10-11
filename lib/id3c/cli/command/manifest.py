@@ -26,7 +26,7 @@ from hashlib import sha1
 from os import chdir
 from os.path import dirname
 from typing import Iterable, List
-from id3c.db.cli import cli
+from id3c.cli import cli
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json, Json
 from id3c.utils import format_doc

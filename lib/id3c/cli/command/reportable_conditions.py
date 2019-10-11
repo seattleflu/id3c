@@ -28,7 +28,7 @@ from typing import Mapping, List
 from textwrap import dedent
 from datetime import datetime, timezone
 from psycopg2.extras import NamedTupleCursor
-from id3c.db.cli import cli
+from id3c.cli import cli
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
 

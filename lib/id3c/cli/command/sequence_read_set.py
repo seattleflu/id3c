@@ -12,7 +12,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, Optional
 from urllib.parse import urljoin
-from id3c.db.cli import cli
+from id3c.cli import cli
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json
 
