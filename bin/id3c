@@ -4,7 +4,7 @@ set -euo pipefail
 # Find our project root.
 root="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Add our lib dir to the module search path so we can load id3c.db.
+# Add our lib dir to the module search path so we can load id3c.cli.
 locallib="$root/lib"
 test -d "$locallib"
 export PYTHONPATH="$locallib"
