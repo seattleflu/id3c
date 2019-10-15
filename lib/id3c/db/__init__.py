@@ -1,5 +1,5 @@
 """
-Seattle Flu Study database libraries
+Database interfaces
 """
 import logging
 import secrets

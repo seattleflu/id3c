@@ -1,5 +1,5 @@
 """
-Seattle Flu Study informatics API
+Web API
 """
 import logging
 from flask import Flask
