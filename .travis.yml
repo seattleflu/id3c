@@ -19,5 +19,4 @@ install:
   - pipenv sync
 
 script:
-  - ./dev/show-help ./bin/id3c
-  - ./dev/mypy
+  - pipenv run pytest -v
