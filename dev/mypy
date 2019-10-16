@@ -3,4 +3,8 @@ set -euo pipefail
 
 cd "$(dirname $0)/.."
 
-exec pipenv run mypy lib/id3c
+if [[ -n ${PIPENV_ACTIVE:-} ]]; then
+    exec mypy lib/id3c
+else
+    exec pipenv run mypy lib/id3c
+fi
