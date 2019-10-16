@@ -4,19 +4,19 @@ set -euo pipefail
 # Find our project root.
 root="$(cd "$(dirname "$0")/.." && pwd)"
 
-# Add our lib dir to the module search path so we can load seattleflu.db.
+# Add our lib dir to the module search path so we can load id3c.cli.
 locallib="$root/lib"
 test -d "$locallib"
-export PYTHONPATH="$locallib"
+export PYTHONPATH="$locallib${PYTHONPATH:+:}${PYTHONPATH:-}"
 
 if [[ -n ${PIPENV_ACTIVE:-} ]]; then
     # We are already running under `pipenv run` or `pipenv shell`.
-    exec python3 -m seattleflu.db.cli "$@"
+    exec python3 -m id3c.cli "$@"
 else
     # We need to run under pipenv, so find our Pipfile.
     pipfile="$root/Pipfile"
     test -e "$pipfile"
     export PIPENV_PIPFILE="$pipfile"
 
-    exec pipenv run python3 -m seattleflu.db.cli "$@"
+    exec pipenv run python3 -m id3c.cli "$@"
 fi

@@ -3,4 +3,4 @@ set -euo pipefail
 
 cd "$(dirname $0)/.."
 
-exec pipenv run mypy lib/seattleflu
+exec pipenv run mypy lib/id3c
