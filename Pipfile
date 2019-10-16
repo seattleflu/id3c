@@ -6,6 +6,7 @@ verify_ssl = true
 [dev-packages]
 mypy = "*"
 pylint = "*"
+pytest = "*"
 
 [packages]
 id3c = {editable = true,path = "."}
