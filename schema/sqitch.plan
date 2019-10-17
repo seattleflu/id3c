@@ -135,3 +135,5 @@ warehouse/sequence-read-set/triggers/update-modified-timestamp [warehouse/sequen
 warehouse/genomic-sequence/timestamp [warehouse/genomic-sequence] 2019-10-04T01:43:50Z Kairsten Fay <kfay@fredhutch.org> # Timestamp genomic sequence records with date created and modified
 warehouse/genomic-sequence/triggers/update-modified-timestamp [warehouse/genomic-sequence functions/update-modified-timestamp] 2019-10-04T01:45:49Z Kairsten Fay <kfay@fredhutch.org> # Trigger to update modified timestamp on genomic sequences
 @2019-10-03 2019-10-04T01:46:57Z Kairsten Fay <kfay@fredhutch.org> # schema as of 3 October 2019
+
+receiving/fhir [receiving/schema] 2019-10-17T01:04:43Z Kairsten Fay <kfay@fredhutch.org> # Receiving table for FHIR documents
