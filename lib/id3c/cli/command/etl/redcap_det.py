@@ -116,11 +116,11 @@ def command_for_project(name: str,
                             if not is_complete(instrument, redcap_record)
                     }
 
-                    if incomplete_instruments:
-                        LOG.debug(f"The following required instruments «{incomplete_instruments}» are not yet marked complete. " + \
-                                  f"Skipping REDCap DET {det.id}")
-                        mark_skipped(db, det.id, etl_id)
-                        continue
+                    # if incomplete_instruments:
+                    #     LOG.debug(f"The following required instruments «{incomplete_instruments}» are not yet marked complete. " + \
+                    #               f"Skipping REDCap DET {det.id}")
+                    #     mark_skipped(db, det.id, etl_id)
+                    #     continue
 
                     bundle = routine(det = det, redcap_record = redcap_record)
 

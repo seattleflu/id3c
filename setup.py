@@ -68,6 +68,7 @@ setup(
         "pyyaml",
         "deepdiff",
         "fiona",
+        "fhir.resources",
 
         # We use pkg_resources, which (confusingly) is provided by setuptools.
         # setuptools is nearly ever-present, but it can be missing!
