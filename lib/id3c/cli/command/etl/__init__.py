@@ -27,6 +27,7 @@ __all__ = [
     "kit",
     "consensus_genome",
     "redcap_det",
+    "fhir",
 ]
 
 def find_or_create_site(db: DatabaseSession, identifier: str, details: dict) -> Any:

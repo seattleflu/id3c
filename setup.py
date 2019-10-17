@@ -70,6 +70,7 @@ setup(
         "fiona",
         "cachetools",
         "smartystreets-python-sdk >= 4.0.1",
+        "fhir.resources",
 
         # We use pkg_resources, which (confusingly) is provided by setuptools.
         # setuptools is nearly ever-present, but it can be missing!
