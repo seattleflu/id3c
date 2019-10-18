@@ -3,6 +3,7 @@ Run ETL routines
 """
 import click
 import logging
+import re
 from math import ceil
 from typing import Any, Optional
 from id3c.db.session import DatabaseSession
@@ -300,7 +301,11 @@ def race(races: Optional[Any]) -> list:
         "Prefer not to say": None,
     }
 
+    def standardize_whitespace(string):
+        return re.sub(r"\s+", " ", string.strip())
+
     def standardize_race(race):
+        race = standardize_whitespace(race)
         try:
             return race if race in race_map.values() else race_map[race]
         except KeyError:
