@@ -11,9 +11,7 @@ import requests
 from datetime import datetime, timezone
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
-from . import (
-    etl
-)
+from . import etl
 
 
 LOG = logging.getLogger(__name__)
