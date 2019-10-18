@@ -7,6 +7,7 @@ verify_ssl = true
 mypy = "*"
 pylint = "*"
 pytest = "*"
+sqlparse = "*"
 
 [packages]
 id3c = {editable = true,path = "."}

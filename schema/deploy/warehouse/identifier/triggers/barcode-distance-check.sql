@@ -63,7 +63,7 @@ $$ language plpgsql
    security definer
    -- Explicitly restrict which schemas the code inside the function can find
    -- other tables, functions, etc. without qualification
-   SET search_path = pg_catalog, public, pg_temp;
+   SET search_path = pg_catalog, public, pg_temp; -- tests/search-path: ignore
 
 drop trigger identifier_barcode_distance_check_before_insert on warehouse.identifier;
 drop trigger identifier_barcode_distance_check_before_update on warehouse.identifier;

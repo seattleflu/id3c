@@ -47,7 +47,7 @@ create or replace function warehouse.sequence_read_set_urls_unique_to_one_set_ch
     end
 $$ language plpgsql
     security definer
-    SET search_path = pg_catalog, public, pg_temp;
+    SET search_path = pg_catalog, public, pg_temp; -- tests/search-path: ignore
 
 create trigger sequence_read_set_urls_unique_to_one_set_check_before_insert
     before insert on warehouse.sequence_read_set
