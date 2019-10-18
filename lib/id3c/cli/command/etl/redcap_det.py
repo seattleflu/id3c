@@ -1,8 +1,8 @@
 """
-Process REDCap DET documents into the relational warehouse.
+Process REDCap DET notifications.
 
-Contains some hard-coded logic for which project ID correlates to which project
-(e.g. 17542 is the PID for Shelters)
+This command group supports custom ETL routines specific to a project in
+REDCap.
 """
 import os
 import click
