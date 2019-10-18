@@ -56,6 +56,18 @@ def manifest():
            "Must match exactly; shell-style glob patterns are supported.",
     required = True)
 
+@click.option("--sample-origin",
+    metavar = "<column>",
+    help = "Name of the single column containing sample origin. "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--swab-site",
+    metavar = "<column>",
+    help = "Name of the single column containing sample origin. "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
 @click.option("--aliquot-columns",
     metavar = "<column>",
     help = "Name of the, possibly multiple, columns containing aliquot barcodes.  "
@@ -213,6 +225,8 @@ def parse_using_config(config_file):
                 "workbook":             config["workbook"],
                 "sheet":                config["sheet"],
                 "sample_column":        config["columns"]["sample"],
+                "sample_origin":        config["columns"].get("sample_origin"),
+                "swab_site":            config["columns"].get("swab_site"),
                 "collection_column":    config["columns"].get("collection"),
                 "aliquot_columns":      config["columns"].get("aliquots"),
                 "date_column":          config["columns"].get("date"),
@@ -238,6 +252,8 @@ def _parse(*,
            workbook,
            sheet,
            sample_column,
+           sample_origin = None,
+           swab_site = None,
            aliquot_columns = None,
            collection_column = None,
            date_column = None,
@@ -275,6 +291,8 @@ def _parse(*,
     parsed_manifest["sample"] = select_column(manifest, sample_column)
 
     single_columns = {
+        "sample_origin": sample_origin,
+        "swab_site": swab_site,
         "collection": collection_column,
         "kit": kit_column,
         "date": date_column,
