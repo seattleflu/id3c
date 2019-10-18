@@ -138,5 +138,5 @@ warehouse/genomic-sequence/triggers/update-modified-timestamp [warehouse/genomic
 
 receiving/fhir [receiving/schema] 2019-10-17T01:04:43Z Kairsten Fay <kfay@fredhutch.org> # Receiving table for FHIR documents
 roles/fhir-uploader/create 2019-10-17T01:11:06Z Kairsten Fay <kfay@fredhutch.org> # Create FHIR processor role
-roles/fhir-uploader/grants [roles/fhir-uploader/create receiving/fhir] 2019-10-17T01:15:12Z Kairsten Fay <kfay@fredhutch.org> # Grants to fhir-uploader
+roles/fhir-uploader/grants [roles/fhir-uploader/create receiving/fhir warehouse/schema shipping/schema] 2019-10-17T01:15:12Z Kairsten Fay <kfay@fredhutch.org> # Grants to fhir-uploader
 @2019-10-16 2019-10-17T01:19:10Z Kairsten Fay <kfay@fredhutch.org> # Schema as of 16 October 2019
