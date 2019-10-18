@@ -285,29 +285,39 @@ def race(races: Optional[Any]) -> list:
     if not isinstance(races, list):
         races = [races]
 
+    # Keys must be lowercase for case-insensitive lookup
     race_map = {
-        "American Indian or Alaska Native": "americanIndianOrAlaskaNative",
+        "americanindianoralaskanative": "americanIndianOrAlaskaNative",
+        "american indian or alaska native": "americanIndianOrAlaskaNative",
         "amerind": "americanIndianOrAlaskaNative",
-        "Asian": "asian",
-        "Black or African American": "blackOrAfricanAmerican",
+
+        "asian": "asian",
+
+        "blackorafricanamerican": "blackOrAfricanAmerican",
+        "black or african american": "blackOrAfricanAmerican",
         "black": "blackOrAfricanAmerican",
-        "Native Hawaiian or Other Pacific Islander": "nativeHawaiian",
-        "Native Hawaiian or other Pacific Islander": "nativeHawaiian",
+
+        "nativehawaiian": "nativeHawaiian",
+        "native hawaiian or other pacific islander": "nativeHawaiian",
         "nativehi": "nativeHawaiian",
-        "White": "white",
-        "Multiple races": "other",
-        "Other": "other",
+
+        "white": "white",
+
+        "other": "other",
+        "multiple races": "other",
+
         "refused": None,
-        "Prefer not to say": None,
+        "prefer not to say": None,
     }
+
+    assert set(race_map.keys()) == set(map(str.lower, race_map.keys()))
 
     def standardize_whitespace(string):
         return re.sub(r"\s+", " ", string.strip())
 
     def standardize_race(race):
-        race = standardize_whitespace(race)
         try:
-            return race if race in race_map.values() else race_map[race]
+            return race_map[standardize_whitespace(race).lower()]
         except KeyError:
             raise UnknownRaceError(f"Unknown race name «{race}»") from None
 
