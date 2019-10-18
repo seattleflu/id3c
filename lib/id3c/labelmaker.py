@@ -161,7 +161,7 @@ class KitsFluAtHomeLayout(LabelLayout):
     reference = "fluathome.org"
 
 
-class TestStripsFluAtHomeLayout(LabelLayout):
+class _TestStripsFluAtHomeLayout(LabelLayout):
     sku = "LCRY-2380"
     barcode_type = "TEST STRIP"
     copies_per_barcode = 1
@@ -178,7 +178,7 @@ LAYOUTS = {
     "collections-household-intervention": CollectionsHouseholdInterventionLayout,
     "collections-fluathome.org": CollectionsFluAtHomeLayout,
     "kits-fluathome.org": KitsFluAtHomeLayout,
-    "test-strips-fluathome.org": TestStripsFluAtHomeLayout,
+    "test-strips-fluathome.org": _TestStripsFluAtHomeLayout,
 }
 
 

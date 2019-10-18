@@ -89,9 +89,8 @@ class DatabaseSession:
         """
         Context manager for database savepoints.
 
-        >>> with db.savepoint():
-        ...     # execute database statements here
-        ...     ...
+        >>> with db.savepoint(): # doctest: +SKIP
+        ...     ... # execute database statements here
 
         A savepoint is created with *name* (or a random id if *name* is
         ``None``) when the ``with`` block is entered.  If the ``with``
