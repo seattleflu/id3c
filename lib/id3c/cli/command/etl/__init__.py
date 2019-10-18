@@ -277,6 +277,51 @@ def race(races: Optional[Any]) -> list:
     """
     Given one or more *races*, returns the matching race identifier found in
     Audere survey data.
+
+    Single values may be passed:
+
+    >>> race("OTHER")
+    ['other']
+
+    A list of values may also be passed:
+
+    >>> race(["ASIAN", "bLaCk", "white"])
+    ['asian', 'blackOrAfricanAmerican', 'white']
+
+    Leading and trailing space is ignored:
+
+    >>> race("   amerind ")
+    ['americanIndianOrAlaskaNative']
+
+    Internal runs of whitespace are collapsed during comparison:
+
+    >>> race("Native  Hawaiian or other     pacific islander")
+    ['nativeHawaiian']
+
+    but not completely ignored:
+
+    >>> race("whi te")
+    Traceback (most recent call last):
+        ...
+    id3c.cli.command.etl.UnknownRaceError: Unknown race name «whi te»
+
+    ``None`` may be passed for convenience with :meth:`dict.get`.
+
+    >>> race(None)
+    [None]
+
+    An :class:`UnknownRaceError` is raised when an unknown value is
+    encountered:
+
+    >>> race("foobarbaz")
+    Traceback (most recent call last):
+        ...
+    id3c.cli.command.etl.UnknownRaceError: Unknown race name «foobarbaz»
+
+    >>> race(["white", "nonsense", "other"])
+    Traceback (most recent call last):
+        ...
+    id3c.cli.command.etl.UnknownRaceError: Unknown race name «nonsense»
     """
     if races is None:
         LOG.debug("No race response found.")
