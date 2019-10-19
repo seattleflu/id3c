@@ -109,7 +109,7 @@ def is_complete(instrument: str, record: dict) -> bool:
     }
 
 
-def insert_fhir_bundle(db, bundle: dict) -> None:
+def insert_fhir_bundle(db: DatabaseSession, bundle: dict) -> None:
     """
     Insert FHIR bundles into the receiving area of the database.
     """
@@ -127,17 +127,17 @@ def insert_fhir_bundle(db, bundle: dict) -> None:
     LOG.info(f"Inserted FHIR document {fhir.id} «{bundle['id']}»")
 
 
-def mark_loaded(db, det_id: int, etl_id: dict) -> None:
+def mark_loaded(db: DatabaseSession, det_id: int, etl_id: dict) -> None:
     LOG.debug(f"Marking REDCap DET record {det_id} as loaded")
     mark_processed(db, det_id, {**etl_id, "status": "loaded"})
 
 
-def mark_skipped(db, det_id: int, etl_id: dict) -> None:
+def mark_skipped(db: DatabaseSession, det_id: int, etl_id: dict) -> None:
     LOG.debug(f"Marking REDCap DET record {det_id} as skipped")
     mark_processed(db, det_id, {**etl_id, "status": "skipped"})
 
 
-def mark_processed(db, det_id: int, entry = {}) -> None:
+def mark_processed(db: DatabaseSession, det_id: int, entry = {}) -> None:
     LOG.debug(f"Appending to processing log of REDCap DET record {det_id}")
 
     data = {
