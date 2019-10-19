@@ -17,11 +17,6 @@ from . import etl
 
 LOG = logging.getLogger(__name__)
 
-HEADERS = {
-    'Content-type': 'application/x-www-form-urlencoded',
-    'Accept': 'application/json'
-}
-
 # This revision number is stored in the processing_log of each REDCap DET
 # record when the REDCap DET record is successfully processed by this ETL
 # routine. The routine finds new-to-it records to process by looking for
@@ -55,11 +50,15 @@ def get_redcap_record(project_id: str, record_id: str, token_name: str) -> dict:
         'records': record_id,
     }
 
-    r = requests.post(os.environ['REDCAP_API_URL'], data=data, headers=HEADERS)
-    if r.status_code != 200:
-        raise Exception(f"REDCap returned response status code {r.status_code}")
+    headers = {
+        'Content-type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+    }
 
-    return r.json()[0]
+    response = requests.post(os.environ['REDCAP_API_URL'], data=data, headers=headers)
+    response.raise_for_status()
+
+    return response.json()[0]
 
 
 class InstrumentStatus(Enum):
