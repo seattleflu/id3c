@@ -31,14 +31,14 @@ def redcap_det():
     pass
 
 
-def get_redcap_record(project_id: str, record_id: str, token_name: str) -> dict:
+def get_redcap_record(record_id: str, token_name: str) -> dict:
     """
     Gets one REDCap record containing all instruments via web API based on the
-    provided *project_id* and *record_id*.
+    provided *record_id*.
     Requires an environmental variable described by *token_name* for REDCap to
-    access the records from the given *project_id*.
+    access the records.
     """
-    LOG.debug(f"Getting REDCap record «{record_id}» for all instruments within project «{project_id}»")
+    LOG.debug(f"Getting REDCap record «{record_id}» for all instruments")
 
     data = {
         'content': 'record',
