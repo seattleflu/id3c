@@ -9,14 +9,13 @@ import click
 import logging
 import requests
 from datetime import datetime, timezone
+from enum import Enum
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
 from . import etl
 
 
 LOG = logging.getLogger(__name__)
-
-COMPLETE_AND_VERIFIED = 'Complete'  # A status code from REDCap API
 
 HEADERS = {
     'Content-type': 'application/x-www-form-urlencoded',
@@ -61,6 +60,39 @@ def get_redcap_record(project_id: str, record_id: str, token_name: str) -> dict:
         raise Exception(f"REDCap returned response status code {r.status_code}")
 
     return r.json()[0]
+
+
+class InstrumentStatus(Enum):
+    """
+    Numeric and string codes used by REDCap for instrument status.
+    """
+    Incomplete = 0
+    Unverified = 1
+    Complete = 2
+
+
+def is_complete(instrument: str, record: dict) -> bool:
+    """
+    Test if the named *instrument* is marked complete in the given *record*.
+
+    >>> is_complete("test", {"test_complete": "Complete"})
+    True
+    >>> is_complete("test", {"test_complete": 2})
+    True
+    >>> is_complete("test", {"test_complete": "2"})
+    True
+    >>> is_complete("test", {"test_complete": "Incomplete"})
+    False
+    >>> is_complete("test", {})
+    Traceback (most recent call last):
+        ...
+    KeyError: 'test_complete'
+    """
+    return record[f"{instrument}_complete"] in {
+        InstrumentStatus.Complete.name,
+        InstrumentStatus.Complete.value,
+        str(InstrumentStatus.Complete.value)
+    }
 
 
 def insert_fhir_bundle(db, bundle: dict) -> None:
