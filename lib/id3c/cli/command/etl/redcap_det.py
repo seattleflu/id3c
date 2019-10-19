@@ -18,14 +18,6 @@ from . import etl
 
 LOG = logging.getLogger(__name__)
 
-# This revision number is stored in the processing_log of each REDCap DET
-# record when the REDCap DET record is successfully processed by this ETL
-# routine. The routine finds new-to-it records to process by looking for
-# REDCap DET records lacking this revision number in their log.  If a
-# change to the ETL routine necessitates re-processing all REDCap DET records,
-# this revision number should be incremented.
-REVISION = 1
-
 
 @etl.group("redcap-det", help = __doc__)
 def redcap_det():
@@ -135,9 +127,14 @@ def insert_fhir_bundle(db, bundle: dict) -> None:
     LOG.info(f"Inserted FHIR document {fhir.id} «{bundle['id']}»")
 
 
-def mark_skipped(db, det_id: int) -> None:
+def mark_loaded(db, det_id: int, etl_id: dict) -> None:
+    LOG.debug(f"Marking REDCap DET record {det_id} as loaded")
+    mark_processed(db, det_id, {**etl_id, "status": "loaded"})
+
+
+def mark_skipped(db, det_id: int, etl_id: dict) -> None:
     LOG.debug(f"Marking REDCap DET record {det_id} as skipped")
-    mark_processed(db, det_id, { "status": "skipped" })
+    mark_processed(db, det_id, {**etl_id, "status": "skipped"})
 
 
 def mark_processed(db, det_id: int, entry = {}) -> None:
@@ -147,7 +144,6 @@ def mark_processed(db, det_id: int, entry = {}) -> None:
         "det_id": det_id,
         "log_entry": Json({
             **entry,
-            "revision": REVISION,
             "timestamp": datetime.now(timezone.utc),
         }),
     }
