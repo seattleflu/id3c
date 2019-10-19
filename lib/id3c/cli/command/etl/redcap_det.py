@@ -10,6 +10,7 @@ import logging
 import requests
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Tuple
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
 from . import etl
@@ -31,14 +32,14 @@ def redcap_det():
     pass
 
 
-def get_redcap_record(record_id: str, token_name: str) -> dict:
+def get_redcap_record(record_id: str) -> dict:
     """
     Gets one REDCap record containing all instruments via web API based on the
     provided *record_id*.
-    Requires an environmental variable described by *token_name* for REDCap to
-    access the records.
     """
     LOG.debug(f"Getting REDCap record «{record_id}» for all instruments")
+
+    url, token = get_redcap_api_credentials()
 
     data = {
         'content': 'record',
@@ -46,7 +47,7 @@ def get_redcap_record(record_id: str, token_name: str) -> dict:
         'type': 'flat',
         'rawOrLabel': 'label',
         'exportCheckboxLabel': 'true',
-        'token': os.environ[token_name],
+        'token': token,
         'records': record_id,
     }
 
@@ -55,10 +56,32 @@ def get_redcap_record(record_id: str, token_name: str) -> dict:
         'Accept': 'application/json'
     }
 
-    response = requests.post(os.environ['REDCAP_API_URL'], data=data, headers=headers)
+    response = requests.post(url, data=data, headers=headers)
     response.raise_for_status()
 
     return response.json()[0]
+
+
+def get_redcap_api_credentials() -> Tuple[str, str]:
+    """
+    Returns a tuple of ``(url, token)`` for use with REDCap's web API.
+
+    Requires the environmental variables ``REDCAP_API_URL`` and
+    ``REDCAP_API_TOKEN``.
+    """
+    url = os.environ.get("REDCAP_API_URL")
+    token = os.environ.get("REDCAP_API_TOKEN")
+
+    if not url and not token:
+        raise Exception(f"The environment variables REDCAP_API_URL and REDCAP_API_TOKEN are required.")
+    elif not url:
+        raise Exception(f"The environment variable REDCAP_API_URL is required.")
+    elif not token:
+        raise Exception(f"The environment variable REDCAP_API_TOKEN is required.")
+
+    LOG.debug(f"REDCap endpoint is {url}")
+
+    return url, token
 
 
 class InstrumentStatus(Enum):
