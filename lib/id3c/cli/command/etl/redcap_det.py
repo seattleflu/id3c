@@ -121,7 +121,7 @@ def insert_fhir_bundle(db, bundle: dict) -> None:
     """
     Insert FHIR bundles into the receiving area of the database.
     """
-    LOG.debug(f"Upserting FHIR bundle «{bundle['id']}»")
+    LOG.debug(f"Inserting FHIR bundle «{bundle['id']}»")
 
     fhir = db.fetch_row("""
         insert into receiving.fhir(document)
