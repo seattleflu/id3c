@@ -19,6 +19,7 @@ import click
 import logging
 from datetime import datetime, timezone
 from typing import Any, Optional
+from id3c.cli.command import with_database_session
 from id3c.db import find_identifier
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
@@ -38,24 +39,10 @@ REVISION = 4
 
 
 @etl.command("presence-absence", help = __doc__)
+@with_database_session
 
-@click.option("--dry-run", "action",
-    help        = "Only go through the motions of changing the database (default)",
-    flag_value  = "rollback",
-    default     = True)
-
-@click.option("--prompt", "action",
-    help        = "Ask if changes to the database should be saved",
-    flag_value  = "prompt")
-
-@click.option("--commit", "action",
-    help        = "Save changes to the database",
-    flag_value  = "commit")
-
-def etl_presence_absence(*, action: str):
+def etl_presence_absence(*, db: DatabaseSession):
     LOG.debug(f"Starting the presence_absence ETL routine, revision {REVISION}")
-
-    db = DatabaseSession()
 
     # Fetch and iterate over presence-absence tests that aren't processed
     #
@@ -73,140 +60,109 @@ def etl_presence_absence(*, action: str):
            for update
         """, (Json([{ "revision": REVISION }]),))
 
-    processed_without_error = None
+    for group in presence_absence:
+        with db.savepoint(f"presence_absence group {group.id}"):
+            LOG.info(f"Processing presence_absence group {group.id}")
 
-    try:
-        for group in presence_absence:
-            with db.savepoint(f"presence_absence group {group.id}"):
-                LOG.info(f"Processing presence_absence group {group.id}")
-
-                # Samplify will now send documents with a top level key
-                # "samples". The new format also includes a "chip" key for each
-                # sample which is then included in the unique identifier for
-                # each presence/absence result
+            # Samplify will now send documents with a top level key
+            # "samples". The new format also includes a "chip" key for each
+            # sample which is then included in the unique identifier for
+            # each presence/absence result
+            #   -Jover, 14 Nov 2019
+            try:
+                received_samples = group.document["samples"]
+            except KeyError as error:
+                # Skip documents in the old format because they do not
+                # include the "chip" key which is needed for the
+                # unique identifier for each result.
                 #   -Jover, 14 Nov 2019
-                try:
-                    received_samples = group.document["samples"]
-                except KeyError as error:
-                    # Skip documents in the old format because they do not
-                    # include the "chip" key which is needed for the
-                    # unique identifier for each result.
-                    #   -Jover, 14 Nov 2019
-                    if (group.document.get("store") is not None or
-                        group.document.get("Update") is not None):
+                if (group.document.get("store") is not None or
+                    group.document.get("Update") is not None):
 
-                        LOG.info("Skipping presence_absence record that is in old format")
-                        mark_processed(db, group.id)
-                        continue
+                    LOG.info("Skipping presence_absence record that is in old format")
+                    mark_processed(db, group.id)
+                    continue
 
-                    else:
-                        raise error from None
+                else:
+                    raise error from None
 
-                for received_sample in received_samples:
-                    received_sample_barcode = received_sample["investigatorId"]
-                    LOG.info(f"Processing sample «{received_sample_barcode}»")
+            for received_sample in received_samples:
+                received_sample_barcode = received_sample["investigatorId"]
+                LOG.info(f"Processing sample «{received_sample_barcode}»")
 
-                    if not received_sample.get("isCurrentExpressionResult"):
-                        LOG.warning(f"Skipping out-of-date results for sample «{received_sample_barcode}»")
-                        continue
+                if not received_sample.get("isCurrentExpressionResult"):
+                    LOG.warning(f"Skipping out-of-date results for sample «{received_sample_barcode}»")
+                    continue
 
-                    received_sample_identifier = sample_identifier(db, received_sample_barcode)
+                received_sample_identifier = sample_identifier(db, received_sample_barcode)
 
-                    if not received_sample_identifier:
-                        LOG.warning(f"Skipping results for sample without a known identifier «{received_sample_barcode}»")
-                        continue
+                if not received_sample_identifier:
+                    LOG.warning(f"Skipping results for sample without a known identifier «{received_sample_barcode}»")
+                    continue
 
-                    sample = update_sample(db,
-                        identifier = received_sample_identifier,
-                        additional_details = sample_details(received_sample))
+                sample = update_sample(db,
+                    identifier = received_sample_identifier,
+                    additional_details = sample_details(received_sample))
 
-                    received_sample_id = str(received_sample["sampleId"])
-                    chip = received_sample["chip"]
+                received_sample_id = str(received_sample["sampleId"])
+                chip = received_sample["chip"]
 
-                    # Guard against empty chip values
-                    assert chip, "Received bogus chip id"
+                # Guard against empty chip values
+                assert chip, "Received bogus chip id"
 
-                    for test_result in received_sample["targetResults"]:
-                        test_result_target_id = test_result["geneTarget"]
-                        LOG.debug(f"Processing target «{test_result_target_id}» for \
-                        sample «{received_sample_barcode}»")
+                for test_result in received_sample["targetResults"]:
+                    test_result_target_id = test_result["geneTarget"]
+                    LOG.debug(f"Processing target «{test_result_target_id}» for \
+                    sample «{received_sample_barcode}»")
 
-                        # Most of the time we expect to see existing targets so a
-                        # select-first approach makes the most sense to avoid useless
-                        # updates.
-                        target = find_or_create_target(db,
-                            identifier = test_result_target_id,
-                            control = target_control(test_result["controlStatus"]))
+                    # Most of the time we expect to see existing targets so a
+                    # select-first approach makes the most sense to avoid useless
+                    # updates.
+                    target = find_or_create_target(db,
+                        identifier = test_result_target_id,
+                        control = target_control(test_result["controlStatus"]))
 
-                        # Guard against bad data pushes we've seen from NWGC.
-                        # This isn't great, but it's better than processing the
-                        # data as-sent.
-                        assert test_result["id"] > 0, "bogus targetResult id"
+                    # Guard against bad data pushes we've seen from NWGC.
+                    # This isn't great, but it's better than processing the
+                    # data as-sent.
+                    assert test_result["id"] > 0, "bogus targetResult id"
 
-                        # Old format for the presence/absence identifier prior
-                        # to the format change
-                        #  -Jover, 07 November 2019
-                        old_identifier = f"NWGC_{test_result['id']}"
+                    # Old format for the presence/absence identifier prior
+                    # to the format change
+                    #  -Jover, 07 November 2019
+                    old_identifier = f"NWGC_{test_result['id']}"
 
-                        # With the new format, the unqiue identifier for each
-                        # result is NWGC/{sampleId}/{geneTarget}/{chip}
-                        new_identifier = "/".join([
-                            "NWGC",
-                            received_sample_id,
-                            test_result_target_id,
-                            chip
-                        ])
+                    # With the new format, the unqiue identifier for each
+                    # result is NWGC/{sampleId}/{geneTarget}/{chip}
+                    new_identifier = "/".join([
+                        "NWGC",
+                        received_sample_id,
+                        test_result_target_id,
+                        chip
+                    ])
 
-                        # Update all old format identifiers to the new format
-                        # so that the following upsert can work as expected
-                        update_presence_absence_identifier(db,
-                            new_identifier = new_identifier,
-                            old_identifier = old_identifier
-                        )
+                    # Update all old format identifiers to the new format
+                    # so that the following upsert can work as expected
+                    update_presence_absence_identifier(db,
+                        new_identifier = new_identifier,
+                        old_identifier = old_identifier
+                    )
 
-                        # Most of the time we expect to see new samples and new
-                        # presence_absence tests, so an insert-first approach makes more sense.
-                        # Presence-absence tests we see more than once are presumed to be
-                        # corrections.
-                        upsert_presence_absence(db,
-                            identifier = new_identifier,
-                            sample_id  = sample.id,
-                            target_id  = target.id,
-                            present    = get_target_result(test_result["targetStatus"]),
-                            details = presence_absence_details(test_result))
+                    # Most of the time we expect to see new samples and new
+                    # presence_absence tests, so an insert-first approach makes more sense.
+                    # Presence-absence tests we see more than once are presumed to be
+                    # corrections.
+                    upsert_presence_absence(db,
+                        identifier = new_identifier,
+                        sample_id  = sample.id,
+                        target_id  = target.id,
+                        present    = get_target_result(test_result["targetStatus"]),
+                        details = presence_absence_details(test_result))
 
-                mark_processed(db, group.id)
+            mark_processed(db, group.id)
 
-                LOG.info(f"Finished processing presence_absence group {group.id}")
+            LOG.info(f"Finished processing presence_absence group {group.id}")
 
-    except Exception as error:
-        processed_without_error = False
-
-        LOG.error(f"Aborting with error")
-        raise error from None
-
-    else:
-        processed_without_error = True
-
-    finally:
-        if action == "prompt":
-            ask_to_commit = \
-                "Commit all changes?" if processed_without_error else \
-                "Commit successfully processed presence-absence tests up to this point?"
-
-            commit = click.confirm(ask_to_commit)
-        else:
-            commit = action == "commit"
-
-        if commit:
-            LOG.info(
-                "Committing all changes" if processed_without_error else \
-                "Committing successfully processed presence-absence tests up to this point")
-            db.commit()
-
-        else:
-            LOG.info("Rolling back all changes; the database will not be modified")
-            db.rollback()
 
 def find_or_create_target(db: DatabaseSession, identifier: str, control: bool) -> Any:
     """

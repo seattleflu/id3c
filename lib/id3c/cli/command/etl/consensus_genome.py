@@ -29,6 +29,7 @@ import logging
 from typing import Any, Mapping, NamedTuple, Optional
 from textwrap import dedent
 from datetime import datetime, timezone
+from id3c.cli.command import with_database_session
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
 from id3c.db.types import GenomeRecord, MinimalSampleRecord, OrganismRecord, SequenceReadSetRecord
@@ -48,24 +49,10 @@ REVISION = 1
 
 
 @etl.command("consensus-genome", help = __doc__)
+@with_database_session
 
-@click.option("--dry-run", "action",
-    help        = "Only go through the motions of changing the database (default)",
-    flag_value  = "rollback",
-    default     = True)
-
-@click.option("--prompt", "action",
-    help        = "Ask if changes to the database should be saved",
-    flag_value  = "prompt")
-
-@click.option("--commit", "action",
-    help        = "Save changes to the database",
-    flag_value  = "commit")
-
-def etl_consensus_genome(*, action: str):
+def etl_consensus_genome(*, db: DatabaseSession):
     LOG.debug(f"Starting the consensus genome ETL routine, revision {REVISION}")
-
-    db = DatabaseSession()
 
     # Fetch and iterate over consensus genome records that aren't processed
     #
@@ -82,89 +69,57 @@ def etl_consensus_genome(*, action: str):
            for update
         """, (Json([{ "revision": REVISION }]),))
 
-    processed_without_error = None
+    for record in consensus_genome:
+        with db.savepoint(f"consensus genome record {record.id}"):
+            LOG.info(f"Processing consensus genome record {record.id}")
 
-    try:
-        for record in consensus_genome:
-            with db.savepoint(f"consensus genome record {record.id}"):
-                LOG.info(f"Processing consensus genome record {record.id}")
+            # Verify sample identifier is in the database
+            sample = find_sample(db,
+                record.document["sample_identifier"],
+                for_update=False)
 
-                # Verify sample identifier is in the database
-                sample = find_sample(db,
-                    record.document["sample_identifier"],
-                    for_update=False)
+            # Most of the time we expect to see existing sequence read sets,
+            # but we also want to update the details log. However, the
+            # only unique constraint on the sequence_read_set table is
+            # defined within a trigger function, as Postgres does not allow
+            # unique constraints on array columns. Therefore, perform a
+            # find-or-create followed by an update to the details column to
+            # avoid conflict.
+            sequence_read_set = find_or_create_sequence_read_set(db,
+                record.document, sample)
 
-                # Most of the time we expect to see existing sequence read sets,
-                # but we also want to update the details log. However, the
-                # only unique constraint on the sequence_read_set table is
-                # defined within a trigger function, as Postgres does not allow
-                # unique constraints on array columns. Therefore, perform a
-                # find-or-create followed by an update to the details column to
-                # avoid conflict.
-                sequence_read_set = find_or_create_sequence_read_set(db,
-                    record.document, sample)
+            status = record.document.get("status")
 
-                status = record.document.get("status")
+            # Find the matching organism within the warehouse for the
+            # reference organism
+            organism_name = get_lineage(db, record.document)
+            organism = find_organism(db, organism_name)
 
-                # Find the matching organism within the warehouse for the
-                # reference organism
-                organism_name = get_lineage(db, record.document)
-                organism = find_organism(db, organism_name)
+            assert organism, f"No organism found with name «{organism_name}»"
 
-                assert organism, f"No organism found with name «{organism_name}»"
+            # Only upsert genome and genomic sequences if the assembly job
+            # was marked as complete.
+            if status == 'complete':
+                # Most of the time we expect to see new sequences, so an
+                # insert-first approach makes the most sense to avoid useless
+                # queries.
+                genome = upsert_genome(db,
+                    sequence_read_set = sequence_read_set,
+                    organism = organism,
+                    document = record.document)
 
-                # Only upsert genome and genomic sequences if the assembly job
-                # was marked as complete.
-                if status == 'complete':
-                    # Most of the time we expect to see new sequences, so an
-                    # insert-first approach makes the most sense to avoid useless
-                    # queries.
-                    genome = upsert_genome(db,
-                        sequence_read_set = sequence_read_set,
-                        organism = organism,
-                        document = record.document)
+                for masked_consensus in record.document['masked_consensus']:
+                    genomic_sequence = upsert_genomic_sequence(db,
+                        genome = genome,
+                        masked_consensus = masked_consensus)
 
-                    for masked_consensus in record.document['masked_consensus']:
-                        genomic_sequence = upsert_genomic_sequence(db,
-                            genome = genome,
-                            masked_consensus = masked_consensus)
+            update_sequence_read_set_details(db,
+                                             sequence_read_set.id,
+                                             organism,
+                                             status)
+            mark_processed(db, record.id, {"status": "processed"})
 
-                update_sequence_read_set_details(db,
-                                                 sequence_read_set.id,
-                                                 organism,
-                                                 status)
-                mark_processed(db, record.id, {"status": "processed"})
-
-                LOG.info(f"Finished processing consensus genome record {record.id}")
-
-    except Exception as error:
-        processed_without_error = False
-
-        LOG.error(f"Aborting with error")
-        raise error from None
-
-    else:
-        processed_without_error = True
-
-    finally:
-        if action == "prompt":
-            ask_to_commit = \
-                "Commit all changes?" if processed_without_error else \
-                "Commit successfully processed consensus genome records up to this point?"
-
-            commit = click.confirm(ask_to_commit)
-        else:
-            commit = action == "commit"
-
-        if commit:
-            LOG.info(
-                "Committing all changes" if processed_without_error else \
-                "Committing successfully processed consensus genome records up to this point")
-            db.commit()
-
-        else:
-            LOG.info("Rolling back all changes; the database will not be modified")
-            db.rollback()
+            LOG.info(f"Finished processing consensus genome record {record.id}")
 
 
 def find_or_create_sequence_read_set(db: DatabaseSession, document: dict, sample: MinimalSampleRecord) -> SequenceReadSetRecord:

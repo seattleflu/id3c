@@ -6,6 +6,7 @@ import logging
 from itertools import chain
 from typing import Any, Mapping, Optional
 from datetime import datetime, timezone
+from id3c.cli.command import with_database_session
 from id3c.db import find_identifier
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
@@ -42,24 +43,10 @@ REVISION = 3
 
 
 @etl.command("longitudinal", help = __doc__)
+@with_database_session
 
-@click.option("--dry-run", "action",
-    help        = "Only go through the motions of changing the database (default)",
-    flag_value  = "rollback",
-    default     = True)
-
-@click.option("--prompt", "action",
-    help        = "Ask if changes to the database should be saved",
-    flag_value  = "prompt")
-
-@click.option("--commit", "action",
-    help        = "Save changes to the database",
-    flag_value  = "commit")
-
-def etl_longitudinal(*, action: str):
+def etl_longitudinal(*, db: DatabaseSession):
     LOG.debug(f"Starting the longitudinal ETL routine, revision {REVISION}")
-
-    db = DatabaseSession()
 
     # Fetch and iterate over longitudinal records that aren't processed
     #
@@ -76,98 +63,66 @@ def etl_longitudinal(*, action: str):
            for update
         """, (Json([{ "revision": REVISION }]),))
 
-    processed_without_error = None
+    for record in longitudinal:
+        with db.savepoint(f"longitudinal record {record.id}"):
+            LOG.info(f"Processing longitudinal record {record.id}")
 
-    try:
-        for record in longitudinal:
-            with db.savepoint(f"longitudinal record {record.id}"):
-                LOG.info(f"Processing longitudinal record {record.id}")
+            # Check validity of barcode
+            received_sample_identifier = sample_identifier(db,
+                                                           record.document)
 
-                # Check validity of barcode
-                received_sample_identifier = sample_identifier(db,
-                                                               record.document)
-
-                # Check sample exists in database
-                if received_sample_identifier:
-                    sample = find_sample(db,
-                        identifier = received_sample_identifier)
-                else:
-                    sample = None
+            # Check sample exists in database
+            if received_sample_identifier:
+                sample = find_sample(db,
+                    identifier = received_sample_identifier)
+            else:
+                sample = None
 
 
-                # Most of the time we expect to see existing sites so a
-                # select-first approach makes the most sense to avoid useless
-                # updates.
-                site = find_or_create_site(db,
-                    identifier = site_identifier(record.document),
-                    details    = {"type": record.document['type']})
+            # Most of the time we expect to see existing sites so a
+            # select-first approach makes the most sense to avoid useless
+            # updates.
+            site = find_or_create_site(db,
+                identifier = site_identifier(record.document),
+                details    = {"type": record.document['type']})
 
 
-                # Most of the time we expect to see existing individuals and new
-                # encounters.
-                # Encounters we see more than once are presumed to be
-                # corrections.
-                individual = find_or_create_individual(db,
-                    identifier  = record.document["individual"],
-                    sex         = sex(record.document))
+            # Most of the time we expect to see existing individuals and new
+            # encounters.
+            # Encounters we see more than once are presumed to be
+            # corrections.
+            individual = find_or_create_individual(db,
+                identifier  = record.document["individual"],
+                sex         = sex(record.document))
 
-                encounter = upsert_encounter(db,
-                    identifier      = record.document["identifier"],
-                    encountered     = record.document["encountered"],
-                    individual_id   = individual.id,
-                    site_id         = site.id,
-                    age             = age(record.document),
-                    details         = encounter_details(record.document))
+            encounter = upsert_encounter(db,
+                identifier      = record.document["identifier"],
+                encountered     = record.document["encountered"],
+                individual_id   = individual.id,
+                site_id         = site.id,
+                age             = age(record.document),
+                details         = encounter_details(record.document))
 
-                if sample:
-                    sample = update_sample(db,
-                        sample = sample,
-                        encounter_id = encounter.id)
+            if sample:
+                sample = update_sample(db,
+                    sample = sample,
+                    encounter_id = encounter.id)
 
-                # Link encounter to a Census tract, if we have it
-                tract_identifier = record.document.get("census_tract")
+            # Link encounter to a Census tract, if we have it
+            tract_identifier = record.document.get("census_tract")
 
-                if tract_identifier:
-                    tract = find_location(db, "tract", str(tract_identifier))
-                    assert tract, f"Tract «{tract_identifier}» is unknown"
+            if tract_identifier:
+                tract = find_location(db, "tract", str(tract_identifier))
+                assert tract, f"Tract «{tract_identifier}» is unknown"
 
-                    upsert_encounter_location(db,
-                        encounter_id = encounter.id,
-                        relation = "residence",
-                        location_id = tract.id)
+                upsert_encounter_location(db,
+                    encounter_id = encounter.id,
+                    relation = "residence",
+                    location_id = tract.id)
 
-                mark_processed(db, record.id, {"status": "processed"})
+            mark_processed(db, record.id, {"status": "processed"})
 
-                LOG.info(f"Finished processing longitudinal record {record.id}")
-
-    except Exception as error:
-        processed_without_error = False
-
-        LOG.error(f"Aborting with error")
-        raise error from None
-
-    else:
-        processed_without_error = True
-
-    finally:
-        if action == "prompt":
-            ask_to_commit = \
-                "Commit all changes?" if processed_without_error else \
-                "Commit successfully processed longitudinal records up to this point?"
-
-            commit = click.confirm(ask_to_commit)
-        else:
-            commit = action == "commit"
-
-        if commit:
-            LOG.info(
-                "Committing all changes" if processed_without_error else \
-                "Committing successfully processed longitudinal records up to this point")
-            db.commit()
-
-        else:
-            LOG.info("Rolling back all changes; the database will not be modified")
-            db.rollback()
+            LOG.info(f"Finished processing longitudinal record {record.id}")
 
 
 def sample_identifier(db: DatabaseSession, document: dict) -> Optional[str]:

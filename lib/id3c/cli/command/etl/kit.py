@@ -11,6 +11,7 @@ import logging
 from psycopg2 import sql
 from datetime import datetime, timezone
 from typing import Any, Optional, Tuple
+from id3c.cli.command import with_database_session
 from id3c.db import find_identifier
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
@@ -43,24 +44,10 @@ def kits():
     pass
 
 @kits.command("enrollments", help = __doc__)
+@with_database_session
 
-@click.option("--dry-run", "action",
-    help        = "Only go through the motions of changing the database (default)",
-    flag_value  = "rollback",
-    default     = True)
-
-@click.option("--prompt", "action",
-    help        = "Ask if changes to the database should be saved",
-    flag_value  = "prompt")
-
-@click.option("--commit", "action",
-    help        = "Save changes to the database",
-    flag_value  = "commit")
-
-def kit_enrollments(*, action: str):
+def kit_enrollments(*, db: DatabaseSession):
     LOG.debug(f"Starting the kit enrollments ETL routine, revision {ENROLLMENTS_REVISION}")
-
-    db = DatabaseSession()
 
     expected_barcode_types = {"ScannedSelfSwab", "ManualSelfSwab"}
 
@@ -74,101 +61,69 @@ def kit_enrollments(*, action: str):
           for update
         """, (Json([{ "etl": ETL_NAME, "revision": ENROLLMENTS_REVISION }]),))
 
-    processed_without_error = None
+    for enrollment in enrollments:
+        with db.savepoint(f"enrollment {enrollment.id}"):
+            LOG.info(f"Processing enrollment {enrollment.id}")
 
-    try:
-        for enrollment in enrollments:
-            with db.savepoint(f"enrollment {enrollment.id}"):
-                LOG.info(f"Processing enrollment {enrollment.id}")
+            # Find encounter that should have been created
+            # from this enrollment record through etl enrollments
+            encounter = find_encounter(db, enrollment.document["id"])
 
-                # Find encounter that should have been created
-                # from this enrollment record through etl enrollments
-                encounter = find_encounter(db, enrollment.document["id"])
+            # Error out the kit etl process if no encounter found
+            # The kit etl process can try again starting with this record
+            # next time with the idea that the encounter will be
+            # created by then.
+            if not encounter:
+                raise EncounterNotFoundError(f"No encounter with identifier «{enrollment.document['id']}» found")
 
-                # Error out the kit etl process if no encounter found
-                # The kit etl process can try again starting with this record
-                # next time with the idea that the encounter will be
-                # created by then.
-                if not encounter:
-                    raise EncounterNotFoundError(f"No encounter with identifier «{enrollment.document['id']}» found")
+            # Skip and mark the enrollment document as processed if the
+            # encounter found is linked to a site that is not self-test
+            if encounter.site != "self-test":
+                LOG.debug(f"Found encounter {encounter.id} «{encounter.identifier}»" +
+                          f"linked to site «{encounter.site}», not 'self-test'")
+                mark_enrollment_processed(db, enrollment.id)
+                continue
 
-                # Skip and mark the enrollment document as processed if the
-                # encounter found is linked to a site that is not self-test
-                if encounter.site != "self-test":
-                    LOG.debug(f"Found encounter {encounter.id} «{encounter.identifier}»" +
-                              f"linked to site «{encounter.site}», not 'self-test'")
-                    mark_enrollment_processed(db, enrollment.id)
+            for code in enrollment.document["sampleCodes"]:
+                barcode = code.get("code")
+
+                # Kit must have a barcode
+                if not barcode:
+                    LOG.warning(f"No barcode found in sampleCodes {code}")
                     continue
 
-                for code in enrollment.document["sampleCodes"]:
-                    barcode = code.get("code")
+                # Barcode must be of expected barcode type
+                if code["type"] not in expected_barcode_types:
+                    LOG.debug(f"Skipping barcode with type {code['type']}")
+                    continue
 
-                    # Kit must have a barcode
-                    if not barcode:
-                        LOG.warning(f"No barcode found in sampleCodes {code}")
-                        continue
+                # Convert kit barcode to full identifier
+                kit_identifier = find_identifier(db, barcode)
 
-                    # Barcode must be of expected barcode type
-                    if code["type"] not in expected_barcode_types:
-                        LOG.debug(f"Skipping barcode with type {code['type']}")
-                        continue
+                if not kit_identifier:
+                    LOG.warning(f"Skipping kit with unknown barcode «{barcode}»")
+                    continue
 
-                    # Convert kit barcode to full identifier
-                    kit_identifier = find_identifier(db, barcode)
+                if kit_identifier.set_name not in expected_identifier_sets["kits"]:
+                    LOG.warning(f"Skipping kit with identifier found in " +
+                                f"set «{kit_identifier.set_name}» not {expected_identifier_sets['kits']}")
+                    continue
 
-                    if not kit_identifier:
-                        LOG.warning(f"Skipping kit with unknown barcode «{barcode}»")
-                        continue
+                details = {
+                    "type": code["type"]
+                }
 
-                    if kit_identifier.set_name not in expected_identifier_sets["kits"]:
-                        LOG.warning(f"Skipping kit with identifier found in " +
-                                    f"set «{kit_identifier.set_name}» not {expected_identifier_sets['kits']}")
-                        continue
+                kit, status = upsert_kit_with_encounter(db,
+                        identifier          = kit_identifier.uuid,
+                        encounter_id        = encounter.id,
+                        additional_details  = details)
 
-                    details = {
-                        "type": code["type"]
-                    }
+                if status == "updated":
+                    update_kit_samples(db, kit)
 
-                    kit, status = upsert_kit_with_encounter(db,
-                            identifier          = kit_identifier.uuid,
-                            encounter_id        = encounter.id,
-                            additional_details  = details)
+            mark_enrollment_processed(db, enrollment.id)
 
-                    if status == "updated":
-                        update_kit_samples(db, kit)
-
-                mark_enrollment_processed(db, enrollment.id)
-
-                LOG.info(f"Finished processing enrollment {enrollment.id}")
-
-    except Exception as error:
-        processed_without_error = False
-
-        LOG.error(f"Aborting with error")
-        raise error from None
-
-    else:
-        processed_without_error = True
-
-    finally:
-        if action == "prompt":
-            ask_to_commit = \
-                "Commit all changes?" if processed_without_error else \
-                "Commit successfully processed enrollments up to this point?"
-
-            commit = click.confirm(ask_to_commit)
-        else:
-            commit = action == "commit"
-
-        if commit:
-            LOG.info(
-                "Committing all changes" if processed_without_error else \
-                "Committing successfully processed enrollments up to this point")
-            db.commit()
-
-        else:
-            LOG.info("Rolling back all changes; the database will not be modified")
-            db.rollback()
+            LOG.info(f"Finished processing enrollment {enrollment.id}")
 
 
 def find_encounter(db: DatabaseSession, identifier: str) -> Any:
@@ -272,24 +227,10 @@ def mark_enrollment_processed(db, enrollment_id: int) -> None:
             """, data)
 
 @kits.command("manifest", help = __doc__)
+@with_database_session
 
-@click.option("--dry-run", "action",
-    help        = "Only go through the motions of changing the database (default)",
-    flag_value  = "rollback",
-    default     = True)
-
-@click.option("--prompt", "action",
-    help        = "Ask if changes to the database should be saved",
-    flag_value  = "prompt")
-
-@click.option("--commit", "action",
-    help        = "Save changes to the database",
-    flag_value  = "commit")
-
-def kit_manifests(*, action: str):
+def kit_manifests(*, db: DatabaseSession):
     LOG.debug(f"Starting the kits manifests ETL routine, revision {MANIFEST_REVISION}")
-
-    db = DatabaseSession()
 
     LOG.debug("Fetching unprocessed manifest records")
 
@@ -302,121 +243,89 @@ def kit_manifests(*, action: str):
            for update
         """, (Json([{ "etl": ETL_NAME, "revision": MANIFEST_REVISION }]),))
 
-    processed_without_error = None
+    for manifest_record in manifest:
+        with db.savepoint(f"manifest record {manifest_record.id}"):
+            LOG.info(f"Processing record {manifest_record.id}")
 
-    try:
-        for manifest_record in manifest:
-            with db.savepoint(f"manifest record {manifest_record.id}"):
-                LOG.info(f"Processing record {manifest_record.id}")
+            # Mark record as skipped
+            # if it does not contain a kit related sample
+            if "kit" not in manifest_record.document:
+                LOG.info(f"Skipping manifest record {manifest_record.id} without kit data")
+                mark_skipped(db, manifest_record.id)
+                continue
 
-                # Mark record as skipped
-                # if it does not contain a kit related sample
-                if "kit" not in manifest_record.document:
-                    LOG.info(f"Skipping manifest record {manifest_record.id} without kit data")
-                    mark_skipped(db, manifest_record.id)
-                    continue
+            sample_barcode = manifest_record.document.pop("sample")
+            sample_identifier = find_identifier(db, sample_barcode)
 
-                sample_barcode = manifest_record.document.pop("sample")
-                sample_identifier = find_identifier(db, sample_barcode)
+            # Mark record as skipped
+            # if it has an unknown sample barcode
+            if not sample_identifier:
+                LOG.warning(f"Skipping manifest record with unknown sample barcode «{sample_barcode}»")
+                mark_skipped(db, manifest_record.id)
+                continue
 
-                # Mark record as skipped
-                # if it has an unknown sample barcode
-                if not sample_identifier:
-                    LOG.warning(f"Skipping manifest record with unknown sample barcode «{sample_barcode}»")
-                    mark_skipped(db, manifest_record.id)
-                    continue
+            # Mark record as skipped sample identifier set is unexpected
+            if sample_identifier.set_name not in expected_identifier_sets["samples"]:
+                LOG.warning(f"Skipping manifest record with sample identifier found in " +
+                            f"set «{sample_identifier.set_name}», not {expected_identifier_sets['samples']}")
+                mark_skipped(db, manifest_record.id)
+                continue
 
-                # Mark record as skipped sample identifier set is unexpected
-                if sample_identifier.set_name not in expected_identifier_sets["samples"]:
-                    LOG.warning(f"Skipping manifest record with sample identifier found in " +
-                                f"set «{sample_identifier.set_name}», not {expected_identifier_sets['samples']}")
-                    mark_skipped(db, manifest_record.id)
-                    continue
+            # Find sample that should have been created from this
+            # manifest record via etl manifest
+            sample = find_sample(db, sample_identifier.uuid)
 
-                # Find sample that should have been created from this
-                # manifest record via etl manifest
-                sample = find_sample(db, sample_identifier.uuid)
+            # Error out the kit etl process if no sample found
+            # The kit etl process can try again starting with this record
+            # next time with the idea that the sample will be
+            # created by then.
+            if not sample:
+                raise SampleNotFoundError(f"No sample with «{sample_identifier.uuid}» found")
 
-                # Error out the kit etl process if no sample found
-                # The kit etl process can try again starting with this record
-                # next time with the idea that the sample will be
-                # created by then.
-                if not sample:
-                    raise SampleNotFoundError(f"No sample with «{sample_identifier.uuid}» found")
+            # Mark record as skipped if the sample does not have a
+            # sample type (utm or rdt)
+            if sample.type not in {"utm", "rdt"}:
+                LOG.info(f"Skipping manifest record {manifest_record.id} "+
+                         f"with unknown sample type {sample.type}")
+                mark_skipped(db, manifest_record.id)
+                continue
 
-                # Mark record as skipped if the sample does not have a
-                # sample type (utm or rdt)
-                if sample.type not in {"utm", "rdt"}:
-                    LOG.info(f"Skipping manifest record {manifest_record.id} "+
-                             f"with unknown sample type {sample.type}")
-                    mark_skipped(db, manifest_record.id)
-                    continue
+            kit_barcode = manifest_record.document.pop("kit")
+            kit_identifier = find_identifier(db, kit_barcode)
 
-                kit_barcode = manifest_record.document.pop("kit")
-                kit_identifier = find_identifier(db, kit_barcode)
+            # Mark record as skipped if it has an unknown kit barcode
+            if not kit_identifier:
+                LOG.warning(f"Skipping kit with unknown barcode «{kit_barcode}»")
+                mark_skipped(db, manifest_record.id)
+                continue
 
-                # Mark record as skipped if it has an unknown kit barcode
-                if not kit_identifier:
-                    LOG.warning(f"Skipping kit with unknown barcode «{kit_barcode}»")
-                    mark_skipped(db, manifest_record.id)
-                    continue
+            # Mark record as skipped if kit identifier set is unexpected
+            if kit_identifier.set_name not in expected_identifier_sets["kits"]:
+                LOG.warning(f"Skipping kit with identifier found in " +
+                            f"set «{kit_identifier.set_name}» not {expected_identifier_sets['kits']}")
+                mark_skipped(db, manifest_record.id)
+                continue
 
-                # Mark record as skipped if kit identifier set is unexpected
-                if kit_identifier.set_name not in expected_identifier_sets["kits"]:
-                    LOG.warning(f"Skipping kit with identifier found in " +
-                                f"set «{kit_identifier.set_name}» not {expected_identifier_sets['kits']}")
-                    mark_skipped(db, manifest_record.id)
-                    continue
+            # List of extra data not needed for kit record that can
+            # be removed before adding manifest document to kit details
+            extra_data = ["collection", "sample_type",
+                          "aliquot_date", "aliquots", "racks"]
+            for key in extra_data:
+                manifest_record.document.pop(key, None)
 
-                # List of extra data not needed for kit record that can
-                # be removed before adding manifest document to kit details
-                extra_data = ["collection", "sample_type",
-                              "aliquot_date", "aliquots", "racks"]
-                for key in extra_data:
-                    manifest_record.document.pop(key, None)
+            # Try to find identifier for the test-strip barcode for rdt samples
+            if sample.type == "rdt":
+                update_test_strip(db, manifest_record.document)
 
-                # Try to find identifier for the test-strip barcode for rdt samples
-                if sample.type == "rdt":
-                    update_test_strip(db, manifest_record.document)
+            kit, status = upsert_kit_with_sample(db,
+                identifier          = kit_identifier.uuid,
+                sample              = sample,
+                additional_details  = manifest_record.document)
 
-                kit, status = upsert_kit_with_sample(db,
-                    identifier          = kit_identifier.uuid,
-                    sample              = sample,
-                    additional_details  = manifest_record.document)
+            if status == "updated":
+                update_sample(db, sample, kit.encounter_id)
 
-                if status == "updated":
-                    update_sample(db, sample, kit.encounter_id)
-
-                mark_loaded(db, manifest_record.id, status, kit.id)
-
-    except Exception as error:
-        processed_without_error = False
-
-        LOG.error(f"Aborting with error: {error}")
-        raise error from None
-
-    else:
-        processed_without_error = True
-
-    finally:
-        if action == "prompt":
-            ask_to_commit = \
-                "Commit all changes?" if processed_without_error else \
-                "Commit successfully processed manifest records up to this point?"
-
-            commit = click.confirm(ask_to_commit)
-        else:
-            commit = action == "commit"
-
-        if commit:
-            LOG.info(
-                "Committing all changes" if processed_without_error else \
-                "Committing successfully processed manifest records up to this point")
-            db.commit()
-
-        else:
-            LOG.info("Rolling back all changes; the database will not be modified")
-            db.rollback()
+            mark_loaded(db, manifest_record.id, status, kit.id)
 
 
 def find_sample(db: DatabaseSession, identifier: str) -> Optional[SampleRecord]:
