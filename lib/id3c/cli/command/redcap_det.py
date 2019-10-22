@@ -15,7 +15,7 @@ import os
 import click
 import logging
 from id3c.cli import cli
-from id3c.cli.redcap import Project
+from id3c.cli.redcap import Project, is_complete
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json
 
@@ -68,7 +68,7 @@ def generate(project_id: int, token_name: str, since_date: str):
     for record in project.records(since_date = since_date, raw = True):
         # Find all instruments within a record that have been mark completed
         for instrument in project.instruments:
-            if record[(instrument + '_complete')] == '2':
+            if is_complete(instrument, record):
                 print(as_json(create_det_records(project, record, instrument)))
 
 

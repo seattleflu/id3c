@@ -9,7 +9,6 @@ import click
 import logging
 import requests
 from datetime import datetime, timezone
-from enum import Enum
 from typing import Tuple
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
@@ -74,39 +73,6 @@ def get_redcap_api_credentials() -> Tuple[str, str]:
     LOG.debug(f"REDCap endpoint is {url}")
 
     return url, token
-
-
-class InstrumentStatus(Enum):
-    """
-    Numeric and string codes used by REDCap for instrument status.
-    """
-    Incomplete = 0
-    Unverified = 1
-    Complete = 2
-
-
-def is_complete(instrument: str, record: dict) -> bool:
-    """
-    Test if the named *instrument* is marked complete in the given *record*.
-
-    >>> is_complete("test", {"test_complete": "Complete"})
-    True
-    >>> is_complete("test", {"test_complete": 2})
-    True
-    >>> is_complete("test", {"test_complete": "2"})
-    True
-    >>> is_complete("test", {"test_complete": "Incomplete"})
-    False
-    >>> is_complete("test", {})
-    Traceback (most recent call last):
-        ...
-    KeyError: 'test_complete'
-    """
-    return record[f"{instrument}_complete"] in {
-        InstrumentStatus.Complete.name,
-        InstrumentStatus.Complete.value,
-        str(InstrumentStatus.Complete.value)
-    }
 
 
 def insert_fhir_bundle(db: DatabaseSession, bundle: dict) -> None:
