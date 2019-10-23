@@ -18,6 +18,7 @@ __all__ = [
     "consensus_genome",
     "redcap_det",
     "receiving",
+    "geocode",
 ]
 
 
