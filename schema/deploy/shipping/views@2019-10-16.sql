@@ -222,8 +222,7 @@ create or replace view shipping.observation_with_presence_absence_result_v1 as
     select target,
            present,
            present::int as presence,
-           observation.*,
-           organism
+           observation.*
       from shipping.incidence_model_observation_v2 as observation
       join shipping.presence_absence_result_v1 using (sample)
       order by site, encounter, sample, target;

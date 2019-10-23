@@ -104,17 +104,18 @@ grant select
    on shipping.incidence_model_observation_v1
    to "incidence-modeler";
 
+
+drop view shipping.observation_with_presence_absence_result_v1;
+drop view shipping.presence_absence_result_v1;
 create or replace view shipping.presence_absence_result_v1 as
 
     select sample.identifier as sample,
            target.identifier as target,
-           present,
-           organism.lineage as organism
+           present
 
     from warehouse.sample
     join warehouse.presence_absence using (sample_id)
     join warehouse.target using (target_id)
-    left join warehouse.organism using (organism_id)
     where target.control = false;
 
 comment on view shipping.presence_absence_result_v1 is
@@ -216,14 +217,12 @@ grant select
    on shipping.incidence_model_observation_v2
    to "incidence-modeler";
 
-
 create or replace view shipping.observation_with_presence_absence_result_v1 as
 
     select target,
            present,
            present::int as presence,
-           observation.*,
-           organism
+           observation.*
       from shipping.incidence_model_observation_v2 as observation
       join shipping.presence_absence_result_v1 using (sample)
       order by site, encounter, sample, target;
