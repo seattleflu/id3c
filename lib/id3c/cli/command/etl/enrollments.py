@@ -19,7 +19,8 @@ from . import (
     upsert_individual,
     upsert_encounter,
     upsert_location,
-    upsert_encounter_location
+    upsert_encounter_location,
+    upsert_sample
 )
 
 
@@ -299,42 +300,6 @@ def encounter_locations(document: dict) -> dict:
         use_of(location): location
             for location in locations
     }
-
-
-def upsert_sample(db: DatabaseSession,
-                  collection_identifier: str,
-                  encounter_id: int,
-                  additional_details: dict) -> Any:
-    """
-    Upsert collected sample by its *collection_identifier*.
-
-    The provided *additional_details* are merged (at the top-level only) into
-    the existing sample details, if any.
-    """
-    LOG.debug(f"Upserting sample collection «{collection_identifier}»")
-
-    data = {
-        "collection_identifier": collection_identifier,
-        "encounter_id": encounter_id,
-        "additional_details": Json(additional_details),
-    }
-
-    sample = db.fetch_row("""
-        insert into warehouse.sample (collection_identifier, encounter_id, details)
-            values (%(collection_identifier)s, %(encounter_id)s, %(additional_details)s)
-
-        on conflict (collection_identifier) do update
-            set encounter_id = excluded.encounter_id,
-                details = coalesce(sample.details, '{}') || %(additional_details)s
-
-        returning sample_id as id, identifier, collection_identifier, encounter_id
-        """, data)
-
-    assert sample.id, "Upsert affected no rows!"
-
-    LOG.info(f"Upserted sample {sample.id} with collection identifier «{sample.collection_identifier}»")
-
-    return sample
 
 
 def mark_processed(db, enrollment_id: int) -> None:
