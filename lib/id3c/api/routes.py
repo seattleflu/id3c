@@ -129,6 +129,23 @@ def receive_redcap_det(*, session):
     return "", 204
 
 
+@api_v1.route("/receiving/fhir", methods = ['POST'])
+@content_types_accepted(["application/fhir+json"])
+@check_content_length
+@authenticated_datastore_session_required
+def receive_fhir(*, session):
+    """
+    Receive JSON representation of FHIR resources.
+    """
+    document = request.get_data(as_text = True)
+
+    LOG.debug(f'Received FHIR document {document}')
+
+    datastore.store_fhir(session, document)
+
+    return "", 204
+
+
 @api_v1.route("/shipping/augur-build-metadata", methods = ['GET'])
 @authenticated_datastore_session_required
 def get_metadata(session):
