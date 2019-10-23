@@ -11,7 +11,16 @@ from id3c.cli.command import with_database_session
 from id3c.db import find_identifier
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
-from . import etl, find_or_create_site, find_location, upsert_individual, upsert_encounter, upsert_location, upsert_encounter_location
+from . import (
+    etl,
+
+    find_or_create_site,
+    find_location,
+    upsert_individual,
+    upsert_encounter,
+    upsert_location,
+    upsert_encounter_location
+)
 
 
 LOG = logging.getLogger(__name__)
