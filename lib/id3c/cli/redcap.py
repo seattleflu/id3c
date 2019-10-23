@@ -66,7 +66,20 @@ class Project:
         return self._instruments
 
 
-    def records(self, since_date: str = None, raw: bool = False) -> List[dict]:
+    def record(self, record_id: int) -> List[dict]:
+        """
+        Fetch the REDCap record *record_id* with all its instruments.
+
+        Note that in longitudinal projects with events or classic projects with
+        repeating instruments, this may return more than one result.  The
+        results will be share the same record id but be differentiated by the
+        fields ``redcap_event_name``, ``redcap_repeat_instrument``, and
+        ``redcap_repeat_instance``.
+        """
+        return self.records(ids = [record_id])
+
+
+    def records(self, since_date: str = None, ids: List[int] = None, raw: bool = False) -> List[dict]:
         """
         Fetch records for this REDCap project.
 
@@ -76,6 +89,9 @@ class Project:
         those created/modified after the given timestamp, which must be
         formatted as ``YYYY-MM-DD HH:MM:SS`` in the REDCap server's configured
         timezone.
+
+        The optional *ids* parameter can be used to limit results to the given
+        record ids.
 
         The optional *raw* parameter controls if numeric values are returned
         for multiple choice fields.  When false (the default), string labels
@@ -89,6 +105,9 @@ class Project:
 
         if since_date:
             parameters['dateRangeBegin'] = since_date
+
+        if ids is not None:
+            parameters['records'] = ",".join(map(str, ids))
 
         return self._fetch("record", parameters)
 
