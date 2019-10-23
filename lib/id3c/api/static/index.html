@@ -70,6 +70,11 @@
     receiving area of the study database. Accepts any URL-encoded form data.
     </p>
 
+    <h3 class="code">POST /v1/receiving/fhir</h3>
+    <p>Stores the request data as a FHIR document in a receiving area of
+    the study database. This route expects a Content-Type of
+    <code>application/fhir+json</code>
+
     <h3 class="code">POST /v1/receiving/consensus-genome</h3>
     <p>Stores the request data as a consensus genome document in a receiving
     area of the study database.
