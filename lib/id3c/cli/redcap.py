@@ -144,11 +144,9 @@ def is_complete(instrument: str, data: dict) -> bool:
     >>> is_complete("test", {"test_complete": "Incomplete"})
     False
     >>> is_complete("test", {})
-    Traceback (most recent call last):
-        ...
-    KeyError: 'test_complete'
+    False
     """
-    return data[f"{instrument}_complete"] in {
+    return data.get(f"{instrument}_complete") in {
         InstrumentStatus.Complete.name,
         InstrumentStatus.Complete.value,
         str(InstrumentStatus.Complete.value)
