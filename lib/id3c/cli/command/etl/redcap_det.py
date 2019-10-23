@@ -7,9 +7,12 @@ REDCap.
 import os
 import click
 import logging
-import requests
 from datetime import datetime, timezone
-from typing import Tuple
+from functools import wraps
+from typing import Callable, Iterable, Optional, Tuple
+from urllib.parse import urljoin
+from id3c.cli.command import with_database_session
+from id3c.cli.redcap import CachedProject, is_complete
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
 from . import etl
@@ -23,42 +26,141 @@ def redcap_det():
     pass
 
 
-def get_redcap_record(record_id: str) -> dict:
+def command_for_project(name: str,
+                        redcap_url: str,
+                        project_id: int,
+                        revision: int,
+                        required_instruments: Iterable[str] = [],
+                        **kwargs) -> Callable[[Callable], click.Command]:
     """
-    Gets one REDCap record containing all instruments via web API based on the
-    provided *record_id*.
+    Decorator to create REDCap DET ETL subcommands.
+
+    The decorated function should be an ETL routine for an individual DET and
+    REDCap record pair.  It must take take two dictionaries, *det* and
+    *redcap_record*, as arguments.  The function must return another dictionary
+    which represents a FHIR document to insert into ``receiving.fhir``.  If no
+    FHIR document is appropriate, the function should return ``None``.
+
+    *name* is the name of the ETL command, which will be invokable as ``id3c
+    etl redcap-det <name>``.  *name* is also used in the processing log for
+    each DET.
+
+    *redcap_url* and *project_id* are used to select DETs for processing from
+    ``receiving.redcap_det``.  They will also be used to make requests to the
+    appropriate REDCap web API.
+
+    *required_instruments* is an optional list of REDCap instrument names which
+    are required for the decorated routine to run.
+
+    *revision* is an integer specifying the version of the routine.  If it
+    increments, previously processed DETs will be re-processed by the new
+    version of the routine.
     """
-    LOG.debug(f"Getting REDCap record «{record_id}» for all instruments")
-
-    url, token = get_redcap_api_credentials()
-
-    data = {
-        'content': 'record',
-        'format': 'json',
-        'type': 'flat',
-        'rawOrLabel': 'label',
-        'exportCheckboxLabel': 'true',
-        'token': token,
-        'records': record_id,
+    etl_id = {
+        "etl": f"redcap-det {name}",
+        "revision": revision,
     }
 
-    headers = {
-        'Content-type': 'application/x-www-form-urlencoded',
-        'Accept': 'application/json'
+    det_contains = {
+        "redcap_url": redcap_url,
+        "project_id": str(project_id), # REDCap DETs send project_id as a string
     }
 
-    response = requests.post(url, data=data, headers=headers)
-    response.raise_for_status()
+    def decorator(routine: Callable[..., Optional[dict]]) -> click.Command:
+        @redcap_det.command(name, **kwargs)
+        @with_database_session
+        @wraps(routine)
+        def decorated(*args, db: DatabaseSession, **kwargs):
+            LOG.debug(f"Starting the REDCap DET ETL routine {name}, revision {revision}")
 
-    return response.json()[0]
+            redcap_det = db.cursor(f"redcap-det {name}")
+            redcap_det.execute("""
+                select redcap_det_id as id, document
+                  from receiving.redcap_det
+                 where not processing_log @> %s
+                   and document::jsonb @> %s
+                 order by id
+                   for update
+                """, (Json([etl_id]), Json(det_contains)))
+
+            for det in redcap_det:
+                with db.savepoint(f"redcap_det {det.id}"):
+                    LOG.info(f"Processing REDCap DET {det.id}")
+
+                    instrument = det.document['instrument']
+
+                    # Only pull REDCap record if the current instrument is complete
+                    if is_complete(instrument, det.document):
+                        LOG.debug(f"Skipping incomplete or unverified REDCap DET {det.id}")
+                        mark_skipped(db, det.id, etl_id)
+                        continue
+
+                    redcap_record = get_redcap_record_from_det(det.document)
+
+                    if not redcap_record:
+                        LOG.debug(f"REDCap record is missing.  Skipping REDCap DET {det.id}")
+                        mark_skipped(db, det.id, etl_id)
+                        continue
+
+                    # Only process REDCap record if all required instruments are complete
+                    incomplete_instruments = {
+                        instrument
+                            for instrument
+                            in required_instruments
+                            if not is_complete(instrument, redcap_record)
+                    }
+
+                    if incomplete_instruments:
+                        LOG.debug(f"The following required instruments «{incomplete_instruments}» are not yet marked complete. " + \
+                                  f"Skipping REDCap DET {det.id}")
+                        mark_skipped(db, det.id, etl_id)
+                        continue
+
+                    bundle = routine(det = det, redcap_record = redcap_record)
+
+                    if bundle:
+                        insert_fhir_bundle(db, bundle)
+                        mark_loaded(db, det.id, etl_id)
+                    else:
+                        mark_skipped(db, det.id, etl_id)
+
+        return decorated
+    return decorator
 
 
-def get_redcap_api_credentials() -> Tuple[str, str]:
+def get_redcap_record_from_det(det: dict) -> Optional[dict]:
     """
-    Returns a tuple of ``(url, token)`` for use with REDCap's web API.
+    Fetch the REDCap record for the given *det* notification.
+
+    The DET's ``redcap_url``, ``project_id``, and ``record`` fields are used to
+    make the API call.
+
+    All instruments will be fetched.
+    """
+    api_url = urljoin(det["redcap_url"], "api/")
+    api_token = get_redcap_api_token(api_url)
+
+    project_id = int(det["project_id"])
+    record_id = int(det["record"])
+
+    LOG.info(f"Fetching REDCap record {record_id}")
+
+    project = CachedProject(api_url, api_token, project_id)
+    record = project.record(record_id)
+
+    # XXX TODO: Handle records with repeating instruments or longitudinal
+    # events.
+    return record[0] if record else None
+
+
+def get_redcap_api_token(api_url: str) -> str:
+    """
+    Returns the authentication token configured for use with the REDCap web API
+    endpoint *api_url*.
 
     Requires the environmental variables ``REDCAP_API_URL`` and
-    ``REDCAP_API_TOKEN``.
+    ``REDCAP_API_TOKEN``.  ``REDCAP_API_URL`` must match the provided *api_url*
+    as a safety check.
     """
     url = os.environ.get("REDCAP_API_URL")
     token = os.environ.get("REDCAP_API_TOKEN")
@@ -70,9 +172,11 @@ def get_redcap_api_credentials() -> Tuple[str, str]:
     elif not token:
         raise Exception(f"The environment variable REDCAP_API_TOKEN is required.")
 
-    LOG.debug(f"REDCap endpoint is {url}")
+    # This comparison may need URL canonicalization in the future.
+    if url != api_url:
+        raise Exception(f"The environment variable REDCAP_API_URL does not match the requested API endpoint «{api_url}»")
 
-    return url, token
+    return token
 
 
 def insert_fhir_bundle(db: DatabaseSession, bundle: dict) -> None:

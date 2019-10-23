@@ -5,6 +5,7 @@ import logging
 import re
 import requests
 from enum import Enum
+from functools import lru_cache, wraps
 from operator import itemgetter
 from typing import Any, Dict, List
 
@@ -137,6 +138,17 @@ class Project:
         response.raise_for_status()
 
         return response.json()
+
+
+@lru_cache()
+def CachedProject(api_url: str, api_token: str, project_id: int) -> Project:
+    """
+    Memoized constructor for a :class:`Project`.
+
+    Useful when loading projects dynamically, e.g. from REDCap DET
+    notifications, to avoid the initial fetch of project details every time.
+    """
+    return Project(api_url, api_token, project_id)
 
 
 class InstrumentStatus(Enum):
