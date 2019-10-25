@@ -17,6 +17,9 @@ from typing import Optional, Tuple, Dict, Any
 from smartystreets_python_sdk import StaticCredentials, ClientBuilder
 from smartystreets_python_sdk.us_street import Lookup
 from id3c.cli import cli
+from id3c.cli.command import (
+    load_file_as_dataframe
+)
 
 
 LOG = logging.getLogger(__name__)
@@ -195,32 +198,6 @@ def get_geocoded_addresses(*,
         save_cache(cache, cache_file)
 
     return addresses_df
-
-
-def load_file_as_dataframe(filename: str) -> pd.DataFrame:
-    """
-    Given a *filename*, loads its data as a pandas DataFrame.
-
-    Raises a :class: `UnsupportedFileExtensionError` if the given *filename*
-    ends with an unsupported extension.
-    """
-    supported_extensions = ('.csv', '.tsv', '.xls', '.xlsx')
-
-    if not filename.endswith(supported_extensions):
-        raise UnsupportedFileExtensionError(dedent(f"""
-            Unsupported file extension for file «{filename}».
-            Please choose from one of the following file extensions:
-                {supported_extensions}
-            """
-        ))
-
-    if filename.endswith(('.csv', '.tsv')):
-        separator = '\t' if filename.endswith('.tsv') else ','
-        df = pd.read_csv(filename, sep=separator, dtype = str)
-    else:
-        df = pd.read_excel(filename, dtype = str)
-
-    return df
 
 
 def standardize_address(address_series: pd.Series,
@@ -404,14 +381,6 @@ def save_to_cache(standardized_address: dict, response: dict, cache: TTLCache):
 def save_cache(cache: TTLCache, cache_file: str):
     """ Given a *cache*, saves it to a hard-coded file `cache.pickle`. """
     pickle.dump(cache, open(cache_file, mode='wb'))
-
-
-class UnsupportedFileExtensionError(ValueError):
-    """
-    Raised by :func:`load_file_as_dataframe` when the given *filename*
-    ends with an unsupported extension.
-    """
-    pass
 
 
 class InvalidAddressMappingError(KeyError):

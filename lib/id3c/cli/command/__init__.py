@@ -5,6 +5,7 @@ import click
 import logging
 import pandas as pd
 from functools import wraps
+from textwrap import dedent
 from id3c.db.session import DatabaseSession
 
 
@@ -97,3 +98,37 @@ def dump_ndjson(df: pd.DataFrame):
     Dates are formatted according to ISO 8601.
     """
     print(df.to_json(orient = "records", lines = True, date_format = "iso"))
+
+
+def load_file_as_dataframe(filename: str) -> pd.DataFrame:
+    """
+    Given a *filename*, loads its data as a pandas DataFrame.
+    Supported extensions are csv, tsv, xls, and xlsx.
+
+    Raises a :class: `UnsupportedFileExtensionError` if the given *filename*
+    ends with an unsupported extension.
+    """
+    supported_extensions = ('.csv', '.tsv', '.xls', '.xlsx')
+
+    if not filename.endswith(supported_extensions):
+        raise UnsupportedFileExtensionError(dedent(f"""
+            Unsupported file extension for file «{filename}».
+            Please choose from one of the following file extensions:
+                {supported_extensions}
+            """
+        ))
+
+    if filename.endswith(('.csv', '.tsv')):
+        separator = '\t' if filename.endswith('.tsv') else ','
+        df = pd.read_csv(filename, sep=separator, dtype=str, na_filter=False)
+    else:
+        df = pd.read_excel(filename, dtype=str, na_filter=False)
+
+    return df
+
+
+class UnsupportedFileExtensionError(ValueError):
+    """
+    Raised when the given *filename* ends with an unsupported extension.
+    """
+    pass
