@@ -38,7 +38,6 @@ def with_database_session(command):
     command (``--dry-run``, ``--prompt``, and ``--commit``) to control this
     behaviour.
     """
-    @wraps(command)
     @click.option("--dry-run", "action",
         help        = "Only go through the motions of changing the database (default)",
         flag_value  = "rollback",
@@ -52,6 +51,7 @@ def with_database_session(command):
         help        = "Save changes to the database",
         flag_value  = "commit")
 
+    @wraps(command)
     def decorated(*args, action, **kwargs):
         db = DatabaseSession()
 
