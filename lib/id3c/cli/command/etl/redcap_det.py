@@ -5,6 +5,7 @@ This command group supports custom ETL routines specific to a project in
 REDCap.
 """
 import os
+import json
 import click
 import logging
 from datetime import datetime, timezone
@@ -67,10 +68,15 @@ def command_for_project(name: str,
     }
 
     def decorator(routine: Callable[..., Optional[dict]]) -> click.Command:
+        @click.option("--log-output/--no-output",
+            help        = "Write the output FHIR documents to stdout. You will likely want to redirect this to a file",
+            default     = False)
+
         @redcap_det.command(name, **kwargs)
         @with_database_session
         @wraps(routine)
-        def decorated(*args, db: DatabaseSession, **kwargs):
+
+        def decorated(*args, db: DatabaseSession, log_output: bool, **kwargs):
             LOG.debug(f"Starting the REDCap DET ETL routine {name}, revision {revision}")
 
             redcap_det = db.cursor(f"redcap-det {name}")
@@ -117,6 +123,9 @@ def command_for_project(name: str,
                         continue
 
                     bundle = routine(det = det, redcap_record = redcap_record)
+
+                    if log_output:
+                        print(json.dumps(bundle, indent=2))
 
                     if bundle:
                         insert_fhir_bundle(db, bundle)
