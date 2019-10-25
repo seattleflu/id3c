@@ -90,7 +90,7 @@ def command_for_project(name: str,
                     instrument = det.document['instrument']
 
                     # Only pull REDCap record if the current instrument is complete
-                    if is_complete(instrument, det.document):
+                    if not is_complete(instrument, det.document):
                         LOG.debug(f"Skipping incomplete or unverified REDCap DET {det.id}")
                         mark_skipped(db, det.id, etl_id)
                         continue
