@@ -36,9 +36,10 @@ import id3c.db as db
 from io import StringIO
 from psycopg2.sql import SQL
 from textwrap import dedent
-from typing import Optional, Tuple, NamedTuple
+from typing import Optional, Tuple
 from id3c.cli import cli
 from id3c.db.datatypes import Json
+from id3c.db.types import MinimalLocationRecord
 from id3c.db.session import DatabaseSession
 from id3c.cli.command import load_file_as_dataframe
 
@@ -398,7 +399,7 @@ def extract_lat_lng_from_input(lookup_input: pd.DataFrame,
 
 def location_lookup(db: DatabaseSession,
                     lat_lng: Tuple[float, float],
-                    scale: str) -> Optional[NamedTuple]:
+                    scale: str) -> Optional[MinimalLocationRecord]:
     """
     Find location within warehouse of *scale* that contains
     *lat_lng* and return location id and identifier.

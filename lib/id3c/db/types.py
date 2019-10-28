@@ -41,3 +41,7 @@ class GenomeRecord(NamedTuple):
     sample_id: int
     organism_id: int
     sequence_read_set_id: int
+
+class MinimalLocationRecord(NamedTuple):
+    id: int
+    identifier: str
