@@ -41,8 +41,10 @@ from id3c.cli import cli
 from id3c.db.datatypes import Json
 from id3c.db.types import MinimalLocationRecord
 from id3c.db.session import DatabaseSession
-from id3c.cli.command import load_file_as_dataframe
-
+from id3c.cli.command import (
+    load_input_from_file_or_stdin,
+    drop_columns_from_output
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -344,7 +346,7 @@ def lookup(filename,
     Lookup results are output to stdout as comma-separated values, with
     location identifier as <scale>_identifier.
     """
-    input_df = load_lookup_input(filename)
+    input_df = load_input_from_file_or_stdin(filename)
     lat_lngs = extract_lat_lng_from_input(input_df, lat_column, lng_column)
 
     db = DatabaseSession()
@@ -361,20 +363,6 @@ def lookup(filename,
         output_df = drop_columns_from_output(input_df, output_df, drop_columns)
 
     output_df.to_csv(sys.stdout, index = False)
-
-
-def load_lookup_input(filename: click.File) -> pd.DataFrame:
-    """
-    Load input data from *filename*.
-    """
-    LOG.info(f"Reading latitude and longitude from {filename.name}")
-
-    if filename.name == '<stdin>':
-        input_df = pd.read_csv(filename)
-    else:
-        input_df = load_file_as_dataframe(filename.name)
-
-    return input_df
 
 
 def extract_lat_lng_from_input(lookup_input: pd.DataFrame,
@@ -435,33 +423,3 @@ def location_lookup(db: DatabaseSession,
 
     LOG.info(f"Found location {location.id} «{location.identifier}»")
     return location
-
-
-def drop_columns_from_output(input_df: pd.DataFrame,
-                             output_df: pd.DataFrame,
-                             drop_columns: Tuple[str, ...]) -> pd.DataFrame:
-    """
-    Check all *drop_columns* exist within *input_df* and drop them from
-    *output_df*.
-
-    Raises a :class:`ColumnDoesNotExistError` if a column within *drop_columns*
-    does not exist in *input_df*.
-    """
-    input_columns = list(input_df.columns)
-
-    for column in drop_columns:
-        if column not in input_columns:
-            raise ColumnDoesNotExistError(dedent(f"""
-                Provided column to drop «{column}» does not exist.
-                Check input columns: {input_columns}
-            """))
-
-    return output_df.drop(columns=list(drop_columns))
-
-
-class ColumnDoesNotExistError(ValueError):
-    """
-    Raised by :func:`drop_columns_from_output` if column provided does not
-    exist in *input_df*.
-    """
-    pass

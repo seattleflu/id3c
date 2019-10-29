@@ -5,7 +5,9 @@ import click
 import logging
 import pandas as pd
 from functools import wraps
+from sys import stdin
 from textwrap import dedent
+from typing import Tuple
 from id3c.db.session import DatabaseSession
 
 
@@ -127,8 +129,52 @@ def load_file_as_dataframe(filename: str) -> pd.DataFrame:
     return df
 
 
+def load_input_from_file_or_stdin(filename: click.File) -> pd.DataFrame:
+    """
+    Load input data from *filename*, which can be a file or stdin.
+    """
+    LOG.debug(f"Loading input from {filename.name}")
+
+    if filename.name == "<stdin>":
+        input_df = pd.read_csv(filename, dtype=str, na_filter=False)
+    else:
+        input_df = load_file_as_dataframe(filename.name)
+
+    return input_df
+
+
+def drop_columns_from_output(input_df: pd.DataFrame,
+                             output_df: pd.DataFrame,
+                             drop_columns: Tuple[str, ...]) -> pd.DataFrame:
+    """
+    Check all *drop_columns* exist within *input_df* and drop them from
+    *output_df*.
+
+    Raises a :class:`ColumnDoesNotExistError` if a column within *drop_columns*
+    does not exist in *input_df*.
+    """
+    input_columns = list(input_df.columns)
+
+    for column in drop_columns:
+        if column not in input_columns:
+            raise ColumnDoesNotExistError(dedent(f"""
+                Provided column to drop «{column}» does not exist.
+                Check input columns: {input_columns}
+            """))
+
+    return output_df.drop(columns=list(drop_columns))
+
+
 class UnsupportedFileExtensionError(ValueError):
     """
     Raised when the given *filename* ends with an unsupported extension.
+    """
+    pass
+
+
+class ColumnDoesNotExistError(ValueError):
+    """
+    Raised by :func:`drop_columns_from_output` if column provided does not
+    exist in *input_df*.
     """
     pass
