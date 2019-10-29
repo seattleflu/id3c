@@ -22,6 +22,7 @@ __all__ = [
     "redcap_det",
     "receiving",
     "geocode",
+    "de_identify",
 ]
 
 
