@@ -34,7 +34,7 @@ LOG = logging.getLogger(__name__)
 # presence-absence tests lacking this revision number in their log.  If a
 # change to the ETL routine necessitates re-processing all presence-absence tests,
 # this revision number should be incremented.
-REVISION = 3
+REVISION = 4
 
 
 @etl.command("presence-absence", help = __doc__)
@@ -79,35 +79,47 @@ def etl_presence_absence(*, action: str):
             with db.savepoint(f"presence_absence group {group.id}"):
                 LOG.info(f"Processing presence_absence group {group.id}")
 
-                # I'm not sure why, but there are two kinds of documents we get
-                # from Samplify: initial data pushes and updates.  Both use the
-                # same internal structure, but the outer container varies.
-                # This sort of thing should go away when we can convince
-                # Samplify to send us data in a format we'd prefer.
-                #   -trs, 17 May 2019
+                # Samplify will now send documents with a top level key
+                # "samples". The new format also includes a "chip" key for
+                # each sample which is then included in the unique identifier
+                # for each presence/absence result.
+                #   -Jover, 29 Oct 2019
                 try:
-                    received_samples = group.document["store"]["items"]
-                except KeyError:
-                    received_samples = group.document["Update"]
+                    received_samples = group.document["samples"]
+                except KeyError as error:
+                    # Skip documents in the old format because they do not
+                    # include the "chip" key which is needed for the
+                    # unique identifier for each result.
+                    if (group.document.get("store") is not None or
+                        group.document.get("Update") is not None):
+
+                        LOG.info("Skipping presence_absence group that is in old format")
+                        mark_processed(db, group.id)
+                        continue
+                    else:
+                        raise error from None
 
                 for received_sample in received_samples:
-                    received_sample_id = received_sample["investigatorId"]
-                    LOG.info(f"Processing sample «{received_sample_id}»")
+                    received_sample_barcode = received_sample["investigatorId"]
+                    LOG.info(f"Processing sample «{received_sample_barcode}»")
 
-                    received_sample_identifier = sample_identifier(db, received_sample_id)
+                    received_sample_identifier = sample_identifier(db, received_sample_barcode)
 
                     if not received_sample_identifier:
-                        LOG.warning(f"Skipping results for sample without a known identifier «{received_sample_id}»")
+                        LOG.warning(f"Skipping results for sample without a known identifier «{received_sample_barcode}»")
                         continue
 
                     sample = update_sample(db,
                         identifier = received_sample_identifier,
                         additional_details = sample_details(received_sample))
 
+                    received_chip = received_sample["chip"]
+                    received_sample_id = str(received_sample["sampleId"])
+
                     for test_result in received_sample["targetResults"]:
                         test_result_target_id = test_result["geneTarget"]
                         LOG.debug(f"Processing target «{test_result_target_id}» for \
-                        sample «{received_sample_id}»")
+                        sample «{received_sample_barcode}»")
 
                         # Most of the time we expect to see existing targets so a
                         # select-first approach makes the most sense to avoid useless
@@ -126,8 +138,16 @@ def etl_presence_absence(*, action: str):
                         # data as-sent.
                         assert test_result["id"] > 0, "bogus targetResult id"
 
+                        # With the new format, the unqiue identifier for each
+                        # result is sample_id/chip/target.id
+                        presence_absence_identifier = "/".join([
+                            received_chip,
+                            received_sample_id,
+                            test_result_target_id
+                        ])
+
                         upsert_presence_absence(db,
-                            identifier = test_result["id"],
+                            identifier = presence_absence_identifier,
                             sample_id  = sample.id,
                             target_id  = target.id,
                             present    = get_target_result(test_result["targetStatus"]),
@@ -303,7 +323,7 @@ def upsert_presence_absence(db: DatabaseSession,
     LOG.debug(f"Upserting presence_absence «{identifier}»")
 
     data = {
-        "identifier": f"NWGC_{identifier}",
+        "identifier": f"NWGC/{identifier}",
         "sample_id": sample_id,
         "target_id": target_id,
         "present": present,
