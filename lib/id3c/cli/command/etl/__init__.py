@@ -422,11 +422,11 @@ def upsert_encounter_location(db: DatabaseSession,
 def upsert_sample(db: DatabaseSession,
                   collection_identifier: str,
                   encounter_id: int,
-                  additional_details: dict) -> Any:
+                  details: dict) -> Any:
     """
     Upsert collected sample by its *collection_identifier*.
 
-    The provided *additional_details* are merged (at the top-level only) into
+    The provided *details* are merged (at the top-level only) into
     the existing sample details, if any.
     """
     LOG.debug(f"Upserting sample collection «{collection_identifier}»")
@@ -434,16 +434,16 @@ def upsert_sample(db: DatabaseSession,
     data = {
         "collection_identifier": collection_identifier,
         "encounter_id": encounter_id,
-        "additional_details": Json(additional_details),
+        "details": Json(details),
     }
 
     sample = db.fetch_row("""
         insert into warehouse.sample (collection_identifier, encounter_id, details)
-            values (%(collection_identifier)s, %(encounter_id)s, %(additional_details)s)
+            values (%(collection_identifier)s, %(encounter_id)s, %(details)s)
 
         on conflict (collection_identifier) do update
             set encounter_id = excluded.encounter_id,
-                details = coalesce(sample.details, '{}') || %(additional_details)s
+                details = coalesce(sample.details, '{}') || %(details)s
 
         returning sample_id as id, identifier, collection_identifier, encounter_id
         """, data)

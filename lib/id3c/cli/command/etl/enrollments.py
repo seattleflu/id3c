@@ -170,7 +170,7 @@ def process_samples(db: DatabaseSession,
         sample = upsert_sample(db,
             collection_identifier = identifier.uuid,
             encounter_id          = encounter_id,
-            additional_details    = details)
+            details               = details)
 
     # XXX TODO: Should this delete existing linked samples which
     # weren't mentioned in this enrollment document?  This would
