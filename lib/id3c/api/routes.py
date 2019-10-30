@@ -3,7 +3,7 @@ API route definitions.
 """
 import json
 import logging
-from flask import Blueprint, request, send_file, Response
+from flask import Blueprint, request, send_file, Response, jsonify
 from . import datastore
 from .utils.routes import authenticated_datastore_session_required, content_types_accepted, check_content_length
 
@@ -174,3 +174,14 @@ def get_genomic_data(lineage, segment, session):
     sequences = datastore.fetch_genomic_sequences(session, lineage, segment)
 
     return Response((row[0] + '\n' for row in sequences), mimetype="application/x-ndjson")
+
+
+@api_v1.route("/shipping/return-results/<barcode>", methods = ['GET'])
+@authenticated_datastore_session_required
+def get_barcode_results(barcode, session):
+    """
+    Export presence/absence results for a specific collection *barcode*
+    """
+    LOG.debug(f"Exporting presence/absence results for <{barcode}>")
+    results = datastore.fetch_barcode_results(session, barcode)
+    return jsonify(results)
