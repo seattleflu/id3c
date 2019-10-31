@@ -61,6 +61,7 @@ setup(
         "click >=7.0",
         "colorama",
         "flask",
+        "flask-cors",
         "psycopg2 >=2.8,<3",
         "requests",
         "pandas",
