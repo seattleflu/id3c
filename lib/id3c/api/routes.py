@@ -4,6 +4,7 @@ API route definitions.
 import json
 import logging
 from flask import Blueprint, request, send_file, Response, jsonify
+from flask_cors import cross_origin
 from . import datastore
 from .utils.routes import authenticated_datastore_session_required, content_types_accepted, check_content_length
 
@@ -177,6 +178,7 @@ def get_genomic_data(lineage, segment, session):
 
 
 @api_v1.route("/shipping/return-results/<barcode>", methods = ['GET'])
+@cross_origin(origins=["https://seattleflu.org/"])
 @authenticated_datastore_session_required
 def get_barcode_results(barcode, session):
     """
