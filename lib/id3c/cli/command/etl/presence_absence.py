@@ -23,7 +23,13 @@ from id3c.cli.command import with_database_session
 from id3c.db import find_identifier
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
-from . import etl, SampleNotFoundError
+from . import (
+    etl,
+
+    find_or_create_target,
+    SampleNotFoundError,
+    upsert_presence_absence,
+)
 
 
 LOG = logging.getLogger(__name__)
@@ -164,39 +170,6 @@ def etl_presence_absence(*, db: DatabaseSession):
             LOG.info(f"Finished processing presence_absence group {group.id}")
 
 
-def find_or_create_target(db: DatabaseSession, identifier: str, control: bool) -> Any:
-    """
-    Select presence_absence test target by *identifier*, or insert it if it doesn't exist.
-    """
-    LOG.debug(f"Looking up target «{identifier}»")
-
-    target = db.fetch_row("""
-        select target_id as id, identifier
-          from warehouse.target
-         where identifier = %s
-        """, (identifier,))
-
-    if target:
-        LOG.info(f"Found target {target.id} «{target.identifier}»")
-    else:
-        LOG.debug(f"Target «{identifier}» not found, adding")
-
-        data = {
-            "identifier": identifier,
-            "control": control
-        }
-
-        target = db.fetch_row("""
-            insert into warehouse.target (identifier, control)
-                values (%(identifier)s, %(control)s)
-            returning target_id as id, identifier
-            """, data)
-
-        LOG.info(f"Created target {target.id} «{target.identifier}»")
-
-    return target
-
-
 def target_control(control: str) -> bool:
     """
     Determine the control status of the target.
@@ -331,59 +304,6 @@ def update_presence_absence_identifier(db: DatabaseSession,
               set identifier = %(new_identifier)s
              where identifier = %(old_identifier)s
         """, identifiers)
-
-
-def upsert_presence_absence(db: DatabaseSession,
-                            identifier: str,
-                            sample_id: int,
-                            target_id: int,
-                            present: bool,
-                            details: dict) -> Any:
-    """
-    Upsert presence_absence by its *identifier*.
-
-    Confirmed with Samplify that their numeric identifier for each test is stable
-    and persistent.
-    """
-    LOG.debug(f"Upserting presence_absence «{identifier}»")
-
-    data = {
-        "identifier": identifier,
-        "sample_id": sample_id,
-        "target_id": target_id,
-        "present": present,
-        "details": Json(details)
-    }
-
-    presence_absence = db.fetch_row("""
-        insert into warehouse.presence_absence (
-                identifier,
-                sample_id,
-                target_id,
-                present,
-                details)
-            values (
-                %(identifier)s,
-                %(sample_id)s,
-                %(target_id)s,
-                %(present)s,
-                %(details)s)
-
-        on conflict (identifier) do update
-            set sample_id = excluded.sample_id,
-                target_id = excluded.target_id,
-                present   = excluded.present,
-                details = coalesce(presence_absence.details, '{}') || excluded.details
-
-        returning presence_absence_id as id, identifier
-        """, data)
-
-    assert presence_absence.id, "Upsert affected no rows!"
-
-    LOG.info(f"Upserted presence_absence {presence_absence.id} \
-        «{presence_absence.identifier}»")
-
-    return presence_absence
 
 
 def get_target_result(target_status: str) -> Any:
