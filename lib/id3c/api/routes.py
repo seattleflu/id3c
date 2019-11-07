@@ -3,6 +3,7 @@ API route definitions.
 """
 import json
 import logging
+import pkg_resources
 from flask import Blueprint, request, send_file, Response
 from . import datastore
 from .utils.routes import authenticated_datastore_session_required, content_types_accepted, check_content_length
@@ -174,3 +175,16 @@ def get_genomic_data(lineage, segment, session):
     sequences = datastore.fetch_genomic_sequences(session, lineage, segment)
 
     return Response((row[0] + '\n' for row in sequences), mimetype="application/x-ndjson")
+
+
+# Load all extra API routes from extensions
+# Needs to be at the end of route declarations to allow customization of
+# existing routes and avoid dependency errors
+for extension in pkg_resources.iter_entry_points("id3c.api.routes"):
+    if extension.dist:
+        dist = f"{extension.dist.project_name} in {extension.dist.location}"
+    else:
+        dist = "unknown"
+
+    LOG.debug(f"Loading API routes from extension {extension!s} (distribution {dist})")
+    extension.load()
