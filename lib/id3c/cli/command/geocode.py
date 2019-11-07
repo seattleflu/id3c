@@ -1,6 +1,20 @@
 """
-Geocode addresses that are listed in tabular format, with one address per
-row.
+Geocode addresses into longitude/latitude.
+
+Input addresses must be in a tabular data format (CSV, TSV, or Excel) with only
+one address per row.
+
+Geocoding is performed by submitting addresses (with no other information) to
+an external service called SmartyStreets.  A SmartyStreets account is required.
+Credentials must be provided by the SMARTYSTREETS_AUTH_ID and
+SMARTYSTREETS_AUTH_TOKEN environment variables.
+
+Each address geocoded incurs a cost against the SmartyStreets account in use,
+so lookups are cached locally and re-used for up to a year when an address is
+encountered more than once.  For example, running a dataset through this
+command twice will only incur costs the first time.  The cache file should be
+protected as identifiable data since it contains the addresses themselves and
+the geocoding result.
 """
 import click
 import logging
@@ -43,7 +57,7 @@ def geocode():
 
 @click.option("--secondary-column",
     metavar = "<column>",
-    help = "Column name for address apartment,suite, or office number",
+    help = "Column name for address apartment, suite, or office number",
     required = False)
 
 @click.option("--city-column",
@@ -71,15 +85,17 @@ def geocode_using_options(**kwargs):
     """
     Geocode addresses listed in <filename.{csv,tsv,xlsx,xls}>.
 
-    Options specify column names to extract addresse parts for geocoding.
+    Options specify column names to extract address parts for geocoding.
     Of these, --street, --city, --state, and --zipcode are required.
 
-    Requires two environment variables SMARTYSTREETS_AUTH_ID and
+    Requires two environment variables: SMARTYSTREETS_AUTH_ID and
     SMARTYSTREETS_AUTH_TOKEN.
 
     Geocoded addresses are output to stdout as comma-separated values, with
     extra values for addresses latitude, longitude, and canonicalized address.
-    If an address is invalid, then these extra columns are left blank.
+    If an address cannot be geocoded, then these extra columns are left blank.
+
+    See `id3c geocode --help` for more information.
     """
     geocoded_addresses = get_geocoded_addresses(**kwargs)
     geocoded_addresses.to_csv(sys.stdout, index=False)
@@ -126,7 +142,9 @@ def geocode_using_config(filename, config_file):
 
     Geocoded addresses are output to stdout as comma-separated values, with
     extra values for addresses latitude, longitude, and canonicalized address.
-    If an address is invalid, then these extra columns are left blank.
+    If an address cannot be geocoded, then these extra columns are left blank.
+
+    See `id3c geocode --help` for more information.
     """
     configs = list(yaml.safe_load_all(config_file))
 
