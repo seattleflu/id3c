@@ -80,24 +80,16 @@ def etl_presence_absence(*, action: str):
                 LOG.info(f"Processing presence_absence group {group.id}")
 
                 # Samplify will now send documents with a top level key
-                # "samples". The new format also includes a "chip" key for
-                # each sample which is then included in the unique identifier
-                # for each presence/absence result.
-                #   -Jover, 29 Oct 2019
+                # "samples". So we have three different top level keys:
+                # "store", "Update" and "samples"
+                #   -Jover, 07 Nov 2019
                 try:
                     received_samples = group.document["samples"]
-                except KeyError as error:
-                    # Skip documents in the old format because they do not
-                    # include the "chip" key which is needed for the
-                    # unique identifier for each result.
-                    if (group.document.get("store") is not None or
-                        group.document.get("Update") is not None):
-
-                        LOG.info("Skipping presence_absence group that is in old format")
-                        mark_processed(db, group.id)
-                        continue
-                    else:
-                        raise error from None
+                except KeyError:
+                    try:
+                        received_samples = group.document["store"]["items"]
+                    except KeyError:
+                        received_samples = group.document["Update"]
 
                 for received_sample in received_samples:
                     received_sample_barcode = received_sample["investigatorId"]
@@ -113,7 +105,6 @@ def etl_presence_absence(*, action: str):
                         identifier = received_sample_identifier,
                         additional_details = sample_details(received_sample))
 
-                    received_chip = received_sample["chip"]
                     received_sample_id = str(received_sample["sampleId"])
 
                     for test_result in received_sample["targetResults"]:
@@ -128,26 +119,37 @@ def etl_presence_absence(*, action: str):
                             identifier = test_result_target_id,
                             control = target_control(test_result["controlStatus"]))
 
-                        # Most of the time we expect to see new samples and new
-                        # presence_absence tests, so an insert-first approach makes more sense.
-                        # Presence-absence tests we see more than once are presumed to be
-                        # corrections.
-
                         # Guard against bad data pushes we've seen from NWGC.
                         # This isn't great, but it's better than processing the
                         # data as-sent.
                         assert test_result["id"] > 0, "bogus targetResult id"
 
+                        # Old format for the presence/absence identifier prior
+                        # to the format change
+                        #  -Jover, 07 November 2019
+                        old_identifier = f"NWGC_{test_result['id']}"
+
                         # With the new format, the unqiue identifier for each
-                        # result is sample_id/chip/target.id
-                        presence_absence_identifier = "/".join([
-                            received_chip,
+                        # result is NWGC/{sampleId}/{geneTarget}
+                        new_identifier = "/".join([
+                            "NWGC",
                             received_sample_id,
                             test_result_target_id
                         ])
 
+                        # Update all old format identifiers to the new format
+                        # so that the following upsert can work as expected
+                        update_presence_absence_identifier(db,
+                            new_identifier = new_identifier,
+                            old_identifier = old_identifier
+                        )
+
+                        # Most of the time we expect to see new samples and new
+                        # presence_absence tests, so an insert-first approach makes more sense.
+                        # Presence-absence tests we see more than once are presumed to be
+                        # corrections.
                         upsert_presence_absence(db,
-                            identifier = presence_absence_identifier,
+                            identifier = new_identifier,
                             sample_id  = sample.id,
                             target_id  = target.id,
                             present    = get_target_result(test_result["targetStatus"]),
@@ -308,6 +310,29 @@ def presence_absence_details(document: dict) -> dict:
         "replicates": document['wellResults']
     }
 
+
+def update_presence_absence_identifier(db: DatabaseSession,
+                                       old_identifier: str,
+                                       new_identifier: str) -> None:
+    """
+    Update the presence absence identifier if the presence absence result
+    already exists within warehouse.presence_absence with the *old_identifier*
+    """
+    LOG.debug(f"Updating presence_absence identifier «{old_identifier}»")
+
+    identifiers = {
+        "old_identifier": old_identifier,
+        "new_identifier": new_identifier
+    }
+
+    with db.cursor() as cursor:
+        cursor.execute("""
+            update warehouse.presence_absence
+              set identifier = %(new_identifier)s
+             where identifier = %(old_identifier)s
+        """, identifiers)
+
+
 def upsert_presence_absence(db: DatabaseSession,
                             identifier: str,
                             sample_id: int,
@@ -323,7 +348,7 @@ def upsert_presence_absence(db: DatabaseSession,
     LOG.debug(f"Upserting presence_absence «{identifier}»")
 
     data = {
-        "identifier": f"NWGC/{identifier}",
+        "identifier": identifier,
         "sample_id": sample_id,
         "target_id": target_id,
         "present": present,
