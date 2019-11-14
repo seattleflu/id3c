@@ -161,8 +161,8 @@ def find_sample(db: DatabaseSession, nwgc_id: str) -> Optional[int]:
     sample = db.fetch_row("""
         select sample_id as id
           from warehouse.sample
-         where details ->> 'nwgc_id' = %s
-        """, (nwgc_id,))
+         where details @> '{"nwgc_id": [%s]}'
+        """, (int(nwgc_id),))
 
     if not sample:
         LOG.error(f"No sample with NWGC ID «{nwgc_id}» found")
