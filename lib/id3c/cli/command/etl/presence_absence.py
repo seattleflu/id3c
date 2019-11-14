@@ -261,7 +261,7 @@ def update_sample(db: DatabaseSession,
     LOG.debug(f"Looking up sample «{identifier}»")
 
     sample = db.fetch_row("""
-        select sample_id as id, identifier
+        select sample_id as id, identifier, details
           from warehouse.sample
          where identifier = %s
            for update
@@ -272,6 +272,11 @@ def update_sample(db: DatabaseSession,
         raise SampleNotFoundError(identifier)
 
     LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
+
+    if (sample.get("details") and
+        sample.details.get("nwgc_id") and
+        additional_details):
+        update_details_nwgc_id(sample, additional_details)
 
     if additional_details:
         LOG.info(f"Updating sample {sample.id} «{sample.identifier}» details")
@@ -286,6 +291,25 @@ def update_sample(db: DatabaseSession,
         assert sample.id, "Updating details affected no rows!"
 
     return sample
+
+
+def update_details_nwgc_id(sample: Any, additional_details: dict) -> None:
+    """
+    Given a *sample* fetched from `warehouse.sample`,
+    extend `sample.details.nwgc_id` to an array if needed.
+
+    Add provided "nwgc_id" within *additional_details* to the existing array
+    if it doesn't already exist
+    """
+    exisiting_nwgc_ids = sample.details["nwgc_id"]
+    new_nwgc_ids = additional_details["nwgc_id"]
+
+    # Extend details.nwgc_id to an array
+    if not isinstance(sample.details["nwgc_id"], list):
+        exisiting_nwgc_ids = [sample.details["nwgc_id"]]
+
+    # Concatenate exisiting and new nwgc_ids and deduplicate
+    additional_details["nwgc_id"] = list(set(exisiting_nwgc_ids + new_nwgc_ids))
 
 
 def sample_identifier(db: DatabaseSession, barcode: str) -> Optional[str]:
@@ -308,7 +332,7 @@ def sample_details(document: dict) -> dict:
     Capture details about the go/no-go sequencing call for this sample.
     """
     return {
-        "nwgc_id": document['sampleId'],
+        "nwgc_id": [document['sampleId']],
         "sequencing_call": {
             "comment": document['sampleComment'],
             "initial": document['initialProceedToSequencingCall'],
