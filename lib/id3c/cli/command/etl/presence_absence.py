@@ -80,16 +80,26 @@ def etl_presence_absence(*, action: str):
                 LOG.info(f"Processing presence_absence group {group.id}")
 
                 # Samplify will now send documents with a top level key
-                # "samples". So we have three different top level keys:
-                # "store", "Update" and "samples"
-                #   -Jover, 07 Nov 2019
+                # "samples". The new format also includes a "chip" key for each
+                # sample which is then included in the unique identifier for
+                # each presence/absence result
+                #   -Jover, 14 Nov 2019
                 try:
                     received_samples = group.document["samples"]
-                except KeyError:
-                    try:
-                        received_samples = group.document["store"]["items"]
-                    except KeyError:
-                        received_samples = group.document["Update"]
+                except KeyError as error:
+                    # Skip documents in the old format because they do not
+                    # include the "chip" key which is needed for the
+                    # unique identifier for each result.
+                    #   -Jover, 14 Nov 2019
+                    if (group.document.get("store") is not None or
+                        group.document.get("Update") is not None):
+
+                        LOG.info("Skipping presence_absence record that is in old format")
+                        mark_processed(db, group.id)
+                        continue
+
+                    else:
+                        raise error from None
 
                 for received_sample in received_samples:
                     received_sample_barcode = received_sample["investigatorId"]
@@ -106,6 +116,7 @@ def etl_presence_absence(*, action: str):
                         additional_details = sample_details(received_sample))
 
                     received_sample_id = str(received_sample["sampleId"])
+                    chip = received_sample["chip"]
 
                     for test_result in received_sample["targetResults"]:
                         test_result_target_id = test_result["geneTarget"]
@@ -130,11 +141,12 @@ def etl_presence_absence(*, action: str):
                         old_identifier = f"NWGC_{test_result['id']}"
 
                         # With the new format, the unqiue identifier for each
-                        # result is NWGC/{sampleId}/{geneTarget}
+                        # result is NWGC/{sampleId}/{geneTarget}/{chip}
                         new_identifier = "/".join([
                             "NWGC",
                             received_sample_id,
-                            test_result_target_id
+                            test_result_target_id,
+                            chip
                         ])
 
                         # Update all old format identifiers to the new format
@@ -318,7 +330,7 @@ def update_presence_absence_identifier(db: DatabaseSession,
     Update the presence absence identifier if the presence absence result
     already exists within warehouse.presence_absence with the *old_identifier*
     """
-    LOG.debug(f"Updating presence_absence identifier «{old_identifier}»")
+    LOG.debug(f"Updating presence_absence identifier «{old_identifier}» with new identifier «{new_identifier}»")
 
     identifiers = {
         "old_identifier": old_identifier,
