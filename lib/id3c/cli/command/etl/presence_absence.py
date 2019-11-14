@@ -118,6 +118,9 @@ def etl_presence_absence(*, action: str):
                     received_sample_id = str(received_sample["sampleId"])
                     chip = received_sample["chip"]
 
+                    # Guard against empty chip values
+                    assert chip, "Received bogus chip id"
+
                     for test_result in received_sample["targetResults"]:
                         test_result_target_id = test_result["geneTarget"]
                         LOG.debug(f"Processing target «{test_result_target_id}» for \
