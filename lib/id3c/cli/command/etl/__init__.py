@@ -167,7 +167,7 @@ def find_sample_by_id(db: DatabaseSession, sample_id: int) -> Any:
 
 def update_sample(db: DatabaseSession,
                   sample,
-                  encounter_id: Optional[int]) -> Optional[MinimalSampleRecord]:
+                  encounter_id: Optional[int]=None) -> Optional[MinimalSampleRecord]:
     """
     Update sample's encounter_id.
     """
