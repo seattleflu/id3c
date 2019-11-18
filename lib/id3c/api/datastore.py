@@ -6,7 +6,7 @@ import psycopg2
 from functools import wraps
 from psycopg2 import DataError, DatabaseError, IntegrityError, ProgrammingError
 from psycopg2.errors import InsufficientPrivilege
-from typing import Any, Iterable, Tuple
+from typing import Any
 from werkzeug.exceptions import Forbidden
 from ..db.session import DatabaseSession
 from .exceptions import AuthenticationRequired, BadRequest
@@ -175,40 +175,6 @@ def store_fhir(session: DatabaseSession, document: str) -> None:
 
         except (DataError, IntegrityError) as error:
             raise BadRequestDatabaseError(error) from None
-
-
-@export
-@catch_permission_denied
-def fetch_metadata_for_augur_build(session: DatabaseSession) -> Iterable[Tuple[str]]:
-    """
-    Export metadata for augur build from shipping view
-    """
-    with session, session.cursor() as cursor:
-        cursor.execute("""
-            select row_to_json(r)::text
-            from shipping.metadata_for_augur_build_v1 as r
-            """)
-
-        yield from cursor
-
-@export
-@catch_permission_denied
-def fetch_genomic_sequences(session: DatabaseSession,
-                        lineage: str,
-                        segment: str) -> Iterable[Tuple[str]]:
-    """
-    Export sample identifier and sequence from shipping view based on the
-    provided *lineage* and *segment*
-    """
-    with session, session.cursor() as cursor:
-        cursor.execute("""
-            select row_to_json(r)::text
-            from (select sample, seq
-                    from shipping.genomic_sequences_for_augur_build_v1
-                   where organism = %s and segment = %s) as r
-            """,(lineage, segment))
-
-        yield from cursor
 
 
 @export
