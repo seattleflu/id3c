@@ -8,6 +8,7 @@ Data logistics system enabling real-time genomic epidemiology. Built for the
 * [Web API](#web-api)
 * [CLI](#cli)
 * [Setup](#setup)
+* [Dev tools](#dev-tools)
 
 ## Database
 
@@ -298,3 +299,13 @@ and then run:
 These files will also allow you to connect using `psql`:
 
     psql service=seattleflu-testing
+
+
+## Dev tools
+
+### Type-checking
+
+Run type-checking tests with:
+
+    ./dev/mypy
+
