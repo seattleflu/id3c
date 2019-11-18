@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any, List, Dict, Optional, Tuple
 from fhir.resources.bundle import Bundle, BundleEntry
 from fhir.resources.codeableconcept import CodeableConcept
+from fhir.resources.diagnosticreport import DiagnosticReport
 from fhir.resources.domainresource import DomainResource
 from fhir.resources.encounter import Encounter
 from fhir.resources.identifier import Identifier
@@ -25,12 +26,17 @@ from . import (
     etl,
 
     find_or_create_site,
+    find_or_create_target,
     find_location,
+    find_sample,
     upsert_individual,
     upsert_encounter,
     upsert_encounter_location,
     upsert_location,
     upsert_sample,
+    upsert_presence_absence,
+
+    SampleNotFoundError,
 )
 
 
@@ -85,6 +91,11 @@ def etl_fhir(*, db: DatabaseSession):
 
             assert_required_resource_types_present(resources)
 
+            # TODO testing only
+            with open('../documentation/fhir/presence-absence-example.json') as f:
+               bundle = Bundle(json.load(f))
+            # XXX delete between comments for production
+
             # Loop over every Resource the Bundle entry, processing what is
             # needed along the way.
             for entry in bundle.entry:
@@ -104,6 +115,19 @@ def etl_fhir(*, db: DatabaseSession):
                     process_encounter_samples(db, resource, encounter.id, related_resources)
                     process_locations(db, encounter.id, resource)
 
+                elif resource_type == 'DiagnosticReport':
+                    for reference in resource.specimen:
+                        if not matching_system(reference.identifier, INTERNAL_SYSTEM):
+                            continue
+
+                        barcode = reference.identifier.value
+
+                        # TODO delete between comments for production
+                        # barcode = '6942eef8-da26-4c0f-8f42-8e26437fab67'
+                        # XXX
+
+                        sample = process_sample(db, barcode)
+                        process_presence_absence_tests(db, resource, sample.id, barcode)
 
 
 def assert_bundle_collection(document: Dict[str, Any]):
@@ -554,6 +578,39 @@ def location_code(location: Location) -> str:
 
     return unique_codes[0]
 
+
+def process_sample(db: DatabaseSession, barcode: str) -> Any:
+    """ Given a *barcode*, returns its matching sample from ID3C. """
+    sample = find_sample(db, barcode)
+
+    if not sample:
+        raise SampleNotFoundError(f"No sample with «{barcode}» found.")
+
+    return sample
+
+
+def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport,
+    sample_id: int, barcode: str):
+    """
+    Given a *report* containing presence-absence test results, upserts them to
+    ID3C, attaching a sample and target ID.
+    """
+    for result in report.result:
+        observation = result.resolved(Observation)
+
+        # Most of the time we expect to see existing targets so a
+        # select-first approach makes the most sense to avoid useless
+        # updates.
+        target = find_or_create_target(db,
+            identifier  = matching_system_code(observation.code, TARGET_SYSTEM),
+            control     = False)  # TODO what do we expect here? Do we expect more controls?
+
+        upsert_presence_absence(db,
+            identifier = f'{barcode}/{observation.device.identifier.value}',  # TODO is this correct use of assay?
+            sample_id = sample_id,
+            target_id = target.id,
+            present = True,
+            details = {})
 
 
 def mark_skipped(db, fhir_id: int) -> None:
