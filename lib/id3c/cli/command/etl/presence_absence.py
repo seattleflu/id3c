@@ -273,13 +273,10 @@ def update_sample(db: DatabaseSession,
 
     LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
 
-    if (sample.get("details") and
-        sample.details.get("nwgc_id") and
-        additional_details):
-        update_details_nwgc_id(sample, additional_details)
-
     if additional_details:
         LOG.info(f"Updating sample {sample.id} «{sample.identifier}» details")
+
+        update_details_nwgc_id(sample, additional_details)
 
         sample = db.fetch_row("""
             update warehouse.sample
@@ -301,12 +298,15 @@ def update_details_nwgc_id(sample: Any, additional_details: dict) -> None:
     Add provided "nwgc_id" within *additional_details* to the existing array
     if it doesn't already exist
     """
-    existing_nwgc_ids = sample.details["nwgc_id"]
+    if not sample.details:
+        return
+
+    existing_nwgc_ids = sample.details.get("nwgc_id", [])
     new_nwgc_ids = additional_details["nwgc_id"]
 
     # Extend details.nwgc_id to an array
-    if not isinstance(sample.details["nwgc_id"], list):
-        existing_nwgc_ids = [sample.details["nwgc_id"]]
+    if not isinstance(existing_nwgc_ids, list):
+        existing_nwgc_ids = [existing_nwgc_ids]
 
     # Concatenate exisiting and new nwgc_ids and deduplicate
     additional_details["nwgc_id"] = list(set(existing_nwgc_ids + new_nwgc_ids))
