@@ -301,15 +301,15 @@ def update_details_nwgc_id(sample: Any, additional_details: dict) -> None:
     Add provided "nwgc_id" within *additional_details* to the existing array
     if it doesn't already exist
     """
-    exisiting_nwgc_ids = sample.details["nwgc_id"]
+    existing_nwgc_ids = sample.details["nwgc_id"]
     new_nwgc_ids = additional_details["nwgc_id"]
 
     # Extend details.nwgc_id to an array
     if not isinstance(sample.details["nwgc_id"], list):
-        exisiting_nwgc_ids = [sample.details["nwgc_id"]]
+        existing_nwgc_ids = [sample.details["nwgc_id"]]
 
     # Concatenate exisiting and new nwgc_ids and deduplicate
-    additional_details["nwgc_id"] = list(set(exisiting_nwgc_ids + new_nwgc_ids))
+    additional_details["nwgc_id"] = list(set(existing_nwgc_ids + new_nwgc_ids))
 
 
 def sample_identifier(db: DatabaseSession, barcode: str) -> Optional[str]:
