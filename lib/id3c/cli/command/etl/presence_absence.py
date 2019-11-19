@@ -64,6 +64,7 @@ def etl_presence_absence(*, action: str):
     LOG.debug("Fetching unprocessed presence-absence tests")
 
     presence_absence = db.cursor("presence_absence")
+    presence_absence.itersize = 1
     presence_absence.execute("""
         select presence_absence_id as id, document
           from receiving.presence_absence
