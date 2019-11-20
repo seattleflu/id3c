@@ -106,6 +106,10 @@ def etl_presence_absence(*, action: str):
                     received_sample_barcode = received_sample["investigatorId"]
                     LOG.info(f"Processing sample «{received_sample_barcode}»")
 
+                    if not received_sample.get("isCurrentExpressionResult"):
+                        LOG.warning(f"Skipping out-of-date results for sample «{received_sample_barcode}»")
+                        continue
+
                     received_sample_identifier = sample_identifier(db, received_sample_barcode)
 
                     if not received_sample_identifier:
