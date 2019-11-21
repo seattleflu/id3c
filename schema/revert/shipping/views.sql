@@ -217,15 +217,18 @@ grant select
    to "incidence-modeler";
 
 
-drop view shipping.observation_with_presence_absence_result_v1;
 create or replace view shipping.observation_with_presence_absence_result_v1 as
 
     select target,
            present,
            present::int as presence,
-           observation.*
+           observation.*,
+           organism
       from shipping.incidence_model_observation_v2 as observation
       join shipping.presence_absence_result_v1 using (sample)
       order by site, encounter, sample, target;
+
+drop view shipping.observation_with_presence_absence_result_v2;
+drop view shipping.incidence_model_observation_v3;
 
 commit;
