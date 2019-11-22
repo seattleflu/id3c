@@ -89,7 +89,7 @@ def with_database_session(command):
     return decorated
 
 
-def dump_ndjson(df):
+def dump_ndjson(df: pd.DataFrame):
     """
     Prints a :class:`pandas.DataFrame` as NDJSON.
 
