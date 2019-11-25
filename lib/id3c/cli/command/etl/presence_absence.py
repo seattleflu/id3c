@@ -417,7 +417,7 @@ def upsert_presence_absence(db: DatabaseSession,
             set sample_id = excluded.sample_id,
                 target_id = excluded.target_id,
                 present   = excluded.present,
-                details = excluded.details
+                details = coalesce(presence_absence.details, '{}') || excluded.details
 
         returning presence_absence_id as id, identifier
         """, data)
