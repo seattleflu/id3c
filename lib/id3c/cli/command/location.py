@@ -332,8 +332,7 @@ def lookup(filename,
            lng_column,
            drop_columns):
     """
-    Given a <filename.{csv,tsv,xls,xlsx}> that contains latitudes and longitudes,
-    lookup the location within ID3C at the provided <scale>.
+    Lookup locations containing a given latitude and longitude.
 
     <filename.{csv,tsv,xls,xlsx}> accepts `-` as a special file that refers
     to stdin, assuming data is formatted as comma-separated values.
