@@ -42,6 +42,10 @@ LOG = logging.getLogger(__name__)
 CACHE_TTL = 60 * 60 * 24 * 365  # 1 year
 CACHE_SIZE = float("inf")       # Unlimited
 
+# Shared SmartyStreets client, initialized when first needed.
+CLIENT = None
+
+
 @cli.group("geocode", help = __doc__)
 def geocode():
     pass
@@ -310,15 +314,18 @@ def geocode_address(address: dict) -> dict:
     returns a dict containing a canonicalized address and lat/long coordinates
     from SmartyStreet's US Street geocoding API.
     """
-    LOG.info("""Pinging SmartyStreets geocoding API""")
-    client = smartystreets_client_builder().build_us_street_api_client()
+    LOG.debug("Making SmartyStreets geocoding API request")
+
+    global CLIENT
+    if not CLIENT:
+        CLIENT = smartystreets_client_builder().build_us_street_api_client()
 
     lookup = us_street_lookup(address)
     if not lookup.street:
         LOG.warning(f"Missing street address; can't geocode")
         return None
 
-    client.send_lookup(lookup)
+    CLIENT.send_lookup(lookup)
     result = lookup.result
 
     if not result:
