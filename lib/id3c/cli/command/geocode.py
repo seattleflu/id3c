@@ -294,32 +294,14 @@ def get_response_from_cache_or_geocoding(address: dict,
     Provided an *address* dict in a format that SmartyStreets US Address API
     expects, get a response from the cache or by geocoding with API.
     """
-    response = check_cache(address, cache)
+    key = json.dumps(address, sort_keys=True)
 
-    if not response:
-        response = geocode_address(address)
-        save_to_cache(address, response, cache)
+    try:
+        response = cache[key]
+    except KeyError:
+        response = cache[key] = geocode_address(address)
 
     return response.get('lat'), response.get('lng'), response.get('canonicalized_address')
-
-
-def check_cache(address: dict, cache: TTLCache) -> Optional[dict]:
-    """
-    Given an *address* and a *cache*, checks if the *cache* exists.
-    If it does, returns the given value of the *address* key in the *cache*.
-    Returns nothing if the *address* key does not exist in the *cache*.
-    """
-    LOG.debug(f"Looking for address in cache")
-
-    if cache:
-        try:
-            return cache[json.dumps(address, sort_keys=True)]
-        except KeyError:
-            LOG.warning("Item not found in cache.")
-    else:
-        LOG.warning("Cache does not exist or is empty.")
-
-    return None
 
 
 def geocode_address(address: dict) -> dict:
@@ -413,16 +395,6 @@ def parse_first_smartystreets_result(result: list) -> dict:
         response['lng'] = first_candidate.metadata.longitude
 
     return response
-
-
-def save_to_cache(standardized_address: dict, response: dict, cache: TTLCache):
-    """
-    Given a *standardized_address* and its related *response* from the
-    SmartyStreets API, stores them as a key-value pair in the given *cache*,
-    overwriting the value for the existing *standardized_address* key if it
-    already existed in the *cache*.
-    """
-    cache[json.dumps(standardized_address, sort_keys=True)] = response
 
 
 class InvalidAddressMappingError(KeyError):
