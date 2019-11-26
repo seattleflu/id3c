@@ -302,11 +302,6 @@ def parse_features(path):
     metavar = "<filename.{csv,tsv,xls,xlsx}>",
     type = click.File("r"))
 
-@click.argument("drop-columns",
-    metavar = "<drop-columns>",
-    required = False,
-    nargs = -1)
-
 @click.option("--scale",
     metavar = "<scale>",
     default = "tract",
@@ -325,11 +320,15 @@ def parse_features(path):
     show_default = True,
     help = "Column name of longitude")
 
+@click.option("--drop-latlng-columns",
+    is_flag = True,
+    help = "Remove input lat/lng columns from the output")
+
 def lookup(filename,
            scale,
            lat_column,
            lng_column,
-           drop_columns):
+           drop_latlng_columns):
     """
     Lookup locations containing a given latitude and longitude.
 
@@ -337,9 +336,6 @@ def lookup(filename,
     to stdin, assuming data is formatted as comma-separated values.
     This is expected when piping output from `id3c geocode` directly into this
     command.
-
-    <drop-columns> can be used to specify input columns to not include in
-    the output.
 
     Lookup results are output to stdout as comma-separated values, with
     location identifier as <scale>_identifier.
@@ -357,9 +353,9 @@ def lookup(filename,
     output_df = input_df.copy()
     output_df[f"{scale}_identifier"] = locations
 
-    if drop_columns:
+    if drop_latlng_columns:
         try:
-            output_df.drop(columns = drop_columns, inplace = True)
+            output_df.drop(columns = [lat_column, lng_column], inplace = True)
         except KeyError as error:
             LOG.error(f"{error}. Columns are: {list(output_df.columns)}")
             raise error from None
