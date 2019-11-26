@@ -419,5 +419,5 @@ def location_lookup(db: DatabaseSession,
         LOG.error(f"No location containing lat/lng «{lat_lng}» of scale «{scale}» found")
         return None
 
-    LOG.info(f"Found location {location.id} «{location.identifier}»")
+    LOG.debug(f"Found location {location.id} «{location.identifier}»")
     return location
