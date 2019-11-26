@@ -43,7 +43,6 @@ from id3c.db.types import MinimalLocationRecord
 from id3c.db.session import DatabaseSession
 from id3c.cli.command import (
     load_input_from_file_or_stdin,
-    drop_columns_from_output
 )
 
 LOG = logging.getLogger(__name__)
@@ -359,7 +358,11 @@ def lookup(filename,
     output_df[f"{scale}_identifier"] = locations
 
     if drop_columns:
-        output_df = drop_columns_from_output(input_df, output_df, drop_columns)
+        try:
+            output_df.drop(columns = drop_columns, inplace = True)
+        except KeyError as error:
+            LOG.error(f"{error}. Columns are: {list(output_df.columns)}")
+            raise error from None
 
     output_df.to_csv(sys.stdout, index = False)
 

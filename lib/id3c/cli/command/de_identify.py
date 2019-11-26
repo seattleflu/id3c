@@ -11,7 +11,6 @@ from typing import Tuple
 from id3c.cli import cli
 from id3c.cli.command import (
     load_input_from_file_or_stdin,
-    drop_columns_from_output
 )
 
 
@@ -65,7 +64,11 @@ def de_identify(columns, filename, drop_input_columns):
     output_df['hash'] = hashes
 
     if drop_input_columns:
-        output_df = drop_columns_from_output(input_df, output_df, columns)
+        try:
+            output_df.drop(columns = list(columns), inplace = True)
+        except KeyError as error:
+            LOG.error(f"{error}. Columns are: {list(output_df.columns)}")
+            raise error from None
 
     output_df.to_csv(stdout, index = False)
 
