@@ -146,7 +146,7 @@ def geocode_using_config(filename, config_file):
 
     See `id3c geocode --help` for more information.
     """
-    configs = list(yaml.safe_load_all(config_file))
+    config = yaml.safe_load(config_file)
 
     if config_file.name != "<stdin>":
         config_dir = dirname(config_file.name)
@@ -156,23 +156,22 @@ def geocode_using_config(filename, config_file):
         if config_dir:
             chdir(config_dir)
 
-    for config in configs:
-        try:
-            kwargs = {
-                "filename":          filename,
-                "street_column":     config["columns"]["street"],
-                "city_column":       config["columns"]["city"],
-                "state_column":      config["columns"]["state"],
-                "zipcode_column":    config["columns"]["zipcode"],
-                "secondary_column":  config["columns"].get("secondary"),
-                "cache_file":        config.get("cache")
-            }
-        except KeyError as key:
-            LOG.error(f"Required key «{key}» missing from config {config}")
-            raise key from None
+    try:
+        kwargs = {
+            "filename":          filename,
+            "street_column":     config["columns"]["street"],
+            "city_column":       config["columns"]["city"],
+            "state_column":      config["columns"]["state"],
+            "zipcode_column":    config["columns"]["zipcode"],
+            "secondary_column":  config["columns"].get("secondary"),
+            "cache_file":        config.get("cache")
+        }
+    except KeyError as key:
+        LOG.error(f"Required key «{key}» missing from config {config}")
+        raise key from None
 
-        geocoded_addresses = get_geocoded_addresses(**kwargs)
-        geocoded_addresses.to_csv(sys.stdout, index=False)
+    geocoded_addresses = get_geocoded_addresses(**kwargs)
+    geocoded_addresses.to_csv(sys.stdout, index=False)
 
 
 def get_geocoded_addresses(*,
