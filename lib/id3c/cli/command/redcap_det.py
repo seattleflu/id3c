@@ -96,8 +96,8 @@ def create_det_records(project: Project, record: dict, instrument: str) -> dict:
        'record': str(record['record_id']),  # ...and record as well.
        'instrument': instrument,
        instrument_complete: record[instrument_complete],
-       'redcap_repeat_instance': record['redcap_repeat_instance'],
-       'redcap_repeat_instrument': record['redcap_repeat_instrument'],
+       'redcap_repeat_instance': record.get('redcap_repeat_instance'),
+       'redcap_repeat_instrument': record.get('redcap_repeat_instrument'),
        '__generated_by__': 'id3c',
     }
 
