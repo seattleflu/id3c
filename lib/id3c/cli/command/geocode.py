@@ -23,6 +23,7 @@ import pandas as pd
 import sys
 import json
 import yaml
+from contextlib import contextmanager
 from os import environ, chdir
 from os.path import dirname
 from textwrap import dedent
@@ -39,6 +40,7 @@ from id3c.cli.command import (
 LOG = logging.getLogger(__name__)
 
 CACHE_TTL = 60 * 60 * 24 * 365  # 1 year
+CACHE_SIZE = float("inf")       # Unlimited
 
 @cli.group("geocode", help = __doc__)
 def geocode():
@@ -188,31 +190,25 @@ def get_geocoded_addresses(*,
     """
     LOG.debug(f"Reading addresses file {filename}")
 
-    cache = None
-    if cache_file:
-        cache = load_or_create_cache(cache_file)
+    with pickled_cache(cache_file) as cache:
+        address_column_map = {
+            'street': street_column,
+            'city': city_column,
+            'state': state_column,
+            'zipcode': zipcode_column,
+            'secondary': secondary_column
+        }
 
-    address_column_map = {
-        'street': street_column,
-        'city': city_column,
-        'state': state_column,
-        'zipcode': zipcode_column,
-        'secondary': secondary_column
-    }
+        addresses_df = load_file_as_dataframe(filename)
+        addresses_df['std_address'] = addresses_df.apply(
+            lambda row: standardize_address(row, address_column_map),
+            axis='columns')
 
-    addresses_df = load_file_as_dataframe(filename)
-    addresses_df['std_address'] = addresses_df.apply(
-        lambda row: standardize_address(row, address_column_map),
-        axis='columns')
-
-    (addresses_df['lat'],
-     addresses_df['lng'],
-     addresses_df['canonicalized_address']) = zip(
-         *addresses_df['std_address'].apply(
-             lambda row: get_response_from_cache_or_geocoding(row, cache)))
-
-    if cache and cache_file:
-        save_cache(cache, cache_file)
+        (addresses_df['lat'],
+         addresses_df['lng'],
+         addresses_df['canonicalized_address']) = zip(
+             *addresses_df['std_address'].apply(
+                 lambda row: get_response_from_cache_or_geocoding(row, cache)))
 
     return addresses_df
 
@@ -243,17 +239,50 @@ def standardize_address(address_series: pd.Series,
     return std_address
 
 
-def load_or_create_cache(cache_file: str) -> TTLCache:
+@contextmanager
+def pickled_cache(filename: str = None) -> TTLCache:
     """
-    Tries to load a pickled cache from the *cache_file*. If a cache
-    is not found at this location, creates a new one. Returns the cache.
+    Context manager for reading/writing a :class:`TTLCache` from/to the given
+    *filename*.
+
+    If *filename* exists, it is unpickled and the :class:`TTLCache` object is
+    returned.  If *filename* does not exist, an empty cache will be returned.
+    In either case, the cache object will be written back to the given
+    *filename* upon exiting the ``with`` block.
+
+    If no *filename* is provided, a transient, in-memory cache is returned
+    instead.
+
+    >>> with pickled_cache("/tmp/id3c-geocoding.cache") as cache:
+    ...     cache["key1"] = "value1"
+
+    >>> with pickled_cache("/tmp/id3c-geocoding.cache") as cache:
+    ...     print(cache["key1"])
+    value1
     """
+    empty_cache = TTLCache(maxsize = CACHE_SIZE, ttl = CACHE_TTL)
+
+    if filename:
+        LOG.info(f"Loading cache from «{filename}»")
+        try:
+            with open(filename, "rb") as file:
+                cache = pickle.load(file)
+        except FileNotFoundError:
+            LOG.warning(f"Cache file «{filename}» does not exist; starting with empty cache.")
+            cache = empty_cache
+        else:
+            assert isinstance(cache, TTLCache), \
+                f"Cache file contains a {cache!r}, not a TTLCache"
+    else:
+        LOG.warning(f"No cache file provided; using transient, in-memory cache.")
+        cache = empty_cache
+
     try:
-        cache = pickle.load(open(cache_file, mode='rb'))
-    except FileNotFoundError:
-        LOG.warning("Couldn't find an existing cache file. Creating new cache.")
-        cache = TTLCache(maxsize=float('inf'), ttl=CACHE_TTL)
-    return cache
+        yield cache
+    finally:
+        if filename:
+            with open(filename, "wb") as file:
+                pickle.dump(cache, file)
 
 
 def get_response_from_cache_or_geocoding(address: dict,
@@ -393,11 +422,6 @@ def save_to_cache(standardized_address: dict, response: dict, cache: TTLCache):
     already existed in the *cache*.
     """
     cache[json.dumps(standardized_address, sort_keys=True)] = response
-
-
-def save_cache(cache: TTLCache, cache_file: str):
-    """ Given a *cache*, saves it to a hard-coded file `cache.pickle`. """
-    pickle.dump(cache, open(cache_file, mode='wb'))
 
 
 class InvalidAddressMappingError(KeyError):
