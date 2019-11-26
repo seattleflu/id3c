@@ -415,7 +415,7 @@ class InvalidAddressMappingError(KeyError):
     def __str__(self):
         return dedent(f"""
         {self.address_key} not found in the address mapping.
-        Is there an error in your `config.py`?
+        Is there an error in your column map?
         """)
 
 
