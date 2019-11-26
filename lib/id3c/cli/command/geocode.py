@@ -107,7 +107,7 @@ def geocode_using_options(**kwargs):
 @click.argument("filename",
     metavar = "<filename.{csv,tsv,xlsx,xls}>",
     required = True,
-    type = click.Path(exists=True))
+    type = click.Path(exists=True, resolve_path=True))
 
 @click.argument("config_file",
     metavar = "<config.yaml>",
@@ -149,6 +149,9 @@ def geocode_using_config(filename, config_file):
     See `id3c geocode --help` for more information.
     """
     config = yaml.safe_load(config_file)
+
+    # The input data filename is fully-resolved by Click, so even if the
+    # filename is relative, it's safe to change directories before reading it.
 
     if config_file.name != "<stdin>":
         config_dir = dirname(config_file.name)
