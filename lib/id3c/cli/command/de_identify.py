@@ -31,6 +31,8 @@ LOG = logging.getLogger(__name__)
 
 def de_identify(columns, filename, drop_input_columns):
     """
+    De-identify data by generating a hash.
+
     Given a <filename.{csv,tsv,xls,xlsx}> that contains personally identifiable
     information (PII), generate a hash using specified <columns> and an environment
     variable, "ID3C_DEIDENTIFY_SECRET".
