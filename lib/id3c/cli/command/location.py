@@ -416,7 +416,7 @@ def location_lookup(db: DatabaseSession,
         """, data)
 
     if not location:
-        LOG.error(f"No location containing lat/lng «{lat_lng}» of scale «{scale}» found")
+        LOG.error(f"No location of scale «{scale}» found for lat/lng")
         return None
 
     LOG.debug(f"Found location {location.id} «{location.identifier}»")

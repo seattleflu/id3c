@@ -309,7 +309,7 @@ def check_cache(address: dict, cache: TTLCache) -> Optional[dict]:
     If it does, returns the given value of the *address* key in the *cache*.
     Returns nothing if the *address* key does not exist in the *cache*.
     """
-    LOG.debug(f"Looking for address {address} in cache")
+    LOG.debug(f"Looking for address in cache")
 
     if cache:
         try:
@@ -333,9 +333,7 @@ def geocode_address(address: dict) -> dict:
 
     lookup = us_street_lookup(address)
     if not lookup.street:
-        LOG.warning(dedent(f"""
-        No given street address for {address}.
-        Currently lookups are only possible with a street address."""))
+        LOG.warning(f"Missing street address; can't geocode")
         return None
 
     client.send_lookup(lookup)
