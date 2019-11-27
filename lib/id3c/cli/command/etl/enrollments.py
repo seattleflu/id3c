@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from itertools import groupby
 from operator import itemgetter
 from typing import Any, Optional
+from id3c.cli.command import with_database_session
 from id3c.db import find_identifier
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
@@ -41,24 +42,10 @@ EXPECTED_COLLECTION_IDENTIFIER_SETS = {
 
 
 @etl.command("enrollments", help = __doc__)
+@with_database_session
 
-@click.option("--dry-run", "action",
-    help        = "Only go through the motions of changing the database (default)",
-    flag_value  = "rollback",
-    default     = True)
-
-@click.option("--prompt", "action",
-    help        = "Ask if changes to the database should be saved",
-    flag_value  = "prompt")
-
-@click.option("--commit", "action",
-    help        = "Save changes to the database",
-    flag_value  = "commit")
-
-def etl_enrollments(*, action: str):
+def etl_enrollments(*, db: DatabaseSession):
     LOG.debug(f"Starting the enrollment ETL routine, revision {REVISION}")
-
-    db = DatabaseSession()
 
     # Fetch and iterate over enrollments that aren't processed
     #
@@ -80,81 +67,49 @@ def etl_enrollments(*, action: str):
            for update
         """, (Json([{ "etl": ETL_NAME, "revision": REVISION }]),))
 
-    processed_without_error = None
+    for enrollment in enrollments:
+        with db.savepoint(f"enrollment {enrollment.id}"):
+            LOG.info(f"Processing enrollment {enrollment.id}")
 
-    try:
-        for enrollment in enrollments:
-            with db.savepoint(f"enrollment {enrollment.id}"):
-                LOG.info(f"Processing enrollment {enrollment.id}")
+            # Out of an abundance of caution, fail when the schema version
+            # of the enrollment document changes.  This ensures manual
+            # intervention happens on document structure changes.  After
+            # seeing how versions are handled over time, this restriction
+            # may be toned down a bit.
+            known_versions = {"1.1.0", "1.0.0"}
 
-                # Out of an abundance of caution, fail when the schema version
-                # of the enrollment document changes.  This ensures manual
-                # intervention happens on document structure changes.  After
-                # seeing how versions are handled over time, this restriction
-                # may be toned down a bit.
-                known_versions = {"1.1.0", "1.0.0"}
+            assert enrollment.document["schemaVersion"] in known_versions, \
+                f"Document schema version {enrollment.document['schemaVersion']} is not in {known_versions}"
 
-                assert enrollment.document["schemaVersion"] in known_versions, \
-                    f"Document schema version {enrollment.document['schemaVersion']} is not in {known_versions}"
+            # Most of the time we expect to see existing sites so a
+            # select-first approach makes the most sense to avoid useless
+            # updates.
+            site = find_or_create_site(db,
+                identifier = enrollment.document["site"]["name"],
+                details    = site_details(enrollment.document["site"]))
 
-                # Most of the time we expect to see existing sites so a
-                # select-first approach makes the most sense to avoid useless
-                # updates.
-                site = find_or_create_site(db,
-                    identifier = enrollment.document["site"]["name"],
-                    details    = site_details(enrollment.document["site"]))
+            # Most of the time we expect to see new individuals and new
+            # encounters, so an insert-first approach makes more sense.
+            # Encounters we see more than once are presumed to be
+            # corrections.
+            individual = upsert_individual(db,
+                identifier  = enrollment.document["participant"],
+                sex         = assigned_sex(enrollment.document))
 
-                # Most of the time we expect to see new individuals and new
-                # encounters, so an insert-first approach makes more sense.
-                # Encounters we see more than once are presumed to be
-                # corrections.
-                individual = upsert_individual(db,
-                    identifier  = enrollment.document["participant"],
-                    sex         = assigned_sex(enrollment.document))
+            encounter = upsert_encounter(db,
+                identifier      = enrollment.document["id"],
+                encountered     = enrollment.document["startTimestamp"],
+                individual_id   = individual.id,
+                site_id         = site.id,
+                age             = age(enrollment.document),
+                details         = encounter_details(enrollment.document))
 
-                encounter = upsert_encounter(db,
-                    identifier      = enrollment.document["id"],
-                    encountered     = enrollment.document["startTimestamp"],
-                    individual_id   = individual.id,
-                    site_id         = site.id,
-                    age             = age(enrollment.document),
-                    details         = encounter_details(enrollment.document))
+            process_samples(db, encounter.id, enrollment.document)
+            process_locations(db, encounter.id, enrollment.document)
 
-                process_samples(db, encounter.id, enrollment.document)
-                process_locations(db, encounter.id, enrollment.document)
+            mark_processed(db, enrollment.id)
 
-                mark_processed(db, enrollment.id)
-
-                LOG.info(f"Finished processing enrollment {enrollment.id}")
-
-    except Exception as error:
-        processed_without_error = False
-
-        LOG.error(f"Aborting with error")
-        raise error from None
-
-    else:
-        processed_without_error = True
-
-    finally:
-        if action == "prompt":
-            ask_to_commit = \
-                "Commit all changes?" if processed_without_error else \
-                "Commit successfully processed enrollments up to this point?"
-
-            commit = click.confirm(ask_to_commit)
-        else:
-            commit = action == "commit"
-
-        if commit:
-            LOG.info(
-                "Committing all changes" if processed_without_error else \
-                "Committing successfully processed enrollments up to this point")
-            db.commit()
-
-        else:
-            LOG.info("Rolling back all changes; the database will not be modified")
-            db.rollback()
+            LOG.info(f"Finished processing enrollment {enrollment.id}")
 
 
 def process_samples(db: DatabaseSession,

@@ -3,6 +3,7 @@ Run ETL routines
 """
 import click
 import logging
+import re
 from math import ceil
 from typing import Any, Optional
 from id3c.db.session import DatabaseSession
@@ -28,6 +29,7 @@ __all__ = [
     "kit",
     "longitudinal",
     "consensus_genome",
+    "redcap_det",
 ]
 
 def find_or_create_site(db: DatabaseSession, identifier: str, details: dict) -> Any:
@@ -269,6 +271,102 @@ def find_location(db: DatabaseSession, scale: str, identifier: str) -> Any:
 
     LOG.info(f"Found location {location.id} as {(scale, identifier)}")
     return location
+
+
+def race(races: Optional[Any]) -> list:
+    """
+    Given one or more *races*, returns the matching race identifier found in
+    Audere survey data.
+
+    Single values may be passed:
+
+    >>> race("OTHER")
+    ['other']
+
+    A list of values may also be passed:
+
+    >>> race(["ASIAN", "bLaCk", "white"])
+    ['asian', 'blackOrAfricanAmerican', 'white']
+
+    Leading and trailing space is ignored:
+
+    >>> race("   amerind ")
+    ['americanIndianOrAlaskaNative']
+
+    Internal runs of whitespace are collapsed during comparison:
+
+    >>> race("Native  Hawaiian or other     pacific islander")
+    ['nativeHawaiian']
+
+    but not completely ignored:
+
+    >>> race("whi te")
+    Traceback (most recent call last):
+        ...
+    id3c.cli.command.etl.UnknownRaceError: Unknown race name «whi te»
+
+    ``None`` may be passed for convenience with :meth:`dict.get`.
+
+    >>> race(None)
+    [None]
+
+    An :class:`UnknownRaceError` is raised when an unknown value is
+    encountered:
+
+    >>> race("foobarbaz")
+    Traceback (most recent call last):
+        ...
+    id3c.cli.command.etl.UnknownRaceError: Unknown race name «foobarbaz»
+
+    >>> race(["white", "nonsense", "other"])
+    Traceback (most recent call last):
+        ...
+    id3c.cli.command.etl.UnknownRaceError: Unknown race name «nonsense»
+    """
+    if races is None:
+        LOG.debug("No race response found.")
+        return [None]
+
+    if not isinstance(races, list):
+        races = [races]
+
+    # Keys must be lowercase for case-insensitive lookup
+    race_map = {
+        "americanindianoralaskanative": "americanIndianOrAlaskaNative",
+        "american indian or alaska native": "americanIndianOrAlaskaNative",
+        "amerind": "americanIndianOrAlaskaNative",
+
+        "asian": "asian",
+
+        "blackorafricanamerican": "blackOrAfricanAmerican",
+        "black or african american": "blackOrAfricanAmerican",
+        "black": "blackOrAfricanAmerican",
+
+        "nativehawaiian": "nativeHawaiian",
+        "native hawaiian or other pacific islander": "nativeHawaiian",
+        "nativehi": "nativeHawaiian",
+
+        "white": "white",
+
+        "other": "other",
+        "multiple races": "other",
+
+        "refused": None,
+        "prefer not to say": None,
+    }
+
+    assert set(race_map.keys()) == set(map(str.lower, race_map.keys()))
+
+    def standardize_whitespace(string):
+        return re.sub(r"\s+", " ", string.strip())
+
+    def standardize_race(race):
+        try:
+            return race_map[standardize_whitespace(race).lower()]
+        except KeyError:
+            raise UnknownRaceError(f"Unknown race name «{race}»") from None
+
+    return list(map(standardize_race, races))
 
 
 def upsert_location(db: DatabaseSession,

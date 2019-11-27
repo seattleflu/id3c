@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Dict, Optional
 from urllib.parse import urljoin
 from id3c.cli import cli
+from id3c.cli.command import with_database_session
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json
 
@@ -84,20 +85,9 @@ def parse(fastq_directory, filename_pattern, url_prefix):
 @click.argument("unknown-sample-output",
     metavar= "<unknown-sample-output.ndjson>",
     type=click.File("w"))
-@click.option("--dry-run", "action",
-    help        = "Only go through the motions of changing the database (default)",
-    flag_value  = "rollback",
-    default     = True)
+@with_database_session
 
-@click.option("--prompt", "action",
-    help        = "Ask if changes to the database should be saved",
-    flag_value  = "prompt")
-
-@click.option("--commit", "action",
-    help        = "Save changes to the database",
-    flag_value  = "commit")
-
-def upload(sequence_read_set_file, unknown_sample_output, action: str):
+def upload(sequence_read_set_file, unknown_sample_output, db: DatabaseSession):
     """
     Upload sequence read sets into the database warehouse.
 
@@ -109,47 +99,19 @@ def upload(sequence_read_set_file, unknown_sample_output, action: str):
     <unknown-sample-output.ndjson>.
     """
 
-    db = DatabaseSession()
-    processed_without_error = None
-    try:
-        for sequence_read_set in sequence_read_set_file:
-            sample_set = json.loads(sequence_read_set)
-            nwgc_id = sample_set.get("sample")
-            urls = sample_set.get("urls")
-            with db.savepoint(f"sequence read set {nwgc_id}"):
-                LOG.info(f"Processing sequence read set for sample {nwgc_id}")
-                sample_id = find_sample(db, nwgc_id)
-                if sample_id is None:
-                    LOG.warning(f"Skipping sample with NWGC ID «{nwgc_id}» because it was not found within warehouse.")
-                    unknown_sample_output.write(sequence_read_set)
-                    continue
-                sequence_read_set = insert_sequence_read_set(db, sample_id, urls)
-                LOG.info(f"Finished uploading sequence read set for sample {nwgc_id}")
-    except Exception as error:
-        processed_without_error = False
-        LOG.error(f"Aborting with error: {error}")
-        raise error from None
-    else:
-        processed_without_error = True
-    finally:
-        if action == "prompt":
-            ask_to_commit = \
-                "Commit all changes?" if processed_without_error else \
-                "Commit successfully processed sequence read set records up to this point?"
-
-            commit = click.confirm(ask_to_commit)
-        else:
-            commit = action == "commit"
-
-        if commit:
-            LOG.info(
-                "Committing all changes" if processed_without_error else \
-                "Committing successfully processed sequence read set records up to this point")
-            db.commit()
-
-        else:
-            LOG.info("Rolling back all changes; the database will not be modified")
-            db.rollback()
+    for sequence_read_set in sequence_read_set_file:
+        sample_set = json.loads(sequence_read_set)
+        nwgc_id = sample_set.get("sample")
+        urls = sample_set.get("urls")
+        with db.savepoint(f"sequence read set {nwgc_id}"):
+            LOG.info(f"Processing sequence read set for sample {nwgc_id}")
+            sample_id = find_sample(db, nwgc_id)
+            if sample_id is None:
+                LOG.warning(f"Skipping sample with NWGC ID «{nwgc_id}» because it was not found within warehouse.")
+                unknown_sample_output.write(sequence_read_set)
+                continue
+            sequence_read_set = insert_sequence_read_set(db, sample_id, urls)
+            LOG.info(f"Finished uploading sequence read set for sample {nwgc_id}")
 
 
 def find_sample(db: DatabaseSession, nwgc_id: str) -> Optional[int]:
