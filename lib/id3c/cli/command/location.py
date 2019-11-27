@@ -1,5 +1,5 @@
 """
-Import geographic locations.
+Import or lookup geographic locations.
 
 Locations in ID3C are hierarchical geospatial points or areas.  They are
 uniquely identified by their tuple (scale, identifier) and may have the
@@ -25,19 +25,25 @@ geography.
 Hierarchies must be fully-specified for all locations for containment testing
 to work as expected.
 """
+import sys
 import click
 import fiona
 import fiona.crs
 import json
 import logging
+import pandas as pd
 import id3c.db as db
 from io import StringIO
 from psycopg2.sql import SQL
 from textwrap import dedent
+from typing import Optional, Tuple
 from id3c.cli import cli
 from id3c.db.datatypes import Json
+from id3c.db.types import MinimalLocationRecord
 from id3c.db.session import DatabaseSession
-
+from id3c.cli.command import (
+    load_input_from_file_or_stdin,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -289,3 +295,129 @@ def parse_features(path):
         raise Exception("Unsupported CRS")
 
     return list(collection)
+
+
+@location.command("lookup")
+@click.argument("filename",
+    metavar = "<filename.{csv,tsv,xls,xlsx}>",
+    type = click.File("r"))
+
+@click.option("--scale",
+    metavar = "<scale>",
+    default = "tract",
+    show_default = True,
+    help = "Relative size or extent of all locations (e.g. tract, PUMA) to lookup")
+
+@click.option("--lat-column",
+    metavar = "<column>",
+    default = "lat",
+    show_default = True,
+    help = "Column name of latitude")
+
+@click.option("--lng-column",
+    metavar = "<column>",
+    default = "lng",
+    show_default = True,
+    help = "Column name of longitude")
+
+@click.option("--drop-latlng-columns",
+    is_flag = True,
+    help = "Remove input lat/lng columns from the output")
+
+def lookup(filename,
+           scale,
+           lat_column,
+           lng_column,
+           drop_latlng_columns):
+    """
+    Lookup locations containing a given latitude and longitude.
+
+    <filename.{csv,tsv,xls,xlsx}> accepts `-` as a special file that refers
+    to stdin, assuming data is formatted as comma-separated values.
+    This is expected when piping output from `id3c geocode` directly into this
+    command.
+
+    Lookup results are output to stdout as comma-separated values, with
+    location identifier as <scale>_identifier.
+    """
+    input_df = load_input_from_file_or_stdin(filename)
+    lat_lngs = extract_lat_lng_from_input(input_df, lat_column, lng_column)
+
+    db = DatabaseSession()
+    locations = []
+
+    for lat_lng in lat_lngs:
+        location = location_lookup(db, lat_lng, scale)
+        locations.append(location.identifier if location else None)
+
+    output_df = input_df.copy()
+    output_df[f"{scale}_identifier"] = locations
+
+    if drop_latlng_columns:
+        try:
+            output_df.drop(columns = [lat_column, lng_column], inplace = True)
+        except KeyError as error:
+            LOG.error(f"{error}. Columns are: {list(output_df.columns)}")
+            raise error from None
+
+    output_df.to_csv(sys.stdout, index = False)
+
+
+def extract_lat_lng_from_input(lookup_input: pd.DataFrame,
+                               lat_column: str,
+                               lng_column: str) -> pd.Series:
+    """
+    Extract lat/lng from *lookup_input* using the provided *lat_column* and
+    *lng_column* to return as a pandas Series of tuples.
+
+    Raises `KeyError` if either column name cannot be found in *lookup_input*.
+    """
+    try:
+        lat = lookup_input[lat_column]
+        lng = lookup_input[lng_column]
+
+    except KeyError as key:
+        LOG.error(f"Column «{key}» not found in input columns {list(lookup_input.columns)}")
+        raise key from None
+
+    return pd.Series(list(zip(lat, lng)))
+
+
+def location_lookup(db: DatabaseSession,
+                    lat_lng: Tuple[float, float],
+                    scale: str) -> Optional[MinimalLocationRecord]:
+    """
+    Find location within warehouse of *scale* that contains
+    *lat_lng* and return location id and identifier.
+
+    Returns None if *lat_lng* contains NaN and if location could not be
+    found within ID3C.
+    """
+    lat, lng = lat_lng
+
+    if not lat or not lng:
+        LOG.error("Cannot find location without lat/lng")
+        return None
+
+    data = {
+        "scale": scale,
+        "lat": lat,
+        "lng": lng
+    }
+
+    # SRID 4326 = World Geodetic System (WGS)
+    location = db.fetch_row("""
+        select location_id as id, identifier, scale
+          from warehouse.location
+         where scale = %(scale)s and
+               st_contains(polygon, st_setsrid(st_point(%(lng)s, %(lat)s), 4326))
+        order by identifier asc
+        limit 1
+        """, data)
+
+    if not location:
+        LOG.error(f"No location of scale «{scale}» found for lat/lng")
+        return None
+
+    LOG.debug(f"Found location {location.id} «{location.identifier}»")
+    return location
