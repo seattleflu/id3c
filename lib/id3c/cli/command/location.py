@@ -162,6 +162,12 @@ def import_(features_path,
         else:
             return None
 
+    # Technically PostGIS' SRIDs don't have to match the EPSG id, but in my
+    # experience, they always do in practice.  If that doesn't hold true in the
+    # future, then a lookup of (auth_name, auth_id) in spatial_ref_sys table
+    # will be needed to map to srid.
+    #   -trs, 2 Dec 2019
+
     def as_location(feature):
         return {
             "scale": scale or feature["properties"].pop(scale_from),
@@ -169,6 +175,7 @@ def import_(features_path,
             "hierarchy": hierarchy or feature["properties"].pop(hierarchy_from, None),
             "point": point(feature),
             "polygon": polygon(feature),
+            "srid": feature["crs"]["EPSG"],
             "details": feature["properties"],
         }
 
@@ -176,6 +183,7 @@ def import_(features_path,
         return {
             "identifier": identifier(feature),
             "polygon": polygon(feature),
+            "srid": feature["crs"]["EPSG"],
         }
 
     # Now, read in the data files and convert to our internal structure.
@@ -200,9 +208,9 @@ def import_(features_path,
                     scale,
                     identifier,
                     coalesce(lower(hierarchy)::hstore, '') || hstore(lower(scale), lower(identifier)) as hierarchy,
-                    st_setsrid(st_geomfromgeojson(point), 4326) as point,
-                    st_setsrid(st_multi(st_geomfromgeojson(location.polygon)), 4326) as polygon,
-                    st_setsrid(st_multi(st_geomfromgeojson(simplified.polygon)), 4326) as simplified_polygon,
+                    st_transform(st_setsrid(st_geomfromgeojson(point), location.srid), 4326) as point,
+                    st_transform(st_setsrid(st_multi(st_geomfromgeojson(location.polygon)), location.srid), 4326) as polygon,
+                    st_transform(st_setsrid(st_multi(st_geomfromgeojson(simplified.polygon)), simplified.srid), 4326) as simplified_polygon,
                     details
                 from jsonb_to_recordset(%s)
                     as location ( scale text
@@ -210,11 +218,13 @@ def import_(features_path,
                                 , hierarchy text
                                 , point text
                                 , polygon text
+                                , srid integer
                                 , details jsonb
                                 )
                 left join jsonb_to_recordset(%s)
                     as simplified ( identifier text
                                   , polygon text
+                                  , srid integer
                                   )
                     using (identifier)
             ),
@@ -278,23 +288,31 @@ def parse_features(path):
     * Shapefiles (*.shp with sidecar *.dbf file; may be zipped)
     * tabular (CSV or TSV, delimiter auto-detected, no geometry construction)
 
-    Raises a :class:`Exception` if the parsed coordinate reference system (CRS)
-    is defined and is not EPSG:4269.
+    If a coordinate reference system is not defined, EPSG:4326 is assumed and a
+    warning issued.  If the CRS is an unaltered EPSG reference, features will
+    be re-projected during import to EPSG:4326.  Otherwise, an
+    :class:`Exception` is raised.
 
     Returns a list of dictionaries conforming to the GeoJSON ``Feature`` spec.
+    Each dictionary also includes an additional top-level ``crs`` key
+    containing with the EPSG spatial reference identifier of the collection.
     """
     collection = fiona.open(path)
 
-    crs = fiona.crs.to_string(collection.crs or {})
+    crs = collection.crs or {}
 
     if not crs:
-        LOG.warning(f"No CRS defined.  EPSG:4269 will be assumed, but this may result in bad geometries.")
+        LOG.warning(f"No CRS defined.  EPSG:4326 will be assumed, but this may result in bad geometries.")
+        crs = {"EPSG": 4326}
 
-    elif crs not in {"+init=epsg:4269",}:
-        LOG.error(f"CRS is «{crs}»; only EPSG:4269 is supported.  Please reproject your geospatial data into EPSG:4269.")
-        raise Exception("Unsupported CRS")
+    elif crs.keys() == {"init",} and crs["init"].upper().startswith("EPSG:"):
+        LOG.info(f"CRS is «{fiona.crs.to_string(crs)}»; will re-project to EPSG:4326.")
+        crs = {"EPSG": int(crs["init"][5:])}
 
-    return list(collection)
+    else:
+        raise Exception(f"Unsupported CRS «{fiona.crs.to_string(crs)}»")
+
+    return [{**feature, "crs": crs} for feature in collection]
 
 
 @location.command("lookup")
@@ -405,7 +423,7 @@ def location_lookup(db: DatabaseSession,
         "lng": lng
     }
 
-    # SRID 4326 = World Geodetic System (WGS)
+    # SRID 4326 = EPSG 4326 = World Geodetic System 1984 (WGS84)
     location = db.fetch_row("""
         select location_id as id, identifier, scale
           from warehouse.location
