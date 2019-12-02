@@ -324,11 +324,11 @@ def parse_features(path):
     is_flag = True,
     help = "Remove input lat/lng columns from the output")
 
-def lookup(filename,
-           scale,
-           lat_column,
-           lng_column,
-           drop_latlng_columns):
+def lookup(filename: click.File,
+           scale: str,
+           lat_column: str,
+           lng_column: str,
+           drop_latlng_columns: bool):
     """
     Lookup locations containing a given latitude and longitude.
 
