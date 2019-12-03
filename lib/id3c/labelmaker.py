@@ -146,6 +146,11 @@ class CollectionsHouseholdInterventionLayout(LCRY1100TriplicateLayout):
     reference = "seattleflu.org"
 
 
+class CollectionsSelfTestLayout(LCRY1100TriplicateLayout):
+    barcode_type = "HOME TEST"
+    reference = "seattleflu.org"
+
+
 class CollectionsFluAtHomeLayout(LabelLayout):
     sku = "LCRY-2380"
     barcode_type = "COLLECTION"
@@ -175,6 +180,7 @@ LAYOUTS = {
     "collections-swab&send": CollectionsSwabAndSendLayout,
     "collections-household-observation": CollectionsHouseholdObservationLayout,
     "collections-household-intervention": CollectionsHouseholdInterventionLayout,
+    "collections-self-test": CollectionsSelfTestLayout,
     "collections-fluathome.org": CollectionsFluAtHomeLayout,
     "kits-fluathome.org": KitsFluAtHomeLayout,
     "test-strips-fluathome.org": _TestStripsFluAtHomeLayout,
