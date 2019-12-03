@@ -131,10 +131,8 @@ class CollectionsEnvironmentalLayout(LabelLayout):
     reference = "seattleflu.org"
 
 
-class CollectionsSwabAndSendLayout(LabelLayout):
-    sku = "LCRY-1100"
+class CollectionsSwabAndSendLayout(LCRY1100TriplicateLayout):
     barcode_type = "SWAB & SEND"
-    copies_per_barcode = 4
     reference = "seattleflu.org"
 
 
