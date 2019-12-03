@@ -307,7 +307,11 @@ def get_response_from_cache_or_geocoding(address: dict,
         response = cache[key] = geocode_address(address)
         LOG.debug('Adding new response to cache.')
 
-    return response.get('lat'), response.get('lng'), response.get('canonicalized_address')
+    if not response:
+        return None, None, None
+
+    else:
+        return response.get('lat'), response.get('lng'), response.get('canonicalized_address')
 
 
 def geocode_address(address: dict) -> dict:
