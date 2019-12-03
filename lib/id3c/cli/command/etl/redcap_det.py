@@ -155,7 +155,11 @@ def get_redcap_record_from_det(det: dict) -> Optional[dict]:
     api_token = get_redcap_api_token(api_url)
 
     project_id = int(det["project_id"])
-    record_id = int(det["record"])
+
+    try:
+        record_id = int(det["record"])
+    except ValueError:
+        return None
 
     LOG.info(f"Fetching REDCap record {record_id}")
 
