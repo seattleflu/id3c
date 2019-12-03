@@ -16,10 +16,14 @@ from id3c.cli.command import with_database_session
 from id3c.cli.redcap import CachedProject, is_complete
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
+from id3c.cli.command.geocode import pickled_cache
 from . import etl
 
 
 LOG = logging.getLogger(__name__)
+
+
+CACHE_FILE = 'cache.pickle'
 
 
 @etl.group("redcap-det", help = __doc__)
@@ -89,49 +93,50 @@ def command_for_project(name: str,
                    for update
                 """, (Json([etl_id]), Json(det_contains)))
 
-            for det in redcap_det:
-                with db.savepoint(f"redcap_det {det.id}"):
-                    LOG.info(f"Processing REDCap DET {det.id}")
+            with pickled_cache(CACHE_FILE) as cache:
+                for det in redcap_det:
+                    with db.savepoint(f"redcap_det {det.id}"):
+                        LOG.info(f"Processing REDCap DET {det.id}")
 
-                    instrument = det.document['instrument']
+                        instrument = det.document['instrument']
 
-                    # Only pull REDCap record if the current instrument is complete
-                    if not is_complete(instrument, det.document):
-                        LOG.debug(f"Skipping incomplete or unverified REDCap DET {det.id}")
-                        mark_skipped(db, det.id, etl_id)
-                        continue
+                        # Only pull REDCap record if the current instrument is complete
+                        if not is_complete(instrument, det.document):
+                            LOG.debug(f"Skipping incomplete or unverified REDCap DET {det.id}")
+                            mark_skipped(db, det.id, etl_id)
+                            continue
 
-                    redcap_record = get_redcap_record_from_det(det.document)
+                        redcap_record = get_redcap_record_from_det(det.document)
 
-                    if not redcap_record:
-                        LOG.debug(f"REDCap record is missing.  Skipping REDCap DET {det.id}")
-                        mark_skipped(db, det.id, etl_id)
-                        continue
+                        if not redcap_record:
+                            LOG.debug(f"REDCap record is missing or invalid.  Skipping REDCap DET {det.id}")
+                            mark_skipped(db, det.id, etl_id)
+                            continue
 
-                    # Only process REDCap record if all required instruments are complete
-                    incomplete_instruments = {
-                        instrument
-                            for instrument
-                            in required_instruments
-                            if not is_complete(instrument, redcap_record)
-                    }
+                        # Only process REDCap record if all required instruments are complete
+                        incomplete_instruments = {
+                            instrument
+                                for instrument
+                                in required_instruments
+                                if not is_complete(instrument, redcap_record)
+                        }
 
-                    if incomplete_instruments:
-                        LOG.debug(f"The following required instruments «{incomplete_instruments}» are not yet marked complete. " + \
-                                  f"Skipping REDCap DET {det.id}")
-                        mark_skipped(db, det.id, etl_id)
-                        continue
+                        if incomplete_instruments:
+                            LOG.debug(f"The following required instruments «{incomplete_instruments}» are not yet marked complete. " + \
+                                      f"Skipping REDCap DET {det.id}")
+                            mark_skipped(db, det.id, etl_id)
+                            continue
 
-                    bundle = routine(det = det, redcap_record = redcap_record)
+                        bundle = routine(db = db, cache = cache, det = det, redcap_record = redcap_record)
 
-                    if log_output:
-                        print(json.dumps(bundle, indent=2))
+                        if log_output:
+                            print(json.dumps(bundle, indent=2))
 
-                    if bundle:
-                        insert_fhir_bundle(db, bundle)
-                        mark_loaded(db, det.id, etl_id)
-                    else:
-                        mark_skipped(db, det.id, etl_id)
+                        if bundle:
+                            insert_fhir_bundle(db, bundle)
+                            mark_loaded(db, det.id, etl_id)
+                        else:
+                            mark_skipped(db, det.id, etl_id)
 
         return decorated
     return decorator
