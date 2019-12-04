@@ -360,6 +360,9 @@ def process_encounter_site(db: DatabaseSession, encounter: Encounter) -> Optiona
     definitions) using the first site found in the given *encounter*'s linked
     Location Resources.
     """
+    if not encounter.location:
+        return None
+
     for encounter_location in encounter.location:
         identifier = encounter_location.location.identifier
 
