@@ -357,8 +357,8 @@ def process_encounter_individual(db: DatabaseSession, encounter: Encounter) -> A
 def process_encounter_site(db: DatabaseSession, encounter: Encounter) -> Optional[Any]:
     """
     Returns a found or created ``site`` (per ID3C encounter-relation
-    definitions) using data from the given *encounter*'s linked Location
-    Resources.
+    definitions) using the first site found in the given *encounter*'s linked
+    Location Resources.
     """
     for encounter_location in encounter.location:
         identifier = encounter_location.location.identifier
