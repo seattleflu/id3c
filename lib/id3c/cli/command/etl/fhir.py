@@ -122,10 +122,6 @@ def etl_fhir(*, db: DatabaseSession):
 
                         barcode = reference.identifier.value
 
-                        # TODO delete between comments for production
-                        # barcode = '6942eef8-da26-4c0f-8f42-8e26437fab67'
-                        # XXX
-
                         sample = process_sample(db, barcode)
                         process_presence_absence_tests(db, resource, sample.id, barcode)
 
@@ -408,9 +404,8 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
     for specimen in related_specimens(encounter, related_resources):
         barcode = identifier(specimen, f"{INTERNAL_SYSTEM}/sample")
 
-        if not barcode:  # TODO
-            barcode = 'abadcafe'
-        # XXX delete between the comments for production
+        if not barcode:
+            raise Exception("An empty barcode value violates the FHIR docs.")
 
         upsert_sample(db,
             collection_identifier   = barcode,
@@ -509,9 +504,6 @@ def process_location(db: DatabaseSession, encounter_id: int, location: Location)
         if not tract_identifier:
             return None
 
-        # TODO remove for production
-        tract_identifier = '53033005302'
-        # XXX remove above line for production
         tract = find_location(db, scale, tract_identifier)
         assert tract, f"Tract «{tract_identifier}» is unknown"
 
