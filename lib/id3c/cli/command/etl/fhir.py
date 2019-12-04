@@ -89,7 +89,11 @@ def etl_fhir(*, db: DatabaseSession):
             bundle      = Bundle(record.document)
             resources   = extract_resources(bundle)
 
-            assert_required_resource_types_present(resources)
+            try:
+                assert_required_resource_types_present(resources)
+            except AssertionError:
+                mark_skipped(db, record.id)
+                continue
 
             # Loop over every Resource the Bundle entry, processing what is
             # needed along the way.
