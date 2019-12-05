@@ -503,7 +503,7 @@ def process_location(db: DatabaseSession, encounter_id: int, location: Location)
         Given a *location*, returns its tract hierarchy if it exists, else None.
         """
         scale = 'tract'
-        tract_identifier = identifier(location, f"{INTERNAL_SYSTEM}/locations/{scale}")
+        tract_identifier = identifier(location, f"{INTERNAL_SYSTEM}/location/{scale}")
 
         if not tract_identifier:
             return None
@@ -522,7 +522,7 @@ def process_location(db: DatabaseSession, encounter_id: int, location: Location)
         # location record for it.  Addresses are not reasonably enumerable, so
         # we don't require they exist.
         scale = 'address'
-        address_identifier = identifier(location, f"{INTERNAL_SYSTEM}/locations/{scale}")
+        address_identifier = identifier(location, f"{INTERNAL_SYSTEM}/location/{scale}")
 
         if not address_identifier:
             return None
