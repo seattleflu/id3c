@@ -407,7 +407,9 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
         barcode = identifier(specimen, f"{INTERNAL_SYSTEM}/sample")
 
         if not barcode:
-            raise Exception("An empty barcode value violates the FHIR docs.")
+            raise Exception("No barcode detectable. Either the barcode identification system is "
+                            f"not «{INTERNAL_SYSTEM}/sample», or the barcode value is empty, which "
+                            "violates the FHIR docs.")
 
         upsert_sample(db,
             collection_identifier   = barcode,
