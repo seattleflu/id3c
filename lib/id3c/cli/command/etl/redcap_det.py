@@ -139,11 +139,14 @@ def command_for_project(name: str,
                             else:
                                 print(json.dumps(bundle))
 
-                        if bundle:
-                            insert_fhir_bundle(db, bundle)
-                            mark_loaded(db, det.id, etl_id)
-                        else:
+                        if not bundle:
                             mark_skipped(db, det.id, etl_id)
+                            continue
+
+                        insert_fhir_bundle(db, bundle)
+                        mark_loaded(db, det.id, etl_id)
+
+
 
         return decorated
     return decorator
