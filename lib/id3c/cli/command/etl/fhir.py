@@ -324,12 +324,12 @@ def process_encounter(db: DatabaseSession, encounter: Encounter,
     age = encounter_age(encounter, related_resources)
 
     # Find specific resources referenced in Encounter
-    individual  = process_encounter_individual(db, encounter)
     site        = process_encounter_site(db, encounter)
-
     if not site:
         LOG.warning("Encounter site not found.")
         return None
+
+    individual  = process_encounter_individual(db, encounter)
 
     contained_resources = extract_contained_resources(encounter)
 
