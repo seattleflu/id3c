@@ -126,6 +126,8 @@ def process_bundle_entries(db: DatabaseSession, bundle: Bundle):
     Loads Encounter, DiagnosticReport, and other dependent FHIR DomainResources
     from a given *Bundle* into the database warehouse as appropriate for each
     Resource type.
+    Ensures that all Encounter resources are processed before DiagnosticReport
+    resources to avoid potential :class:`SampleNotFoundError`s.
     """
     for entry in bundle.entry:
         resource, resource_type = resource_and_resource_type(entry)
@@ -141,7 +143,10 @@ def process_bundle_entries(db: DatabaseSession, bundle: Bundle):
             process_encounter_samples(db, resource, encounter.id, related_resources)
             process_locations(db, encounter.id, resource)
 
-        elif resource_type == 'DiagnosticReport':
+    for entry in bundle.entry:
+        resource, resource_type = resource_and_resource_type(entry)
+
+        if resource_type == 'DiagnosticReport':
             for reference in resource.specimen:
                 if not matching_system(reference.identifier, INTERNAL_SYSTEM):
                     continue
