@@ -130,35 +130,51 @@ def process_bundle_entries(db: DatabaseSession, bundle: Bundle):
     resources to avoid potential :class:`SampleNotFoundError`s.
     """
     for entry in bundle.entry:
-        resource, resource_type = resource_and_resource_type(entry)
-
-        if resource_type == 'Encounter':
-            LOG.debug(f"Processing Encounter Resource «{entry.fullUrl}».")
-
-            related_resources = extract_related_resources(bundle, entry)
-
-            encounter = process_encounter(db, resource, related_resources)
-            assert encounter, "Insufficient information to create an encounter."
-
-            process_encounter_samples(db, resource, encounter.id, related_resources)
-            process_locations(db, encounter.id, resource)
+        process_encounter_bundle_entry(db, bundle, entry)
 
     for entry in bundle.entry:
-        resource, resource_type = resource_and_resource_type(entry)
+        process_diagnostic_report_bundle_entry(db, bundle, entry)
 
-        if resource_type == 'DiagnosticReport':
-            for reference in resource.specimen:
-                if not matching_system(reference.identifier, INTERNAL_SYSTEM):
-                    continue
 
-                barcode = reference.identifier.value
+def process_encounter_bundle_entry(db: DatabaseSession, bundle: Bundle, entry: BundleEntry):
+    """
+    Given an Encounter resource *entry* from a given *bundle*, processes the
+    relevant information into the database.
+    """
+    resource, resource_type = resource_and_resource_type(entry)
 
-                # TODO delete between comments for production
-                # barcode = '6942eef8-da26-4c0f-8f42-8e26437fab67'
-                # XXX
+    if resource_type != 'Encounter':
+        return
 
-                sample = process_sample(db, barcode)
-                process_presence_absence_tests(db, resource, sample.id, barcode)
+    LOG.debug(f"Processing Encounter Resource «{entry.fullUrl}».")
+
+    related_resources = extract_related_resources(bundle, entry)
+
+    encounter = process_encounter(db, resource, related_resources)
+    assert encounter, "Insufficient information to create an encounter."
+
+    process_encounter_samples(db, resource, encounter.id, related_resources)
+    process_locations(db, encounter.id, resource)
+
+
+def process_diagnostic_report_bundle_entry(db: DatabaseSession, bundle: Bundle, entry: BundleEntry):
+    """
+    Given an DiagnosticReport resource *entry* from a given *bundle*, processes
+    the relevant information into the database.
+    """
+    resource, resource_type = resource_and_resource_type(entry)
+
+    if resource_type != 'DiagnosticReport':
+        return
+
+    for reference in resource.specimen:
+        if not matching_system(reference.identifier, INTERNAL_SYSTEM):
+            continue
+
+        barcode = reference.identifier.value
+
+        sample = process_sample(db, barcode)
+        process_presence_absence_tests(db, resource, sample.id, barcode)
 
 
 def resource_and_resource_type(entry: BundleEntry) -> Tuple[DomainResource, str]:
