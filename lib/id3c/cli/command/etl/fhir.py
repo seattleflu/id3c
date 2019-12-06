@@ -403,7 +403,7 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
     def is_related_specimen(observation: Observation, encounter: Encounter) -> bool:
         return bool(observation.encounter) and observation.encounter.resolved(Encounter) == encounter
 
-    def related_specimens(encounter: Encounter, resources: Dict[str, List[DomainResource]]) -> List[Specimen]:
+    def related_specimens(encounter: Encounter, resources: Dict[str, List[DomainResource]]) -> Optional[List[Specimen]]:
         """
         Given a dict of FHIR *resources*, returns a list of Specimens linked to a given *encounter*.
         """
