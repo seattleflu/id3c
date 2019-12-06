@@ -642,7 +642,7 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
         # updates.
         target = find_or_create_target(db,
             identifier  = target_identifier,
-            control     = False)  # TODO what do we expect here? Do we expect more controls?
+            control     = False)
 
         upsert_presence_absence(db,
             identifier = f'{barcode}/{target_identifier}/{observation.device.identifier.value}',
