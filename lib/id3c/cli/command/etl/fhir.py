@@ -636,15 +636,16 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
     for result in report.result:
         observation = result.resolved(Observation)
 
+        target_identifier = matching_system_code(observation.code, TARGET_SYSTEM)
         # Most of the time we expect to see existing targets so a
         # select-first approach makes the most sense to avoid useless
         # updates.
         target = find_or_create_target(db,
-            identifier  = matching_system_code(observation.code, TARGET_SYSTEM),
+            identifier  = target_identifier,
             control     = False)  # TODO what do we expect here? Do we expect more controls?
 
         upsert_presence_absence(db,
-            identifier = f'{barcode}/{observation.device.identifier.value}',  # TODO is this correct use of assay?
+            identifier = f'{barcode}/{target_identifier}/{observation.device.identifier.value}',
             sample_id = sample_id,
             target_id = target.id,
             present = observation.valueBoolean,
