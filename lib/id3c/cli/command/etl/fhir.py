@@ -91,11 +91,6 @@ def etl_fhir(*, db: DatabaseSession):
 
             assert_required_resource_types_present(resources)
 
-            # TODO testing only
-            with open('../documentation/fhir/presence-absence-example.json') as f:
-               bundle = Bundle(json.load(f))
-            # XXX delete between comments for production
-
             # Loop over every Resource the Bundle entry, processing what is
             # needed along the way.
             for entry in bundle.entry:
