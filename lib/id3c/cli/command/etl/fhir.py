@@ -647,7 +647,7 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
             identifier = f'{barcode}/{observation.device.identifier.value}',  # TODO is this correct use of assay?
             sample_id = sample_id,
             target_id = target.id,
-            present = True,
+            present = observation.valueBoolean,
             details = {})
 
 
