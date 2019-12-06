@@ -420,7 +420,11 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
 
         return specimens
 
-    for specimen in related_specimens(encounter, related_resources):
+    specimens = related_specimens(encounter, related_resources)
+    if not specimens:
+        return
+
+    for specimen in specimens:
         barcode = identifier(specimen, f"{INTERNAL_SYSTEM}/sample")
 
         if not barcode:
