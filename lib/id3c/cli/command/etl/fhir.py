@@ -167,6 +167,8 @@ def process_diagnostic_report_bundle_entry(db: DatabaseSession, bundle: Bundle, 
     if resource_type != 'DiagnosticReport':
         return
 
+    LOG.debug(f"Processing DiagnosticReport Resource «{entry.fullUrl}».")
+
     for reference in resource.specimen:
         if not matching_system(reference.identifier, INTERNAL_SYSTEM):
             continue
