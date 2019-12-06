@@ -92,6 +92,7 @@ def etl_fhir(*, db: DatabaseSession):
             try:
                 assert_required_resource_types_present(resources)
             except AssertionError:
+                LOG.info("FHIR document doesn't meet minimum requirements for processing.")
                 mark_skipped(db, record.id)
                 continue
 
