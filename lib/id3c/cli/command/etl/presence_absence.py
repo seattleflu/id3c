@@ -35,7 +35,7 @@ LOG = logging.getLogger(__name__)
 # presence-absence tests lacking this revision number in their log.  If a
 # change to the ETL routine necessitates re-processing all presence-absence tests,
 # this revision number should be incremented.
-REVISION = 4
+REVISION = 5
 
 
 @etl.command("presence-absence", help = __doc__)
@@ -76,6 +76,10 @@ def etl_presence_absence(*, db: DatabaseSession):
                 # include the "chip" key which is needed for the
                 # unique identifier for each result.
                 #   -Jover, 14 Nov 2019
+                # Also skip old format to avoid ingesting wrong data from
+                # plate swapped data! This will lead to 188 samples with the
+                # wrong nwgc_id associated with them.
+                #   -Jover, 06 Dec 2019
                 if (group.document.get("store") is not None or
                     group.document.get("Update") is not None):
 
