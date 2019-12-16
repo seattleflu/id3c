@@ -1,0 +1,14 @@
+#!/bin/bash
+# usage: ./validate-fhir
+
+set -euof pipefail
+IFS=$'\n'
+COUNT=-1
+
+for fhir_document in $(cat < "$1");
+    do
+        COUNT=$((COUNT+1))
+        echo "Validating FHIR Document #$COUNT"
+        echo $fhir_document > tempfile
+        chronic java -jar org.hl7.fhir.validator.jar -version 4.0 tempfile
+    done;
