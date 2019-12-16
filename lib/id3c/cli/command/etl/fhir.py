@@ -695,7 +695,7 @@ def mark_processed(db, fhir_id: int, entry = {}) -> None:
     LOG.debug(f"Marking FHIR document {fhir_id} as processed")
 
     data = {
-        "manifest_id": fhir_id,
+        "fhir_id": fhir_id,
         "log_entry": Json({
             **entry,
             "etl": ETL_NAME,
@@ -706,7 +706,7 @@ def mark_processed(db, fhir_id: int, entry = {}) -> None:
 
     with db.cursor() as cursor:
         cursor.execute("""
-            update receiving.manifest
+            update receiving.fhir
                set processing_log = processing_log || %(log_entry)s
-             where manifest_id = %(manifest_id)s
+             where fhir_id = %(fhir_id)s
             """, data)
