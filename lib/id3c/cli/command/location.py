@@ -207,7 +207,7 @@ def import_(features_path,
                 select
                     scale,
                     identifier,
-                    coalesce(lower(hierarchy)::hstore, '') || hstore(lower(scale), lower(identifier)) as hierarchy,
+                    coalesce(nested_within.hierarchy, '') || coalesce(lower(hierarchy)::hstore, '') || hstore(lower(scale), lower(identifier)) as hierarchy,
                     st_transform(st_setsrid(st_geomfromgeojson(point), location.srid), 4326) as point,
                     st_transform(st_setsrid(st_multi(st_geomfromgeojson(location.polygon)), location.srid), 4326) as polygon,
                     st_transform(st_setsrid(st_multi(st_geomfromgeojson(simplified.polygon)), simplified.srid), 4326) as simplified_polygon,
@@ -227,6 +227,12 @@ def import_(features_path,
                                   , srid integer
                                   )
                     using (identifier)
+                left join lateral (
+                        select hstore_agg(hierarchy)
+                        from warehouse.location as containing
+                        where st_within(location.point, containing.polygon))
+                    as nested_within
+                    on true
             ),
             inserted as (
                 insert into warehouse.location (scale, identifier, hierarchy, point, polygon, simplified_polygon, details)
