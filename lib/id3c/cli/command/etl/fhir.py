@@ -20,6 +20,7 @@ from fhir.resources.patient import Patient
 from fhir.resources.questionnaireresponse import QuestionnaireResponse
 from fhir.resources.specimen import Specimen
 from id3c.cli.command import with_database_session
+from id3c.db import find_identifier
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
 from . import (
@@ -56,6 +57,13 @@ ETL_NAME = 'fhir'
 INTERNAL_SYSTEM = 'https://seattleflu.org'
 LOCATION_RELATION_SYSTEM = 'http://terminology.hl7.org/CodeSystem/v3-RoleCode'
 TARGET_SYSTEM = 'http://snomed.info/sct'
+EXPECTED_COLLECTION_IDENTIFIER_SETS = [
+    'collections-household-observation',
+    'collections-household-intervention',
+    'collections-swab&send',
+    'collections-kiosks',
+    'collections-self-test',
+]
 
 @etl.command("fhir", help = __doc__)
 
@@ -178,7 +186,17 @@ def process_diagnostic_report_bundle_entry(db: DatabaseSession, bundle: Bundle, 
 
         barcode = reference.identifier.value
 
-        sample = process_sample(db, barcode)
+        LOG.debug(f"Looking up collected specimen barcode «{barcode}»")
+        specimen_identifier = find_identifier(db, barcode)
+
+        if not specimen_identifier:
+            LOG.warning(f"Skipping collected specimen with unknown barcode «{barcode}»")
+            continue
+
+        assert specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS, \
+            f"Speciment with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
+
+        sample = process_sample(db, specimen_identifier.uuid)
         process_presence_absence_tests(db, resource, sample.id, barcode)
 
 
@@ -458,8 +476,18 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
                             f"not «{INTERNAL_SYSTEM}/sample», or the barcode value is empty, which "
                             "violates the FHIR docs.")
 
+        LOG.debug(f"Looking up collected specimen barcode «{barcode}»")
+        specimen_identifier = find_identifier(db, barcode)
+
+        if not specimen_identifier:
+            LOG.warning(f"Skipping collected specimen with unknown barcode «{barcode}»")
+            continue
+
+        assert specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS, \
+            f"Speciment with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
+
         upsert_sample(db,
-            collection_identifier   = barcode,
+            collection_identifier   = specimen_identifier.uuid,
             encounter_id            = encounter_id,
             details                 = specimen.type.as_json())
 
@@ -622,12 +650,13 @@ def location_code(location: Location) -> str:
     return unique_codes[0]
 
 
-def process_sample(db: DatabaseSession, barcode: str) -> Any:
-    """ Given a *barcode*, returns its matching sample from ID3C. """
-    sample = find_sample(db, barcode)
+def process_sample(db: DatabaseSession, identifier: str) -> Any:
+    """ Given an *identifier*, returns its matching sample from ID3C. """
+
+    sample = find_sample(db, identifier)
 
     if not sample:
-        raise SampleNotFoundError(f"No sample with «{barcode}» found.")
+        raise SampleNotFoundError(f"No sample with identifier «{identifier}» found.")
 
     return sample
 
