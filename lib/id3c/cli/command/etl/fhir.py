@@ -106,6 +106,9 @@ def etl_fhir(*, db: DatabaseSession):
                 mark_skipped(db, record.id)
                 continue
 
+            mark_processed(db, record.id, {"status": "processed"})
+            LOG.info(f"Finished processing FHIR document {record.id}")
+
 
 def assert_bundle_collection(document: Dict[str, Any]):
     """
@@ -660,7 +663,7 @@ def mark_skipped(db, fhir_id: int) -> None:
 
 
 def mark_processed(db, fhir_id: int, entry = {}) -> None:
-    LOG.debug(f"Appending to processing log of FHIR document {fhir_id}")
+    LOG.debug(f"Marking FHIR document {fhir_id} as processed")
 
     data = {
         "manifest_id": fhir_id,
