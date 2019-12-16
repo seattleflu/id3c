@@ -326,7 +326,6 @@ def geocode_address(address: dict) -> dict:
     if not CLIENT:
         CLIENT = smartystreets_client_builder().build_us_street_api_client()
 
-    print('setup client')
     lookup = us_street_lookup(address)
     if not lookup.street:
         LOG.warning(f"Missing street address; can't geocode")
@@ -369,7 +368,7 @@ def us_street_lookup(address: dict) -> Lookup:
     SmartyStreets geocoding API is not present in the given *address* data.
     """
     lookup = Lookup()
-    print(address)
+
     try:
         lookup.street = address['street']
         lookup.secondary = address['secondary']
