@@ -56,7 +56,7 @@ REVISION = 1
 ETL_NAME = 'fhir'
 INTERNAL_SYSTEM = 'https://seattleflu.org'
 LOCATION_RELATION_SYSTEM = 'http://terminology.hl7.org/CodeSystem/v3-RoleCode'
-TARGET_SYSTEM = 'http://snomed.info/sct'
+SNOMED_SYSTEM = 'http://snomed.info/sct'
 EXPECTED_COLLECTION_IDENTIFIER_SETS = [
     'collections-household-observation',
     'collections-household-intervention',
@@ -352,8 +352,8 @@ def matching_system_code(concept: CodeableConcept, system: str) -> Optional[str]
 
     if not system_codes:
         return None
-    else:
-        return system_codes[0].code
+
+    return system_codes[0].code
 
 
 def location_relation(code: str) -> str:
@@ -667,10 +667,36 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
     Given a *report* containing presence-absence test results, upserts them to
     ID3C, attaching a sample and target ID.
     """
+    def observation_value(observation: Observation) -> bool:
+        """
+        Return the boolean value of a presence/absence result observation.
+
+        Expects the observation value to be within valueBoolean or
+        valueCodeableConcept. Raises Exception if both are None.
+
+        Also raises Exception if valueCodeableConcept contains an unknown code.
+        """
+        if observation.valueBoolean is not None:
+            return observation.valueBoolean
+
+        elif observation.valueCodeableConcept is not None:
+            code_map = {
+                "10828004": True,
+                "260385009": False
+            }
+            code = matching_system_code(observation.valueCodeableConcept, SNOMED_SYSTEM)
+
+            if code_map.get(code) is None:
+                raise Exception(f"Unknown SNOMED code «{code}»")
+
+            return code_map[code]
+
+        raise Exception("Could not find presence/absence observation value in valueBoolean or valueCodeableConcept")
+
     for result in report.result:
         observation = result.resolved(Observation)
 
-        target_identifier = matching_system_code(observation.code, TARGET_SYSTEM)
+        target_identifier = matching_system_code(observation.code, SNOMED_SYSTEM)
         # Most of the time we expect to see existing targets so a
         # select-first approach makes the most sense to avoid useless
         # updates.
@@ -678,11 +704,13 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
             identifier  = target_identifier,
             control     = False)
 
+        result_value = observation_value(observation)
+
         upsert_presence_absence(db,
             identifier = f'{barcode}/{target_identifier}/{observation.device.identifier.value}',
             sample_id = sample_id,
             target_id = target.id,
-            present = observation.valueBoolean,
+            present = result_value,
             details = {})
 
 
