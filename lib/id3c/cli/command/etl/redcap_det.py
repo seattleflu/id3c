@@ -5,7 +5,6 @@ This command group supports custom ETL routines specific to a project in
 REDCap.
 """
 import os
-import json
 import click
 import logging
 from datetime import datetime, timezone
@@ -15,7 +14,7 @@ from urllib.parse import urljoin
 from id3c.cli.command import with_database_session
 from id3c.cli.redcap import CachedProject, is_complete
 from id3c.db.session import DatabaseSession
-from id3c.db.datatypes import Json
+from id3c.db.datatypes import as_json, Json
 from id3c.cli.command.geocode import pickled_cache
 from . import etl
 
@@ -134,7 +133,7 @@ def command_for_project(name: str,
                             continue
 
                         if log_output:
-                            print(json.dumps(bundle, indent=2))
+                            print(as_json(bundle))
 
                         insert_fhir_bundle(db, bundle)
                         mark_loaded(db, det.id, etl_id)
