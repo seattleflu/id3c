@@ -273,16 +273,16 @@ def assert_required_resource_types_present(resources: Dict[str, List[DomainResou
     """
     Raises an :class:`SkipBundleError` if the given *resources* do not meet the
     following requirements:
-    * At least one Specimen Resource exists in the given *resources*
     * There is at least one Patient or DiagnosticReport Resource
+    * If there is a Patient, there is at least one Specimen
     * The number of Observation Resources equals or exceeds the total number
       of Encounter or Patient Resources.
     """
-    if not resources['Specimen']:
-        raise SkipBundleError("At least one Specimen Resource is required in a FHIR Bundle")
-
     if not (resources['Patient'] or resources['DiagnosticReport']):
         raise SkipBundleError("Either a Patient or a DiagnosticReport Resource are required in a FHIR Bundle.")
+
+    if resources['Patient'] and not resources['Specimen']:
+        raise SkipBundleError("At least one Specimen Resource is required in a FHIR Bundle containing a Patient Resource")
 
     patients = len(resources['Patient'])
     encounters = len(resources['Encounter'])
