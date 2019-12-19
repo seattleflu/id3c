@@ -195,7 +195,7 @@ def process_diagnostic_report_bundle_entry(db: DatabaseSession, bundle: Bundle, 
             continue
 
         assert specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS, \
-            f"Speciment with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
+            f"Specimen with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
 
         sample = process_sample(db, specimen_identifier.uuid)
         process_presence_absence_tests(db, resource, sample.id, barcode)
