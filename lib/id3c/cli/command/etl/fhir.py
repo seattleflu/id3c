@@ -99,20 +99,14 @@ def etl_fhir(*, db: DatabaseSession):
             bundle      = Bundle(record.document)
             resources   = extract_resources(bundle)
 
-            try:
-                assert_required_resource_types_present(resources)
-            except AssertionError:
-                LOG.info("FHIR document doesn't meet minimum requirements for processing.")
-                mark_skipped(db, record.id)
-                continue
-
             # Loop over every Resource the Bundle entry, processing what is
             # needed along the way.
             try:
+                assert_required_resource_types_present(resources)
                 process_bundle_entries(db, bundle)
 
-            except AssertionError:
-                LOG.warning("Insufficient Encounter information.")
+            except SkipBundleError as error:
+                LOG.warning(f"Skipping bundle: {error}")
                 mark_skipped(db, record.id)
                 continue
 
@@ -164,7 +158,9 @@ def process_encounter_bundle_entry(db: DatabaseSession, bundle: Bundle, entry: B
     related_resources = extract_related_resources(bundle, entry)
 
     encounter = process_encounter(db, resource, related_resources)
-    assert encounter, "Insufficient information to create an encounter."
+
+    if not encounter:
+        raise SkipBundleError("Insufficient information in Bundle to create an encounter")
 
     process_encounter_samples(db, resource, encounter.id, related_resources)
     process_locations(db, encounter.id, resource)
@@ -275,28 +271,28 @@ def extract_contained_resources(resource: DomainResource) -> Dict[str, List[Doma
 
 def assert_required_resource_types_present(resources: Dict[str, List[DomainResource]]):
     """
-    Raises an :class:`AssertionError` if the given *resources* do not meet the
+    Raises an :class:`SkipBundleError` if the given *resources* do not meet the
     following requirements:
     * At least one Specimen Resource exists in the given *resources*
     * There is at least one Patient or DiagnosticReport Resource
     * The number of Observation Resources equals or exceeds the total number
       of Encounter or Patient Resources.
     """
-    def total_resources(resources: Dict[str, List[DomainResource]], resource_type: str) -> int:
-        return len(resources[resource_type]) if resources.get(resource_type) else 0
+    if not resources['Specimen']:
+        raise SkipBundleError("At least one Specimen Resource is required in a FHIR Bundle")
 
-    assert resources.get('Specimen') and len(resources['Specimen']) >= 1, \
-        "At least one Specimen Resource is required in a FHIR Bundle."
+    if not (resources['Patient'] or resources['DiagnosticReport']):
+        raise SkipBundleError("Either a Patient or a DiagnosticReport Resource are required in a FHIR Bundle.")
 
-    assert resources.get('Patient') or resources.get('DiagnosticReport'), \
-        "Either a Patient or a DiagnosticReport Resource are required in a FHIR Bundle."
+    patients = len(resources['Patient'])
+    encounters = len(resources['Encounter'])
+    observations = len(resources['Observation'])
 
-    patients = total_resources(resources, 'Patient')
-    encounters = total_resources(resources, 'Encounter')
-    observations = total_resources(resources, 'Observation')
-    assert  observations >= max([patients, encounters]), "Expected the total number of " + \
-        f"Observation Resources ({observations}) to equal or exceed the total number of " + \
-        f"Patient or Encounter resources ({patients} or {encounters}, respectively)."
+    if not observations >= max([patients, encounters]):
+        raise SkipBundleError(
+            f"Expected the total number of Observation Resources ({observations}) "
+            f"to equal or exceed the total number of Patient or Encounter resources "
+            f"({patients} or {encounters}, respectively).")
 
 
 def identifier(resource: DomainResource, system: str=None) -> Optional[str]:
@@ -743,3 +739,7 @@ def mark_processed(db, fhir_id: int, entry = {}) -> None:
                set processing_log = processing_log || %(log_entry)s
              where fhir_id = %(fhir_id)s
             """, data)
+
+
+class SkipBundleError(Exception):
+    pass
