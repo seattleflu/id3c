@@ -57,6 +57,7 @@ ETL_NAME = 'fhir'
 INTERNAL_SYSTEM = 'https://seattleflu.org'
 LOCATION_RELATION_SYSTEM = 'http://terminology.hl7.org/CodeSystem/v3-RoleCode'
 SNOMED_SYSTEM = 'http://snomed.info/sct'
+SNOMED_TERM = 'http://snomed.info/id'
 EXPECTED_COLLECTION_IDENTIFIER_SETS = [
     'collections-household-observation',
     'collections-household-intervention',
@@ -698,18 +699,20 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
     for result in report.result:
         observation = result.resolved(Observation)
 
-        target_identifier = matching_system_code(observation.code, SNOMED_SYSTEM)
+        snomed_code = matching_system_code(observation.code, SNOMED_SYSTEM)
+        assert snomed_code, "No SNOMED code found"
+
         # Most of the time we expect to see existing targets so a
         # select-first approach makes the most sense to avoid useless
         # updates.
         target = find_or_create_target(db,
-            identifier  = target_identifier,
+            identifier  = f"{SNOMED_TERM}/{snomed_code}",
             control     = False)
 
         result_value = observation_value(observation)
 
         upsert_presence_absence(db,
-            identifier = f'{barcode}/{target_identifier}/{observation.device.identifier.value}',
+            identifier = f'{barcode}/{snomed_code}/{observation.device.identifier.value}',
             sample_id = sample_id,
             target_id = target.id,
             present = result_value,
