@@ -681,11 +681,12 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
         elif observation.valueCodeableConcept is not None:
             code_map = {
                 "10828004": True,
-                "260385009": False
+                "260385009": False,
+                "82334004": None,
             }
             code = matching_system_code(observation.valueCodeableConcept, SNOMED_SYSTEM)
 
-            if code_map.get(code) is None:
+            if code not in code_map:
                 raise Exception(f"Unknown SNOMED code «{code}»")
 
             return code_map[code]
@@ -706,6 +707,10 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
             control     = False)
 
         result_value = observation_value(observation)
+
+        # Only store true/false results; we don't store indeterminate in ID3C.
+        if result_value is None:
+            continue
 
         upsert_presence_absence(db,
             identifier = f'{barcode}/{snomed_code}/{observation.device.identifier.value}',
