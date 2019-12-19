@@ -517,22 +517,14 @@ def encounter_age(encounter: Encounter, resources: Dict[str, List[DomainResource
 
 def process_age(questionnaire_response: QuestionnaireResponse) -> Optional[str]:
     """
-    Returns the ceiling-limited value of the first age in months response from a
-    given *questionnaire_response* as an interval.
+    Returns the value of the first age in months response from a given
+    *questionnaire_response* as an interval.
     """
     for item in questionnaire_response.item:
         if item.linkId == 'age_months':
-            return age(age_ceiling(item.answer[0].valueInteger / 12))
+            return age(item.answer[0].valueInteger / 12)
 
     return None
-
-
-def age_ceiling(age: float, max_age=85.0) -> float:
-    """
-    Given an *age*, returns the same *age* unless it exceeds the *max_age*, in
-    which case the *max_age* is returned.
-    """
-    return min(age, max_age)
 
 
 def age(age: float) -> str:
