@@ -22,6 +22,15 @@ from . import etl
 LOG = logging.getLogger(__name__)
 
 
+# XXX FIXME: I don't think we should hardcode a cache name like this,
+# particularly with a name that doesn't give any hint as to what uses it or
+# what it contains. The `id3c geocode` command, for instance, explicitly
+# parameterizes the cache file as an option.
+#
+# Going a step further, I don't think @command_for_project should even be
+# providing the "cache" parameter.  What is cached and where it is stored is
+# something specific to each REDCap DET routine, not a global invariant.
+#   -trs, 19 Dec 2019
 CACHE_FILE = 'cache.pickle'
 
 
