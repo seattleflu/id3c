@@ -559,7 +559,7 @@ def process_locations(db: DatabaseSession, encounter_id: int, encounter: Encount
         location = location_reference.location.resolved(Location)
 
         if not location:
-            LOG.debug("No reference found to Location reference. If this Location is a site, " + \
+            LOG.debug("No reference found to Location resource. If this Location is a site, " + \
             "it will be processed separately.")
             continue
 
