@@ -401,6 +401,10 @@ def process_encounter(db: DatabaseSession, encounter: Encounter,
         individual_id   = individual.id,
         site_id         = site.id,
         age             = age,
+
+        # XXX FIXME: This shallow dictionary merge is buggy if there are
+        # resources of the same type in both the related and contained sets.
+        #   -trs, 19 Dec 2019
         details         = encounter_details({ **related_resources, **contained_resources }))
 
 
@@ -566,6 +570,11 @@ def process_location(db: DatabaseSession, encounter_id: int, location: Location)
     """
     Process a FHIR *location* and attach it to an *encounter_id*.
     """
+    # XXX FIXME: This function assumes we always have an address, and never
+    # just a tract.  It also assumes the scales tract and address and their
+    # relationship in the hierarchy instead of being agnostic to the scale.
+    #   -trs, 19 Dec 2019
+
     def get_tract_hierarchy(location: Location) -> Optional[str]:
         """
         Given a *location*, returns its tract hierarchy if it exists, else None.
