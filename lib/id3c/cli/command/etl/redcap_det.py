@@ -75,16 +75,12 @@ def command_for_project(name: str,
         @click.option("--log-output/--no-output",
             help        = "Write the output FHIR documents to stdout. You will likely want to redirect this to a file",
             default     = False)
-        @click.option("--indent",
-            help        = "The number of spaces used to indent the output file."
-                          "If the value is 0 (the default value), prints one FHIR document per line.",
-            default     = 0)
 
         @redcap_det.command(name, **kwargs)
         @with_database_session
         @wraps(routine)
 
-        def decorated(*args, db: DatabaseSession, log_output: bool, indent: int, **kwargs):
+        def decorated(*args, db: DatabaseSession, log_output: bool, **kwargs):
             LOG.debug(f"Starting the REDCap DET ETL routine {name}, revision {revision}")
 
             redcap_det = db.cursor(f"redcap-det {name}")
@@ -138,10 +134,7 @@ def command_for_project(name: str,
                             continue
 
                         if log_output:
-                            if indent:
-                                print(json.dumps(bundle, indent=indent))
-                            else:
-                                print(json.dumps(bundle))
+                            print(json.dumps(bundle, indent=2))
 
                         insert_fhir_bundle(db, bundle)
                         mark_loaded(db, det.id, etl_id)
