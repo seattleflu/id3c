@@ -73,14 +73,15 @@ def etl_fhir(*, db: DatabaseSession):
 
     # Fetch and iterate over FHIR documents that aren't processed
     #
-    # Use a server-side cursor by providing a name.  This ensures we limit how
-    # much data we fetch at once, to limit local process size.
+    # Use a server-side cursor by providing a name and limit to one fetched
+    # record at a time, to limit local process size.
     #
     # Rows we fetch are locked for update so that two instances of this
     # command don't try to process the same FHIR documents.
     LOG.debug("Fetching unprocessed FHIR documents")
 
     fhir_documents = db.cursor("fhir")
+    fhir_documents.itersize = 1
     fhir_documents.execute("""
         select fhir_id as id, document
           from receiving.fhir
