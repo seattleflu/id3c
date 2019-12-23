@@ -64,6 +64,7 @@ EXPECTED_COLLECTION_IDENTIFIER_SETS = [
     'collections-swab&send',
     'collections-kiosks',
     'collections-self-test',
+    'collections-seattleflu.org',
 ]
 
 @etl.command("fhir", help = __doc__)
