@@ -12,8 +12,7 @@ Data logistics system enabling real-time genomic epidemiology. Built for the
 ## Database
 
 [PostgreSQL 10](https://www.postgresql.org/about/news/1786/)
-on [AWS](https://aws.amazon.com/rds/postgresql/), soon to be
-[Azure](https://azure.microsoft.com/en-us/services/postgresql/).
+on [AWS](https://aws.amazon.com/rds/postgresql/).
 
 Eventually upgrading to [PostgreSQL 11](https://www.postgresql.org/about/news/1894/)
 when it becomes available on our cloud provider.
