@@ -5,7 +5,6 @@ This command group supports custom ETL routines specific to a project in
 REDCap.
 """
 import os
-import json
 import click
 import logging
 from datetime import datetime, timezone
@@ -15,11 +14,24 @@ from urllib.parse import urljoin
 from id3c.cli.command import with_database_session
 from id3c.cli.redcap import CachedProject, is_complete
 from id3c.db.session import DatabaseSession
-from id3c.db.datatypes import Json
+from id3c.db.datatypes import as_json, Json
+from id3c.cli.command.geocode import pickled_cache
 from . import etl
 
 
 LOG = logging.getLogger(__name__)
+
+
+# XXX FIXME: I don't think we should hardcode a cache name like this,
+# particularly with a name that doesn't give any hint as to what uses it or
+# what it contains. The `id3c geocode` command, for instance, explicitly
+# parameterizes the cache file as an option.
+#
+# Going a step further, I don't think @command_for_project should even be
+# providing the "cache" parameter.  What is cached and where it is stored is
+# something specific to each REDCap DET routine, not a global invariant.
+#   -trs, 19 Dec 2019
+CACHE_FILE = 'cache.pickle'
 
 
 @etl.group("redcap-det", help = __doc__)
@@ -89,49 +101,53 @@ def command_for_project(name: str,
                    for update
                 """, (Json([etl_id]), Json(det_contains)))
 
-            for det in redcap_det:
-                with db.savepoint(f"redcap_det {det.id}"):
-                    LOG.info(f"Processing REDCap DET {det.id}")
+            with pickled_cache(CACHE_FILE) as cache:
+                for det in redcap_det:
+                    with db.savepoint(f"redcap_det {det.id}"):
+                        LOG.info(f"Processing REDCap DET {det.id}")
 
-                    instrument = det.document['instrument']
+                        instrument = det.document['instrument']
 
-                    # Only pull REDCap record if the current instrument is complete
-                    if not is_complete(instrument, det.document):
-                        LOG.debug(f"Skipping incomplete or unverified REDCap DET {det.id}")
-                        mark_skipped(db, det.id, etl_id)
-                        continue
+                        # Only pull REDCap record if the current instrument is complete
+                        if not is_complete(instrument, det.document):
+                            LOG.debug(f"Skipping incomplete or unverified REDCap DET {det.id}")
+                            mark_skipped(db, det.id, etl_id)
+                            continue
 
-                    redcap_record = get_redcap_record_from_det(det.document)
+                        redcap_record = get_redcap_record_from_det(det.document)
 
-                    if not redcap_record:
-                        LOG.debug(f"REDCap record is missing.  Skipping REDCap DET {det.id}")
-                        mark_skipped(db, det.id, etl_id)
-                        continue
+                        if not redcap_record:
+                            LOG.debug(f"REDCap record is missing or invalid.  Skipping REDCap DET {det.id}")
+                            mark_skipped(db, det.id, etl_id)
+                            continue
 
-                    # Only process REDCap record if all required instruments are complete
-                    incomplete_instruments = {
-                        instrument
-                            for instrument
-                            in required_instruments
-                            if not is_complete(instrument, redcap_record)
-                    }
+                        # Only process REDCap record if all required instruments are complete
+                        incomplete_instruments = {
+                            instrument
+                                for instrument
+                                in required_instruments
+                                if not is_complete(instrument, redcap_record)
+                        }
 
-                    if incomplete_instruments:
-                        LOG.debug(f"The following required instruments «{incomplete_instruments}» are not yet marked complete. " + \
-                                  f"Skipping REDCap DET {det.id}")
-                        mark_skipped(db, det.id, etl_id)
-                        continue
+                        if incomplete_instruments:
+                            LOG.debug(f"The following required instruments «{incomplete_instruments}» are not yet marked complete. " + \
+                                      f"Skipping REDCap DET {det.id}")
+                            mark_skipped(db, det.id, etl_id)
+                            continue
 
-                    bundle = routine(det = det, redcap_record = redcap_record)
+                        bundle = routine(db = db, cache = cache, det = det, redcap_record = redcap_record)
 
-                    if log_output:
-                        print(json.dumps(bundle, indent=2))
+                        if not bundle:
+                            mark_skipped(db, det.id, etl_id)
+                            continue
 
-                    if bundle:
+                        if log_output:
+                            print(as_json(bundle))
+
                         insert_fhir_bundle(db, bundle)
                         mark_loaded(db, det.id, etl_id)
-                    else:
-                        mark_skipped(db, det.id, etl_id)
+
+
 
         return decorated
     return decorator
@@ -150,7 +166,11 @@ def get_redcap_record_from_det(det: dict) -> Optional[dict]:
     api_token = get_redcap_api_token(api_url)
 
     project_id = int(det["project_id"])
-    record_id = int(det["record"])
+
+    try:
+        record_id = int(det["record"])
+    except ValueError:
+        return None
 
     LOG.info(f"Fetching REDCap record {record_id}")
 

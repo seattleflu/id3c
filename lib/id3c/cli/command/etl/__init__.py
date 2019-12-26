@@ -27,6 +27,7 @@ __all__ = [
     "kit",
     "consensus_genome",
     "redcap_det",
+    "fhir",
 ]
 
 def find_or_create_site(db: DatabaseSession, identifier: str, details: dict) -> Any:
@@ -167,7 +168,7 @@ def find_sample_by_id(db: DatabaseSession, sample_id: int) -> Any:
 
 def update_sample(db: DatabaseSession,
                   sample,
-                  encounter_id: Optional[int]) -> Optional[MinimalSampleRecord]:
+                  encounter_id: Optional[int]=None) -> Optional[MinimalSampleRecord]:
     """
     Update sample's encounter_id.
     """
@@ -318,6 +319,128 @@ def upsert_encounter_location(db: DatabaseSession,
             """, (encounter_id, relation, location_id))
 
         assert cursor.rowcount == 1, "Upsert affected no rows!"
+
+
+def upsert_presence_absence(db: DatabaseSession,
+                            identifier: str,
+                            sample_id: int,
+                            target_id: int,
+                            present: bool,
+                            details: dict) -> Any:
+    """
+    Upsert presence_absence by its *identifier*.
+
+    Confirmed with Samplify that their numeric identifier for each test is stable
+    and persistent.
+    """
+    LOG.debug(f"Upserting presence_absence «{identifier}»")
+
+    data = {
+        "identifier": identifier,
+        "sample_id": sample_id,
+        "target_id": target_id,
+        "present": present,
+        "details": Json(details)
+    }
+
+    presence_absence = db.fetch_row("""
+        insert into warehouse.presence_absence (
+                identifier,
+                sample_id,
+                target_id,
+                present,
+                details)
+            values (
+                %(identifier)s,
+                %(sample_id)s,
+                %(target_id)s,
+                %(present)s,
+                %(details)s)
+
+        on conflict (identifier) do update
+            set sample_id = excluded.sample_id,
+                target_id = excluded.target_id,
+                present   = excluded.present,
+                details = coalesce(presence_absence.details, '{}') || excluded.details
+
+        returning presence_absence_id as id, identifier
+        """, data)
+
+    assert presence_absence.id, "Upsert affected no rows!"
+
+    LOG.info(f"Upserted presence_absence {presence_absence.id} \
+        «{presence_absence.identifier}»")
+
+    return presence_absence
+
+
+def upsert_sample(db: DatabaseSession,
+                  collection_identifier: str,
+                  encounter_id: int,
+                  details: dict) -> Any:
+    """
+    Upsert collected sample by its *collection_identifier*.
+
+    The provided *details* are merged (at the top-level only) into
+    the existing sample details, if any.
+    """
+    LOG.debug(f"Upserting sample collection «{collection_identifier}»")
+
+    data = {
+        "collection_identifier": collection_identifier,
+        "encounter_id": encounter_id,
+        "details": Json(details),
+    }
+
+    sample = db.fetch_row("""
+        insert into warehouse.sample (collection_identifier, encounter_id, details)
+            values (%(collection_identifier)s, %(encounter_id)s, %(details)s)
+
+        on conflict (collection_identifier) do update
+            set encounter_id = excluded.encounter_id,
+                details = coalesce(sample.details, '{}') || %(details)s
+
+        returning sample_id as id, identifier, collection_identifier, encounter_id
+        """, data)
+
+    assert sample.id, "Upsert affected no rows!"
+
+    LOG.info(f"Upserted sample {sample.id} with collection identifier «{sample.collection_identifier}»")
+
+    return sample
+
+
+def find_or_create_target(db: DatabaseSession, identifier: str, control: bool) -> Any:
+    """
+    Select presence_absence test target by *identifier*, or insert it if it doesn't exist.
+    """
+    LOG.debug(f"Looking up target «{identifier}»")
+
+    target = db.fetch_row("""
+        select target_id as id, identifier
+          from warehouse.target
+         where identifier = %s
+        """, (identifier,))
+
+    if target:
+        LOG.info(f"Found target {target.id} «{target.identifier}»")
+    else:
+        LOG.debug(f"Target «{identifier}» not found, adding")
+
+        data = {
+            "identifier": identifier,
+            "control": control
+        }
+
+        target = db.fetch_row("""
+            insert into warehouse.target (identifier, control)
+                values (%(identifier)s, %(control)s)
+            returning target_id as id, identifier
+            """, data)
+
+        LOG.info(f"Created target {target.id} «{target.identifier}»")
+
+    return target
 
 
 class SampleNotFoundError(ValueError):

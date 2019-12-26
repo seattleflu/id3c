@@ -57,10 +57,7 @@ def de_identify(columns, filename, drop_input_columns):
     fields_to_include = extract_fields_from_input(input_df, columns)
     joined_fields = fields_to_include.apply(lambda x: ' '.join(x), axis=1)
 
-    hash_secret = environ.get('ID3C_DEIDENTIFY_SECRET')
-    if not hash_secret:
-        raise Exception("The environment variable ID3C_DEIDENTIFY_SECRET is required.")
-    hashes = joined_fields.map(lambda x: generate_hash(x, hash_secret) if x else None)
+    hashes = joined_fields.map(lambda x: generate_hash(x) if x else None)
 
     output_df = input_df.copy()
     output_df['hash'] = hashes
@@ -91,10 +88,48 @@ def extract_fields_from_input(input_df: pd.DataFrame,
     return fields
 
 
-def generate_hash(identifier: str, secret: str) -> str:
+def generate_hash(identifier: str, secret: str = None) -> str:
     """
     Hash *secret* with *identifier* that is linked to identifiable records.
+
+    >>> generate_hash("foo", "abadsecret")
+    '72a79a0f21b20b9c7d0a117addc0d917bcda3065c9c8329aea77b11cb39096c8'
+
+    >>> generate_hash("foo", "")
+    Traceback (most recent call last):
+        ...
+    AssertionError: Empty *secret* provided!
+    ...
+
+    >>> generate_hash("", "abadsecret")
+    Traceback (most recent call last):
+        ...
+    AssertionError: Empty *identifier* provided!
+    ...
+
+    >>> generate_hash("foo")
+    Traceback (most recent call last):
+        ...
+    Exception: The environment variable ID3C_DEIDENTIFY_SECRET is required.
+
+    >>> import os
+    >>> os.environ["ID3C_DEIDENTIFY_SECRET"] = ""
+    >>> generate_hash("foo")
+    Traceback (most recent call last):
+        ...
+    AssertionError: Empty *secret* provided!
+    ...
+
+    >>> os.environ["ID3C_DEIDENTIFY_SECRET"] = "abadsecret"
+    >>> generate_hash("foo")
+    '72a79a0f21b20b9c7d0a117addc0d917bcda3065c9c8329aea77b11cb39096c8'
     """
+    if secret is None:
+        try:
+            secret = environ["ID3C_DEIDENTIFY_SECRET"]
+        except KeyError:
+            raise Exception("The environment variable ID3C_DEIDENTIFY_SECRET is required.")
+
     assert len(identifier) > 0, "Empty *identifier* provided!"
     assert len(secret) > 0, "Empty *secret* provided!"
 

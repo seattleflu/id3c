@@ -302,10 +302,16 @@ def get_response_from_cache_or_geocoding(address: dict,
 
     try:
         response = cache[key]
+        LOG.debug('Response found in cache.')
     except KeyError:
         response = cache[key] = geocode_address(address)
+        LOG.debug('Adding new response to cache.')
 
-    return response.get('lat'), response.get('lng'), response.get('canonicalized_address')
+    if not response:
+        return None, None, None
+
+    else:
+        return response.get('lat'), response.get('lng'), response.get('canonicalized_address')
 
 
 def geocode_address(address: dict) -> dict:
@@ -362,6 +368,7 @@ def us_street_lookup(address: dict) -> Lookup:
     SmartyStreets geocoding API is not present in the given *address* data.
     """
     lookup = Lookup()
+
     try:
         lookup.street = address['street']
         lookup.secondary = address['secondary']
