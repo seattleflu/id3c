@@ -146,3 +146,10 @@ shipping/views [shipping/views@2019-10-16] 2019-10-23T19:21:37Z Jover Lee <jover
 
 shipping/views [shipping/views@2019-10-23] 2019-11-18T20:11:02Z Jover Lee <joverlee@fredhutch.org> # Remove columns for data privacy
 @2019-11-18 2019-11-18T20:38:50Z Jover Lee <joverlee@fredhutch.org> # Schema as of 18 Nov 2019
+
+warehouse/individual/timestamp [warehouse/individual] 2019-12-07T00:44:45Z Kairsten Fay <kfay@fredhutch.org> # Timestamp individual records with date created and modified
+warehouse/individual/triggers/update-modified-timestamp [warehouse/individual functions/update-modified-timestamp] 2019-12-07T00:51:09Z Kairsten Fay <kfay@fredhutch.org> # Trigger to update modified timestamp on individuals
+warehouse/location/timestamp [warehouse/location] 2019-12-07T00:55:08Z Kairsten Fay <kfay@fredhutch.org> # Timestamp location records with date created and modified
+warehouse/location/triggers/update-modified-timestamp [warehouse/location functions/update-modified-timestamp] 2019-12-07T01:00:38Z Kairsten Fay <kfay@fredhutch.org> # Trigger to update modified timestamp on locations
+warehouse/encounter-location/timestamp [warehouse/encounter-location] 2019-12-07T01:05:04Z Kairsten Fay <kfay@fredhutch.org> # Timestamp encounter-location records with date created and modified
+warehouse/encounter-location/triggers/update-modified-timestamp [warehouse/encounter-location functions/update-modified-timestamp] 2019-12-07T01:06:22Z Kairsten Fay <kfay@fredhutch.org> # Trigger to update modified timestamp on encounter-locations
