@@ -40,15 +40,8 @@ create or replace view shipping.incidence_model_observation_v1 as
            lower(age_bin_coarse.range) as age_range_coarse_lower,
            upper(age_bin_coarse.range) as age_range_coarse_upper,
 
-           -- XXX TODO: This will be pre-processed out of the JSON in the future.
-           case (encounter.details->'locations'->'temp') is not null
-             when true
-             then encounter.details->'locations'->'temp'->>'region'
-             else encounter.details->'locations'->'home'->>'region'
-           end as residence_census_tract,
-
-           -- XXX TODO: This will be pre-processed out of the JSON in the future.
-           encounter.details->'locations'->'work'->>'region' as work_census_tract,
+           residence_census_tract,
+           work_census_tract,
 
            encounter_responses.flu_shot,
            encounter_responses.symptoms,
@@ -62,7 +55,20 @@ create or replace view shipping.incidence_model_observation_v1 as
       join warehouse.site using (site_id)
       left join warehouse.sample using (encounter_id)
       left join shipping.age_bin_fine on age_bin_fine.range @> ceiling(age_in_years(age))::int
-      left join shipping.age_bin_coarse on age_bin_coarse.range @> ceiling(age_in_years(age))::int,
+      left join shipping.age_bin_coarse on age_bin_coarse.range @> ceiling(age_in_years(age))::int
+      left join (
+          select encounter_id, hierarchy->'tract' as residence_census_tract
+          from warehouse.encounter_location
+          left join warehouse.location using (location_id)
+          where relation = 'residence'
+          or relation = 'lodging'
+        ) as residence using (encounter_id)
+      left join (
+          select encounter_id, hierarchy->'tract' as work_census_tract
+          from warehouse.encounter_location
+          left join warehouse.location using (location_id)
+          where relation = 'workplace'
+        ) as workplace using (encounter_id),
 
       lateral (
           -- XXX TODO: The data in this subquery will be modeled better in the
@@ -152,15 +158,8 @@ create or replace view shipping.incidence_model_observation_v2 as
            age_in_years(lower(age_bin_coarse_v2.range)) as age_range_coarse_lower,
            age_in_years(upper(age_bin_coarse_v2.range)) as age_range_coarse_upper,
 
-           -- XXX TODO: This will be pre-processed out of the JSON in the future.
-           case (encounter.details->'locations'->'temp') is not null
-             when true
-             then encounter.details->'locations'->'temp'->>'region'
-             else encounter.details->'locations'->'home'->>'region'
-           end as residence_census_tract,
-
-           -- XXX TODO: This will be pre-processed out of the JSON in the future.
-           encounter.details->'locations'->'work'->>'region' as work_census_tract,
+           residence_census_tract,
+           work_census_tract,
 
            encounter_responses.flu_shot,
            encounter_responses.symptoms,
@@ -174,7 +173,20 @@ create or replace view shipping.incidence_model_observation_v2 as
       join warehouse.site using (site_id)
       left join warehouse.sample using (encounter_id)
       left join shipping.age_bin_fine_v2 on age_bin_fine_v2.range @> age
-      left join shipping.age_bin_coarse_v2 on age_bin_coarse_v2.range @> age,
+      left join shipping.age_bin_coarse_v2 on age_bin_coarse_v2.range @> age
+      left join (
+          select encounter_id, hierarchy->'tract' as residence_census_tract
+          from warehouse.encounter_location
+          left join warehouse.location using (location_id)
+          where relation = 'residence'
+          or relation = 'lodging'
+        ) as residence using (encounter_id)
+      left join (
+          select encounter_id, hierarchy->'tract' as work_census_tract
+          from warehouse.encounter_location
+          left join warehouse.location using (location_id)
+          where relation = 'workplace'
+        ) as workplace using (encounter_id),
 
       lateral (
           -- XXX TODO: The data in this subquery will be modeled better in the
@@ -251,12 +263,7 @@ create or replace view shipping.incidence_model_observation_v3 as
            age_in_years(lower(age_bin_coarse_v2.range)) as age_range_coarse_lower,
            age_in_years(upper(age_bin_coarse_v2.range)) as age_range_coarse_upper,
 
-           -- XXX TODO: Update to use PUMA and neighborhood instead of census tract
-           case (encounter.details->'locations'->'temp') is not null
-             when true
-             then encounter.details->'locations'->'temp'->>'region'
-             else encounter.details->'locations'->'home'->>'region'
-           end as residence_census_tract,
+           residence_census_tract,
 
            encounter_responses.flu_shot,
            encounter_responses.symptoms,
@@ -268,7 +275,14 @@ create or replace view shipping.incidence_model_observation_v3 as
       join warehouse.site using (site_id)
       left join warehouse.sample using (encounter_id)
       left join shipping.age_bin_fine_v2 on age_bin_fine_v2.range @> age
-      left join shipping.age_bin_coarse_v2 on age_bin_coarse_v2.range @> age,
+      left join shipping.age_bin_coarse_v2 on age_bin_coarse_v2.range @> age
+      left join (
+          select encounter_id, hierarchy->'tract' as residence_census_tract
+          from warehouse.encounter_location
+          left join warehouse.location using (location_id)
+          where relation = 'residence'
+          or relation = 'lodging'
+        ) as residence using (encounter_id),
 
       lateral (
           -- XXX TODO: The data in this subquery will be modeled better in the
