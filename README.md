@@ -12,11 +12,9 @@ Data logistics system enabling real-time genomic epidemiology. Built for the
 
 ## Database
 
-[PostgreSQL 10](https://www.postgresql.org/about/news/1786/)
-on [AWS](https://aws.amazon.com/rds/postgresql/).
-
-Eventually upgrading to [PostgreSQL 11](https://www.postgresql.org/about/news/1894/)
-when it becomes available on our cloud provider.
+Currently [PostgreSQL 10](https://www.postgresql.org/about/news/1786/),
+eventually upgrading to
+[PostgreSQL 11](https://www.postgresql.org/about/news/1894/).
 
 Initially aims to provide:
 
@@ -307,4 +305,3 @@ These files will also allow you to connect using `psql`:
 Run type-checking tests with:
 
     ./dev/mypy
-
