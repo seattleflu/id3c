@@ -1,0 +1,41 @@
+#!/bin/bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+main() {
+    role="${1:?The name of the new role is required as the first argument.}"
+    comment="${2:?A comment describing the new role is required as the second argument.}"
+
+    role_name_pattern='^[a-z][a-z-]+[a-z]$'
+
+    if ! [[ $role =~ $role_name_pattern ]]; then
+        echo "By project policy, role names must match /$role_name_pattern/" >&2
+        exit 1
+    fi
+
+    role_create="roles/$role/create"
+    role_grants="roles/$role/grants"
+
+    log "Adding sqitch change $role_create"
+
+    sqitch add "$role_create" \
+        --template role/create \
+        --set role="$role" \
+        --set comment="$comment" \
+        --note "Add a $role role"
+
+    log "Adding sqitch change $role_grants"
+
+    sqitch add "$role_grants" \
+        --template role/grants \
+        --set role="$role" \
+        --note "Permissions for the $role role"
+}
+
+log() {
+    local bold="[1m"
+    local reset="[0m"
+    echo "$bold=>" "$@" "$reset"
+}
+
+main "$@"
