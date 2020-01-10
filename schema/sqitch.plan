@@ -156,3 +156,6 @@ warehouse/encounter-location/triggers/update-modified-timestamp [warehouse/encou
 @2019-12-26 2019-12-27T18:11:03Z Kairsten Fay <kfay@fredhutch.org> # Schema as of 26 Dec 2019
 shipping/views [shipping/views@2019-12-26] 2019-12-27T23:41:00Z Kairsten Fay <kfay@fredhutch.org> # Update modeling views to use FHIR details
 @2020-01-06 2020-01-06T18:44:03Z Kairsten Fay <kfay@fredhutch.org> # Schema as of 6 Jan 2020
+
+roles/redcap-det-processor/create 2020-01-09T23:55:19Z Thomas Sibley <tsibley@fredhutch.org> # Add a redcap-det-processor role
+roles/redcap-det-processor/grants 2020-01-09T23:55:25Z Thomas Sibley <tsibley@fredhutch.org> # Permissions for the redcap-det-processor role
