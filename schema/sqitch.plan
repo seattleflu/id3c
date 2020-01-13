@@ -165,3 +165,5 @@ roles/fhir-processor/grants 2020-01-10T17:44:34Z Thomas Sibley <tsibley@fredhutc
 
 warehouse/sample/null-identifiers-constraint [warehouse/sample/null-identifiers-constraint@2020-01-14] 2020-01-14T00:45:59Z Thomas Sibley <tsibley@fredhutch.org> # Drop check on encounter_id
 @2020-01-14b 2020-01-14T18:34:12Z Thomas Sibley <tsibley@fredhutch.org> # schema as of later on 14 Jan 2020
+
+shipping/views [shipping/views@2020-01-14b] 2020-01-13T23:32:39Z Jover Lee <joverlee@fredhutch.org> # Remove SFS specific views
