@@ -195,7 +195,11 @@ def process_diagnostic_report_bundle_entry(db: DatabaseSession, bundle: Bundle, 
         assert specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS, \
             f"Specimen with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
 
-        sample = process_sample(db, specimen_identifier.uuid)
+        sample = find_sample(db, specimen_identifier.uuid)
+
+        if not sample:
+            raise SampleNotFoundError(f"No sample with identifier «{identifier}» found.")
+
         process_presence_absence_tests(db, resource, sample.id, barcode)
 
 
@@ -648,17 +652,6 @@ def location_code(location: Location) -> str:
         raise Exception(f"Expected only one Location code. Instead received {unique_codes}.")
 
     return unique_codes[0]
-
-
-def process_sample(db: DatabaseSession, identifier: str) -> Any:
-    """ Given an *identifier*, returns its matching sample from ID3C. """
-
-    sample = find_sample(db, identifier)
-
-    if not sample:
-        raise SampleNotFoundError(f"No sample with identifier «{identifier}» found.")
-
-    return sample
 
 
 def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport,
