@@ -4,10 +4,10 @@ begin;
 
 do $$ begin
     -- Identifier only
-    insert into warehouse.sample (identifier, collection_identifier, encounter_id)
-        values ('__SAMPLE__', null, null);
+    insert into warehouse.sample (identifier, collection_identifier)
+        values ('__SAMPLE__', null);
 
-    -- Collection and encounter
+    -- Collection only
     with
     site as (
         insert into warehouse.site (identifier) values ('__SITE__')
@@ -16,35 +16,20 @@ do $$ begin
     individual as (
         insert into warehouse.individual (identifier) values ('__INDIVIDUAL__')
         returning individual_id as id
-    ),
-    encounter as (
-        insert into warehouse.encounter (identifier, individual_id, site_id, encountered)
-            select '__ENCOUNTER__', individual.id, site.id, now()
-              from individual, site
-        returning encounter_id as id
     )
-    insert into warehouse.sample (identifier, collection_identifier, encounter_id)
-        values (null, '__COLLECTION__', (select id from encounter));
+    insert into warehouse.sample (identifier, collection_identifier)
+        values (null, '__COLLECTION__');
+
+    -- Both
+    insert into warehouse.sample (identifier, collection_identifier)
+        values ('__SAMPLE2__', '__COLLECTION2__');
 
     -- All nulls
     declare
         _constraint text;
     begin
-        insert into warehouse.sample (identifier, collection_identifier, encounter_id)
-            values (null, null, null);
-        assert false, 'insert succeeded';
-    exception
-        when check_violation then
-            get stacked diagnostics _constraint = CONSTRAINT_NAME;
-            assert _constraint = 'sample_identifiers_not_null', 'wrong constraint';
-    end;
-
-    -- Collection without encounter
-    declare
-        _constraint text;
-    begin
-        insert into warehouse.sample (identifier, collection_identifier, encounter_id)
-            values (null, '__COLLECTION2__', null);
+        insert into warehouse.sample (identifier, collection_identifier)
+            values (null, null);
         assert false, 'insert succeeded';
     exception
         when check_violation then

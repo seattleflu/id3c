@@ -6,7 +6,7 @@
 begin;
 
 alter table warehouse.sample
-    drop constraint sample_identifiers_not_null,
+    alter column identifier drop not null,
     add constraint sample_identifiers_not_null check (
         identifier is not null
         or (identifier is null
