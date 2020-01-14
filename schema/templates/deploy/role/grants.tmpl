@@ -1,0 +1,29 @@
+-- Deploy [% project %]:[% change %] to [% engine %]
+[% FOREACH item IN requires -%]
+-- requires: [% item %]
+[% END -%]
+[% FOREACH item IN conflicts -%]
+-- conflicts: [% item %]
+[% END -%]
+
+begin;
+
+-- This change is designed to be sqitch rework-able to make it easier to update
+-- the grants for this role.
+
+-- First, revoke everything…
+revoke all on database :"DBNAME" from "[% role %]";
+revoke all on schema receiving, warehouse, shipping from "[% role %]";
+revoke all on all tables in schema receiving, warehouse, shipping from "[% role %]";
+
+-- Add additional revokes here if you add grants to other schemas or different
+-- kinds of database objects below.
+
+
+-- …then re-grant from scratch.
+grant connect on database :"DBNAME" to "[% role %]";
+
+-- Add additional grants here.
+
+
+commit;

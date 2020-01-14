@@ -1,0 +1,15 @@
+-- Deploy [% project %]:[% change %] to [% engine %]
+[% FOREACH item IN requires -%]
+-- requires: [% item %]
+[% END -%]
+[% FOREACH item IN conflicts -%]
+-- conflicts: [% item %]
+[% END -%]
+
+begin;
+
+create role "[% role %]";
+
+comment on role "[% role %]" is $$[% comment %]$$;
+
+commit;

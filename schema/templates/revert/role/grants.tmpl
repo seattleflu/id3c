@@ -1,0 +1,11 @@
+-- Revert [% project %]:[% change %] from [% engine %]
+
+begin;
+
+revoke all on database :"DBNAME" from "[% role %]";
+revoke all on schema receiving, warehouse, shipping from "[% role %]";
+revoke all on all tables in schema receiving, warehouse, shipping from "[% role %]";
+
+-- Add additional revokes here as necessary.
+
+commit;
