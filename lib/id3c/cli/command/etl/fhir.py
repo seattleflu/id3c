@@ -501,6 +501,8 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
         assert specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS, \
             f"Speciment with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
 
+        # XXX TODO: Improve details object here; the current approach produces
+        # an object like {"coding": [{…}]} which isn't very useful.
         upsert_sample(db,
             collection_identifier   = specimen_identifier.uuid,
             encounter_id            = encounter_id,
