@@ -80,16 +80,24 @@ class Project:
         return self.records(ids = [record_id])
 
 
-    def records(self, since_date: str = None, ids: List[int] = None, raw: bool = False) -> List[dict]:
+    def records(self,
+                since_date: str = None,
+                until_date: str = None,
+                ids: List[int] = None,
+                raw: bool = False) -> List[dict]:
         """
         Fetch records for this REDCap project.
 
         Values are returned as string labels not numeric ("raw") codes.
 
         The optional *since_date* parameter can be used to limit records to
-        those created/modified after the given timestamp, which must be
-        formatted as ``YYYY-MM-DD HH:MM:SS`` in the REDCap server's configured
-        timezone.
+        those created/modified after the given timestamp.
+
+        The optional *until_date* parameter can be used to limit records to
+        those created/modified before the given timestamp.
+
+        Both *since_date* and *until_date* must be formatted as
+        ``YYYY-MM-DD HH:MM:SS`` in the REDCap server's configured timezone.
 
         The optional *ids* parameter can be used to limit results to the given
         record ids.
@@ -106,6 +114,9 @@ class Project:
 
         if since_date:
             parameters['dateRangeBegin'] = since_date
+
+        if until_date:
+            parameters['dateRangeEnd'] = until_date
 
         if ids is not None:
             parameters['records'] = ",".join(map(str, ids))
