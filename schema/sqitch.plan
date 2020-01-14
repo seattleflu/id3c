@@ -162,3 +162,6 @@ roles/redcap-det-processor/grants 2020-01-09T23:55:25Z Thomas Sibley <tsibley@fr
 roles/fhir-processor/create 2020-01-10T17:44:29Z Thomas Sibley <tsibley@fredhutch.org> # Add a fhir-processor role
 roles/fhir-processor/grants 2020-01-10T17:44:34Z Thomas Sibley <tsibley@fredhutch.org> # Permissions for the fhir-processor role
 @2020-01-14 2020-01-14T18:26:09Z Thomas Sibley <tsibley@fredhutch.org> # schema as of 14 Jan 2020
+
+warehouse/sample/null-identifiers-constraint [warehouse/sample/null-identifiers-constraint@2020-01-14] 2020-01-14T00:45:59Z Thomas Sibley <tsibley@fredhutch.org> # Drop check on encounter_id
+@2020-01-14b 2020-01-14T18:34:12Z Thomas Sibley <tsibley@fredhutch.org> # schema as of later on 14 Jan 2020

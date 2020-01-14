@@ -195,7 +195,19 @@ def process_diagnostic_report_bundle_entry(db: DatabaseSession, bundle: Bundle, 
         assert specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS, \
             f"Specimen with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
 
-        sample = process_sample(db, specimen_identifier.uuid)
+        sample = find_sample(db, specimen_identifier.uuid)
+
+        if not sample:
+            LOG.debug(f"Creating sample with collection identifier «{specimen_identifier.uuid}»")
+
+            sample = db.fetch_row("""
+                insert into warehouse.sample (collection_identifier)
+                    values (%s)
+                returning sample_id as id, collection_identifier
+                """, (str(specimen_identifier.uuid),))
+
+            LOG.info(f"Created sample {sample.id} with collection identifier «{sample.collection_identifier}»")
+
         process_presence_absence_tests(db, resource, sample.id, barcode)
 
 
@@ -489,6 +501,8 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
         assert specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS, \
             f"Speciment with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
 
+        # XXX TODO: Improve details object here; the current approach produces
+        # an object like {"coding": [{…}]} which isn't very useful.
         upsert_sample(db,
             collection_identifier   = specimen_identifier.uuid,
             encounter_id            = encounter_id,
@@ -648,17 +662,6 @@ def location_code(location: Location) -> str:
         raise Exception(f"Expected only one Location code. Instead received {unique_codes}.")
 
     return unique_codes[0]
-
-
-def process_sample(db: DatabaseSession, identifier: str) -> Any:
-    """ Given an *identifier*, returns its matching sample from ID3C. """
-
-    sample = find_sample(db, identifier)
-
-    if not sample:
-        raise SampleNotFoundError(f"No sample with identifier «{identifier}» found.")
-
-    return sample
 
 
 def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport,

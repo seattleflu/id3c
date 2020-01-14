@@ -6,11 +6,8 @@
 begin;
 
 alter table warehouse.sample
-    alter column identifier drop not null,
+    drop constraint sample_identifiers_not_null,
     add constraint sample_identifiers_not_null check (
-        identifier is not null
-        or (identifier is null
-            and (collection_identifier is not null
-                 and encounter_id is not null)));
+        coalesce(identifier, collection_identifier) is not null);
 
 commit;
