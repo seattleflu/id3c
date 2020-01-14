@@ -40,8 +40,12 @@ def redcap_det():
     metavar = "<since-date>",
     help = "Limit to REDCap records that have been created/modified since the given date. " +
            "Format must be YYYY-MM-DD HH:MM:SS (e.g. '2019-01-01 00:00:00')")
+@click.option("--until-date",
+    metavar = "<until-date>",
+    help = "Limit to REDCap records that have been created/modified before the given date. " +
+           "Format must be YYYY-MM-DD HH:MM:SS (e.g. '2019-01-01 00:00:00')")
 
-def generate(project_id: int, token_name: str, since_date: str):
+def generate(project_id: int, token_name: str, since_date: str, until_date: str):
     """
     Generate DET notifications for REDCap records.
 
@@ -60,12 +64,16 @@ def generate(project_id: int, token_name: str, since_date: str):
 
     LOG.info(f"REDCap project #{project.id}: {project.title}")
 
-    if since_date:
+    if since_date and until_date:
+        LOG.debug(f"Getting all records that have been created/modified between {since_date} and {until_date}")
+    elif since_date:
         LOG.debug(f"Getting all records that have been created/modified since {since_date}")
+    elif until_date:
+        LOG.debug(f"Getting all records that have been created/modified before {until_date}")
     else:
         LOG.debug(f"Getting all records")
 
-    for record in project.records(since_date = since_date, raw = True):
+    for record in project.records(since_date = since_date, until_date = until_date, raw = True):
         # Find all instruments within a record that have been mark completed
         for instrument in project.instruments:
             if is_complete(instrument, record):
