@@ -198,7 +198,15 @@ def process_diagnostic_report_bundle_entry(db: DatabaseSession, bundle: Bundle, 
         sample = find_sample(db, specimen_identifier.uuid)
 
         if not sample:
-            raise SampleNotFoundError(f"No sample with identifier «{identifier}» found.")
+            LOG.debug(f"Creating sample with collection identifier «{specimen_identifier.uuid}»")
+
+            sample = db.fetch_row("""
+                insert into warehouse.sample (collection_identifier)
+                    values (%s)
+                returning sample_id as id, collection_identifier
+                """, (str(specimen_identifier.uuid),))
+
+            LOG.info(f"Created sample {sample.id} with collection identifier «{sample.collection_identifier}»")
 
         process_presence_absence_tests(db, resource, sample.id, barcode)
 
