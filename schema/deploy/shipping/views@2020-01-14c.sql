@@ -38,4 +38,25 @@ grant select
     on shipping.presence_absence_result_v1
     to "incidence-modeler";
 
+
+-- Don't include below in the next rework of shipping/views.
+-- These are on going to be ported to ID3C-customizations for SFS.
+drop view shipping.observation_with_presence_absence_result_v2;
+drop view shipping.observation_with_presence_absence_result_v1;
+
+revoke all
+    on shipping.incidence_model_observation_v3
+  from "incidence-modeler";
+drop view shipping.incidence_model_observation_v3;
+
+revoke all
+    on shipping.incidence_model_observation_v2
+  from "incidence-modeler";
+drop view shipping.incidence_model_observation_v2;
+
+revoke all
+    on shipping.incidence_model_observation_v1
+  from "incidence-modeler";
+drop view shipping.incidence_model_observation_v1;
+
 commit;
