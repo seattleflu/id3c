@@ -52,7 +52,7 @@ LOG = logging.getLogger(__name__)
 # this revision number should be incremented.
 # The etl name has been added to allow multiple etls to process the same
 # receiving table
-REVISION = 1
+REVISION = 2
 ETL_NAME = 'fhir'
 INTERNAL_SYSTEM = 'https://seattleflu.org'
 LOCATION_RELATION_SYSTEM = 'http://terminology.hl7.org/CodeSystem/v3-RoleCode'
@@ -183,7 +183,7 @@ def process_diagnostic_report_bundle_entry(db: DatabaseSession, bundle: Bundle, 
         if not matching_system(reference.identifier, INTERNAL_SYSTEM):
             continue
 
-        barcode = reference.identifier.value
+        barcode = reference.identifier.value.strip()
 
         LOG.debug(f"Looking up collected specimen barcode «{barcode}»")
         specimen_identifier = find_identifier(db, barcode)
@@ -484,7 +484,7 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
         return
 
     for specimen in specimens:
-        barcode = identifier(specimen, f"{INTERNAL_SYSTEM}/sample")
+        barcode = identifier(specimen, f"{INTERNAL_SYSTEM}/sample").strip()
 
         if not barcode:
             raise Exception("No barcode detectable. Either the barcode identification system is "
