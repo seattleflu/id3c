@@ -568,11 +568,16 @@ def process_locations(db: DatabaseSession, encounter_id: int, encounter: Encount
     *encounter_id*.
     """
     for location_reference in encounter.location:
+
+        identifier = location_reference.location.identifier
+        if identifier and matching_system(identifier, f"{INTERNAL_SYSTEM}/site"):
+            LOG.debug(f"Site location «{identifier}» will be processed separately")
+            continue
+
         location = location_reference.location.resolved(Location)
 
         if not location:
-            LOG.debug("No reference found to Location resource. If this Location is a site, " + \
-            "it will be processed separately.")
+            LOG.warning("No reference found to Location resource that was not a site")
             continue
 
         process_location(db, encounter_id, location)
