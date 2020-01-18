@@ -107,7 +107,7 @@ def etl_fhir(*, db: DatabaseSession):
                 process_bundle_entries(db, bundle)
 
             except SkipBundleError as error:
-                LOG.warning(f"Skipping bundle: {error}")
+                LOG.warning(f"Skipping bundle in FHIR document «{record.id}»: {error}")
                 mark_skipped(db, record.id)
                 continue
 
