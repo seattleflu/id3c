@@ -577,7 +577,8 @@ def process_locations(db: DatabaseSession, encounter_id: int, encounter: Encount
         location = location_reference.location.resolved(Location)
 
         if not location:
-            LOG.warning("No reference found to Location resource that was not a site")
+            LOG.warning("No reference found to Location resource that was not a site " +
+                f"See location: {location_reference.location.as_json()}")
             continue
 
         process_location(db, encounter_id, location)
