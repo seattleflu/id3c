@@ -52,7 +52,7 @@ LOG = logging.getLogger(__name__)
 # this revision number should be incremented.
 # The etl name has been added to allow multiple etls to process the same
 # receiving table
-REVISION = 1
+REVISION = 2
 ETL_NAME = 'fhir'
 INTERNAL_SYSTEM = 'https://seattleflu.org'
 LOCATION_RELATION_SYSTEM = 'http://terminology.hl7.org/CodeSystem/v3-RoleCode'
@@ -107,7 +107,7 @@ def etl_fhir(*, db: DatabaseSession):
                 process_bundle_entries(db, bundle)
 
             except SkipBundleError as error:
-                LOG.warning(f"Skipping bundle: {error}")
+                LOG.warning(f"Skipping bundle in FHIR document «{record.id}»: {error}")
                 mark_skipped(db, record.id)
                 continue
 
@@ -183,7 +183,7 @@ def process_diagnostic_report_bundle_entry(db: DatabaseSession, bundle: Bundle, 
         if not matching_system(reference.identifier, INTERNAL_SYSTEM):
             continue
 
-        barcode = reference.identifier.value
+        barcode = reference.identifier.value.strip()
 
         LOG.debug(f"Looking up collected specimen barcode «{barcode}»")
         specimen_identifier = find_identifier(db, barcode)
@@ -484,7 +484,7 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
         return
 
     for specimen in specimens:
-        barcode = identifier(specimen, f"{INTERNAL_SYSTEM}/sample")
+        barcode = identifier(specimen, f"{INTERNAL_SYSTEM}/sample").strip()
 
         if not barcode:
             raise Exception("No barcode detectable. Either the barcode identification system is "
@@ -568,11 +568,17 @@ def process_locations(db: DatabaseSession, encounter_id: int, encounter: Encount
     *encounter_id*.
     """
     for location_reference in encounter.location:
+
+        identifier = location_reference.location.identifier
+        if identifier and matching_system(identifier, f"{INTERNAL_SYSTEM}/site"):
+            LOG.debug(f"Site location «{identifier}» will be processed separately")
+            continue
+
         location = location_reference.location.resolved(Location)
 
         if not location:
-            LOG.debug("No reference found to Location resource. If this Location is a site, " + \
-            "it will be processed separately.")
+            LOG.warning("No reference found to Location resource that was not a site " +
+                f"See location: {location_reference.location.as_json()}")
             continue
 
         process_location(db, encounter_id, location)
