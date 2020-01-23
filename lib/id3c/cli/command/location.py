@@ -82,6 +82,12 @@ def location():
     metavar = "<hierarchy>",
     help = "Comma-separated string of key=>value pairs describing where these locations fit within a hierarchy; if this is provided, it overrides --hierarchy-from")
 
+@click.option("--hierarchy-by-feature",
+    metavar = "<hierarchy.csv>",
+    type = click.File("r"),
+    help = "CSV file of hierachy to include for features that must include `feature_identifier` column. All other column headers are assumed to be hierarchy keys; " +
+           "if provided, it overrides --hierarchy-from and can override --hierarchy if same key provided")
+
 @click.option("--hierarchy-from",
     metavar = "<property>",
     help = "Use the given property name as the hierarchy for each location; default is \"hierarchy\"")
@@ -105,6 +111,7 @@ def import_(features_path,
             scale,
             scale_from,
             hierarchy,
+            hierarchy_by_feature,
             hierarchy_from,
             identifier_from,
             point_from,
@@ -162,6 +169,23 @@ def import_(features_path,
         else:
             return None
 
+    def get_hierarchy(feature, feature_identifier):
+        if hierarchy_df is None:
+            return hierarchy or feature["properties"].pop(hierarchy_from, None)
+
+        hierarchy_list = hierarchy_df.loc[hierarchy_df['feature_identifier'] == feature_identifier].to_dict('record')
+        hierarchies = ''
+        if hierarchy_list:
+            # This is assuming only one row has matching feature_identifier
+            hierarchy_map = hierarchy_list[0]
+            hierarchy_map.pop('feature_identifier')
+            for key, val in hierarchy_map.items():
+                if pd.notna(val):
+                    hierarchies += (key + '=>' + val + ',')
+
+        return hierarchies + hierarchy
+
+
     # Technically PostGIS' SRIDs don't have to match the EPSG id, but in my
     # experience, they always do in practice.  If that doesn't hold true in the
     # future, then a lookup of (auth_name, auth_id) in spatial_ref_sys table
@@ -169,10 +193,11 @@ def import_(features_path,
     #   -trs, 2 Dec 2019
 
     def as_location(feature):
+        feature_identifier = identifier(feature)
         return {
             "scale": scale or feature["properties"].pop(scale_from),
-            "identifier": identifier(feature),
-            "hierarchy": hierarchy or feature["properties"].pop(hierarchy_from, None),
+            "identifier": feature_identifier,
+            "hierarchy": get_hierarchy(feature, feature_identifier),
             "point": point(feature),
             "polygon": polygon(feature),
             "srid": feature["crs"]["EPSG"],
@@ -188,6 +213,13 @@ def import_(features_path,
 
     # Now, read in the data files and convert to our internal structure.
     LOG.info(f"Reading features from «{features_path}»")
+
+    hierarchy_df = None
+    if hierarchy_by_feature:
+        hierarchy_df = pd.read_csv(hierarchy_by_feature, dtype=str)
+        if "feature_identifier" not in hierarchy_df.columns:
+            raise Exception("hierarchy_by_feature CSV must include 'feature_identifier' column")
+
     locations = list(map(as_location, parse_features(features_path)))
 
     if simplified_polygons_path:
