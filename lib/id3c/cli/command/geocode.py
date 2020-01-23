@@ -335,7 +335,7 @@ def geocode_address(address: dict) -> dict:
     result = lookup.result
 
     if not result:
-        LOG.warning(f"Invalid address: no response from SmartyStreets.")
+        LOG.info(f"Invalid address: no response from SmartyStreets.")
 
     return parse_first_smartystreets_result(result)
 
