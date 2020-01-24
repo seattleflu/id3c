@@ -19,6 +19,7 @@ setup(
 
     packages = find_packages("lib"),
     package_dir = {"": "lib"},
+    package_data = {"": ["data/*"]},
 
     description = "Infectious Disease Data Distribution Center",
     long_description = long_description,

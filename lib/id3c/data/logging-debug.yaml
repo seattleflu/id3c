@@ -1,0 +1,32 @@
+---
+version: 1
+
+root:
+  # Filtering of messages by level is done at the handler level by using NOTSET
+  # on the root logger to emit everything.  This lets us keep console output
+  # readable while emitting verbose output to alternate handlers.
+  level: NOTSET
+  handlers:
+    - console
+    - syslog
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: console
+
+  # This handler emits all log levels; filtering is more usefully done by
+  # syslog itself.
+  syslog:
+    class: id3c.logging.SysLogUnixSocketHandler
+    level: NOTSET
+    formatter: syslog
+
+formatters:
+  console:
+    format: "[%(asctime)s] [pid %(process)s] %(name)s %(levelname)s: %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+
+  syslog:
+    format: "id3c[%(process)s] %(name)s %(levelname)s: %(message)s"
