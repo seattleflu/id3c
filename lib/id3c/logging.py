@@ -22,11 +22,15 @@ def configure():
     A stock configuration is loaded from the ``id3c/data/logging-*.yaml``
     files, chosen based on if we're running with ``LOG_LEVEL=debug`` or not.
 
+    Python library warnings are captured and logged at the ``WARNING`` level.
     Uncaught exceptions are logged at the ``CRITICAL`` level before they cause
     the process to exit.
     """
     stock_config = load_stock_config("debug" if IS_DEBUG else "default")
     logging.config.dictConfig(stock_config)
+
+    # Log library API warnings.
+    logging.captureWarnings(True)
 
     # Log any uncaught exceptions which are about to cause process exit.
     sys.excepthook = (lambda *args:
