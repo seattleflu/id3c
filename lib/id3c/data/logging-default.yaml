@@ -10,6 +10,12 @@ root:
     - console
     - syslog
 
+loggers:
+  # The SmartyStreets library uses urllib3, which produces DEBUG messages that
+  # can contain sensitive data.  Suppress those at its package logger.
+  urllib3:
+    level: INFO
+
 handlers:
   console:
     class: logging.StreamHandler
