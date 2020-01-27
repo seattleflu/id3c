@@ -112,6 +112,9 @@ class Project:
             'exportCheckboxLabel': 'true',
         }
 
+        assert bool(since_date or until_date) ^ (ids is not None), \
+            "The REDCap API does not support fetching records filtered by id *and* date."
+
         if since_date:
             parameters['dateRangeBegin'] = since_date
 

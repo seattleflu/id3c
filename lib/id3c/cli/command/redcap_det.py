@@ -14,6 +14,7 @@ scenarios when this happens are:
 import os
 import click
 import logging
+from typing import List
 from id3c.cli import cli
 from id3c.cli.redcap import Project, is_complete
 from id3c.db.session import DatabaseSession
@@ -26,6 +27,7 @@ def redcap_det():
     pass
 
 @redcap_det.command("generate")
+@click.argument("record-ids", nargs = -1, type = int)
 @click.option("--project-id",
     metavar = "<id>",
     type = int,
@@ -45,9 +47,14 @@ def redcap_det():
     help = "Limit to REDCap records that have been created/modified before the given date. " +
            "Format must be YYYY-MM-DD HH:MM:SS (e.g. '2019-01-01 00:00:00')")
 
-def generate(project_id: int, token_name: str, since_date: str, until_date: str):
+def generate(record_ids: List[int], project_id: int, token_name: str, since_date: str, until_date: str):
     """
     Generate DET notifications for REDCap records.
+
+    Specify one or more record ids to only consider those records.  If no
+    record ids are given, then all records (or all records matching the date
+    filters) are considered.  The REDCap API does not support combining a list
+    of specific record ids with date filters, so this command does not either.
 
     Requires environmental variables REDCAP_API_URL and REDCAP_API_TOKEN (or
     whatever you passed to --token-name).
@@ -64,16 +71,27 @@ def generate(project_id: int, token_name: str, since_date: str, until_date: str)
 
     LOG.info(f"REDCap project #{project.id}: {project.title}")
 
+    if bool(since_date or until_date) and bool(record_ids):
+        raise click.UsageError("The REDCap API does not support fetching records filtered by id *and* date.")
+
     if since_date and until_date:
         LOG.debug(f"Getting all records that have been created/modified between {since_date} and {until_date}")
     elif since_date:
         LOG.debug(f"Getting all records that have been created/modified since {since_date}")
     elif until_date:
         LOG.debug(f"Getting all records that have been created/modified before {until_date}")
+    elif record_ids:
+        LOG.debug(f"Getting specified records: {record_ids}")
     else:
         LOG.debug(f"Getting all records")
 
-    for record in project.records(since_date = since_date, until_date = until_date, raw = True):
+    records = project.records(
+        since_date = since_date,
+        until_date = until_date,
+        ids = record_ids or None,
+        raw = True)
+
+    for record in records:
         # Find all instruments within a record that have been mark completed
         for instrument in project.instruments:
             if is_complete(instrument, record):
