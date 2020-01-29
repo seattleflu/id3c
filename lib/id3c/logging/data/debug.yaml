@@ -19,21 +19,19 @@ loggers:
 handlers:
   console:
     class: logging.StreamHandler
-    level: !coalesce
-      - !LOG_LEVEL
-      - INFO
+    level: DEBUG
     formatter: console
 
   # This handler emits all log levels; filtering is more usefully done by
   # syslog itself.
   syslog:
-    class: id3c.logging.SysLogUnixSocketHandler
+    class: id3c.logging.handlers.SysLogUnixSocketHandler
     level: NOTSET
     formatter: syslog
 
 formatters:
   console:
-    format: "[%(asctime)s] %(message)s"
+    format: "[%(asctime)s] [pid %(process)s] %(name)s %(levelname)s: %(message)s"
     datefmt: "%Y-%m-%d %H:%M:%S"
 
   syslog:
