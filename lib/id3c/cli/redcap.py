@@ -136,7 +136,7 @@ class Project:
             'exportCheckboxLabel': 'true',
         }
 
-        assert bool(since_date or until_date) ^ (ids is not None), \
+        assert not ((since_date or until_date) and ids), \
             "The REDCap API does not support fetching records filtered by id *and* date."
 
         if since_date:
