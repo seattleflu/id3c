@@ -20,28 +20,35 @@ from id3c.cli.redcap import Project, is_complete
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json
 
+
 LOG = logging.getLogger(__name__)
+
 
 @cli.group("redcap-det", help = __doc__)
 def redcap_det():
     pass
 
+
 @redcap_det.command("generate")
 @click.argument("record-ids", nargs = -1, type = int)
+
 @click.option("--project-id",
     metavar = "<id>",
     type = int,
     help = "The project id from which to fetch records.  "
            "Used as a sanity check that the correct API token is provided.",
     required = True)
+
 @click.option("--token-name",
     metavar = "<token-name>",
     help = "The name of the environment variable that holds the API token",
     default = "REDCAP_API_TOKEN")
+
 @click.option("--since-date",
     metavar = "<since-date>",
     help = "Limit to REDCap records that have been created/modified since the given date. " +
            "Format must be YYYY-MM-DD HH:MM:SS (e.g. '2019-01-01 00:00:00')")
+
 @click.option("--until-date",
     metavar = "<until-date>",
     help = "Limit to REDCap records that have been created/modified before the given date. " +
@@ -134,6 +141,7 @@ def create_det_records(project: Project, record: dict, instrument: str) -> dict:
 
 
 @redcap_det.command("upload")
+
 @click.argument("det_file",
     metavar = "<det.ndjson>",
     type = click.File("r"))
