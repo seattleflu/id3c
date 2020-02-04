@@ -54,7 +54,12 @@ def redcap_det():
     help = "Limit to REDCap records that have been created/modified before the given date. " +
            "Format must be YYYY-MM-DD HH:MM:SS (e.g. '2019-01-01 00:00:00')")
 
-def generate(record_ids: List[str], project_id: int, token_name: str, since_date: str, until_date: str):
+@click.option("--include-incomplete",
+    help = "Generate DET notifications for instruments marked as incomplete and unverified too, instead of only those marked complete",
+    is_flag = True,
+    flag_value = True)
+
+def generate(record_ids: List[str], project_id: int, token_name: str, since_date: str, until_date: str, include_incomplete: bool):
     """
     Generate DET notifications for REDCap records.
 
@@ -66,7 +71,9 @@ def generate(record_ids: List[str], project_id: int, token_name: str, since_date
     Requires environmental variables REDCAP_API_URL and REDCAP_API_TOKEN (or
     whatever you passed to --token-name).
 
-    DET notifications are only output for completed instruments.
+    DET notifications are output for all completed instruments for each record
+    by default.  Pass --include-incomplete to output DET notifications for
+    incomplete and unverified instruments too.
 
     All DET notifications are output to stdout as newline-delimited JSON
     records.  You will likely want to redirect stdout to a file.
@@ -99,9 +106,8 @@ def generate(record_ids: List[str], project_id: int, token_name: str, since_date
         raw = True)
 
     for record in records:
-        # Find all instruments within a record that have been mark completed
         for instrument in project.instruments:
-            if is_complete(instrument, record):
+            if include_incomplete or is_complete(instrument, record):
                 print(as_json(create_det_records(project, record, instrument)))
 
 
