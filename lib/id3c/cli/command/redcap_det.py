@@ -54,12 +54,17 @@ def redcap_det():
     help = "Limit to REDCap records that have been created/modified before the given date. " +
            "Format must be YYYY-MM-DD HH:MM:SS (e.g. '2019-01-01 00:00:00')")
 
+@click.option("--instrument", "instruments",
+    metavar = "<name>",
+    help = "Limit generated DET notifications to the named instrument; may be used multiple times",
+    multiple = True)
+
 @click.option("--include-incomplete",
     help = "Generate DET notifications for instruments marked as incomplete and unverified too, instead of only those marked complete",
     is_flag = True,
     flag_value = True)
 
-def generate(record_ids: List[str], project_id: int, token_name: str, since_date: str, until_date: str, include_incomplete: bool):
+def generate(record_ids: List[str], project_id: int, token_name: str, since_date: str, until_date: str, instruments: List[str], include_incomplete: bool):
     """
     Generate DET notifications for REDCap records.
 
@@ -73,7 +78,8 @@ def generate(record_ids: List[str], project_id: int, token_name: str, since_date
 
     DET notifications are output for all completed instruments for each record
     by default.  Pass --include-incomplete to output DET notifications for
-    incomplete and unverified instruments too.
+    incomplete and unverified instruments too.  Pass one or more --instrument
+    options to limit output to specific instrument names.
 
     All DET notifications are output to stdout as newline-delimited JSON
     records.  You will likely want to redirect stdout to a file.
@@ -105,8 +111,19 @@ def generate(record_ids: List[str], project_id: int, token_name: str, since_date
         ids = record_ids or None,
         raw = True)
 
+    if instruments:
+        LOG.debug(f"Producing DET notifications for the following {'instruments' if include_incomplete else 'complete instruments'}: {instruments}")
+    else:
+        LOG.debug(f"Producing DET notifications for all {'instruments' if include_incomplete else 'complete instruments'} ({project.instruments})")
+        instruments = project.instruments
+
+    unknown_instruments = set(instruments) - set(project.instruments)
+
+    assert not unknown_instruments, \
+        f"The following --instrument names aren't in the REDCap project: {unknown_instruments}"
+
     for record in records:
-        for instrument in project.instruments:
+        for instrument in instruments:
             if include_incomplete or is_complete(instrument, record):
                 print(as_json(create_det_records(project, record, instrument)))
 
