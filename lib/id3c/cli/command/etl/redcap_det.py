@@ -168,7 +168,7 @@ def get_redcap_record_from_det(det: dict) -> Optional[dict]:
     project_id = int(det["project_id"])
 
     try:
-        record_id = int(det["record"])
+        record_id = str(det["record"])
     except ValueError:
         return None
 

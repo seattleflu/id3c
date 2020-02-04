@@ -27,6 +27,7 @@ class Project:
     base_url: str
     _details: dict
     _instruments: List[str] = None
+    _fields: List[dict] = None
 
     def __init__(self, api_url: str, api_token: str, project_id: int) -> None:
         self.api_url = api_url
@@ -67,7 +68,30 @@ class Project:
         return self._instruments
 
 
-    def record(self, record_id: int) -> List[dict]:
+    @property
+    def fields(self) -> List[dict]:
+        """
+        Metadata about all fields in this REDCap project.
+        """
+        if not self._fields:
+            self._fields = self._fetch("metadata")
+
+        return self._fields
+
+
+    @property
+    def record_id_field(self) -> str:
+        """
+        Name of the field containing the unique id for each record.
+
+        For auto-numbered projects, this is typically ``record_id``, but for
+        other data entry projects, it can be any arbitrary name.  It is always
+        the first field in a project.
+        """
+        return self.fields[0]["field_name"]
+
+
+    def record(self, record_id: str) -> List[dict]:
         """
         Fetch the REDCap record *record_id* with all its instruments.
 
@@ -83,7 +107,7 @@ class Project:
     def records(self,
                 since_date: str = None,
                 until_date: str = None,
-                ids: List[int] = None,
+                ids: List[str] = None,
                 raw: bool = False) -> List[dict]:
         """
         Fetch records for this REDCap project.

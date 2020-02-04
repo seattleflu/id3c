@@ -30,7 +30,7 @@ def redcap_det():
 
 
 @redcap_det.command("generate")
-@click.argument("record-ids", nargs = -1, type = int)
+@click.argument("record-ids", nargs = -1)
 
 @click.option("--project-id",
     metavar = "<id>",
@@ -54,7 +54,7 @@ def redcap_det():
     help = "Limit to REDCap records that have been created/modified before the given date. " +
            "Format must be YYYY-MM-DD HH:MM:SS (e.g. '2019-01-01 00:00:00')")
 
-def generate(record_ids: List[int], project_id: int, token_name: str, since_date: str, until_date: str):
+def generate(record_ids: List[str], project_id: int, token_name: str, since_date: str, until_date: str):
     """
     Generate DET notifications for REDCap records.
 
@@ -125,8 +125,8 @@ def create_det_records(project: Project, record: dict, instrument: str) -> dict:
 
     det_record = {
        'redcap_url': project.base_url,
-       'project_id': str(project.id),       # REDCap DETs send project_id as a string
-       'record': str(record['record_id']),  # ...and record as well.
+       'project_id': str(project.id),                   # REDCap DETs send project_id as a string
+       'record': str(record[project.record_id_field]),  # ...and record as well.
        'instrument': instrument,
        instrument_complete: record[instrument_complete],
        'redcap_repeat_instance': record.get('redcap_repeat_instance'),
