@@ -14,7 +14,7 @@ create or replace function public.date_or_null(input text)
         end;
     $$
     immutable
-    parallel safe;
+    parallel unsafe;
 
 comment on function public.date_or_null is
     'Tries to cast string to date type, returns null if string has invalid datetime format';
