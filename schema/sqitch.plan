@@ -176,3 +176,4 @@ functions/date_or_null 2020-01-17T20:15:20Z Jover Lee <joverlee@fredhutch.org> #
 fuzzystrmatch 2020-01-22T20:30:05Z Thomas Sibley <tsibley@fredhutch.org> # Install fuzzystrmatch extension to allow easier identifier/barcode correction
 @2020-01-22 2020-02-06T18:32:03Z Jover Lee <joverlee@fredhutch.org> # Schma as of 22 Jan 2020
 functions/date_or_null [functions/date_or_null@2020-01-22] 2020-02-06T18:32:31Z Jover Lee <joverlee@fredhutch.org> # Mark function as parallel unsafe
+@2020-02-06 2020-02-06T18:58:08Z Jover Lee <joverlee@fredhutch.org> # Schema as of 06 Feb 2020
