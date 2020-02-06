@@ -174,3 +174,4 @@ shipping/views [shipping/views@2020-01-14c] 2020-01-13T23:46:16Z Jover Lee <jove
 
 functions/date_or_null 2020-01-17T20:15:20Z Jover Lee <joverlee@fredhutch.org> # A function to cast string to date or return null if invalid format
 fuzzystrmatch 2020-01-22T20:30:05Z Thomas Sibley <tsibley@fredhutch.org> # Install fuzzystrmatch extension to allow easier identifier/barcode correction
+@2020-01-22 2020-02-06T18:32:03Z Jover Lee <joverlee@fredhutch.org> # Schma as of 22 Jan 2020
