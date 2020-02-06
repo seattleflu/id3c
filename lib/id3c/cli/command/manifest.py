@@ -20,6 +20,7 @@ import logging
 import pandas
 import re
 import yaml
+from fsspec import open as urlopen
 from functools import reduce
 from deepdiff import DeepHash
 from hashlib import sha1
@@ -75,8 +76,9 @@ def parse(**kwargs):
     """
     Parse a single manifest workbook sheet.
 
-    <manifest.xlsx> must be an Excel workbook with at least one sheet in it,
-    identified by name using the required option --sheet.
+    <manifest.xlsx> must be a path or URL to an Excel workbook with at least
+    one sheet in it, identified by name using the required option --sheet.
+    Supported URL schemes include http[s]:// and s3://, as well as others.
 
     The required --sample-column option specifies the name of the column
     containing the sample barcode.  Other columns may be extracted into the
@@ -209,10 +211,15 @@ def _parse(*,
     """
     Internal function powering :func:`parse` and :func:`parse_using_config`.
     """
-    LOG.debug(f"Reading Excel workbook «{workbook}», sheet «{sheet}»")
+    LOG.debug(f"Reading Excel workbook «{workbook}»")
+
+    with urlopen(workbook) as file:
+        workbook_bytes = file.read()
+
+    LOG.debug(f"Parsing sheet «{sheet}» in workbook «{workbook}»")
 
     # All columns are read as strings so that we can type values at load time.
-    manifest = pandas.read_excel(workbook, sheet_name = sheet, dtype = str)
+    manifest = pandas.read_excel(workbook_bytes, sheet_name = sheet, dtype = str)
     LOG.debug(f"Columns in manifest: {list(manifest.columns)}")
 
     # Strip leading/trailing spaces from values and replace missing values
@@ -257,7 +264,7 @@ def _parse(*,
         parsed_manifest["sample_type"] = sample_type
 
     # Add internal provenance metadata for data tracing
-    digest = sha1sum(workbook)
+    digest = sha1(workbook_bytes).hexdigest()
 
     parsed_manifest[PROVENANCE_KEY] = list(
         map(lambda index: {
@@ -407,21 +414,6 @@ def qc_barcodes(df: pandas.DataFrame, columns: Iterable) -> pandas.DataFrame:
             deduplicated = deduplicated.loc[common_idx]
 
     return deduplicated
-
-def sha1sum(path: str) -> str:
-    """
-    Compute the SHA-1 digest (as a hexadecimal string) of the file at *path*.
-    """
-    digest = sha1()
-
-    # Rather arbitrary!
-    chunk_size = 4096
-
-    with open(path, "rb") as data:
-        for chunk in iter(lambda: data.read(chunk_size), b""):
-            digest.update(chunk)
-
-    return digest.hexdigest()
 
 
 def deephash(record):

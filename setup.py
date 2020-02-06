@@ -66,10 +66,12 @@ setup(
         "fhir.resources",
         "fiona",
         "flask",
+        "fsspec",
         "pandas",
         "psycopg2 >=2.8,<3",
         "pyyaml",
         "requests",
+        "s3fs",
         "smartystreets-python-sdk >= 4.0.1",
         "xlrd",
 
