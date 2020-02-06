@@ -20,34 +20,51 @@ from id3c.cli.redcap import Project, is_complete
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json
 
+
 LOG = logging.getLogger(__name__)
+
 
 @cli.group("redcap-det", help = __doc__)
 def redcap_det():
     pass
 
+
 @redcap_det.command("generate")
-@click.argument("record-ids", nargs = -1, type = int)
+@click.argument("record-ids", nargs = -1)
+
 @click.option("--project-id",
     metavar = "<id>",
     type = int,
     help = "The project id from which to fetch records.  "
            "Used as a sanity check that the correct API token is provided.",
     required = True)
+
 @click.option("--token-name",
     metavar = "<token-name>",
     help = "The name of the environment variable that holds the API token",
     default = "REDCAP_API_TOKEN")
+
 @click.option("--since-date",
     metavar = "<since-date>",
     help = "Limit to REDCap records that have been created/modified since the given date. " +
            "Format must be YYYY-MM-DD HH:MM:SS (e.g. '2019-01-01 00:00:00')")
+
 @click.option("--until-date",
     metavar = "<until-date>",
     help = "Limit to REDCap records that have been created/modified before the given date. " +
            "Format must be YYYY-MM-DD HH:MM:SS (e.g. '2019-01-01 00:00:00')")
 
-def generate(record_ids: List[int], project_id: int, token_name: str, since_date: str, until_date: str):
+@click.option("--instrument", "instruments",
+    metavar = "<name>",
+    help = "Limit generated DET notifications to the named instrument; may be used multiple times",
+    multiple = True)
+
+@click.option("--include-incomplete",
+    help = "Generate DET notifications for instruments marked as incomplete and unverified too, instead of only those marked complete",
+    is_flag = True,
+    flag_value = True)
+
+def generate(record_ids: List[str], project_id: int, token_name: str, since_date: str, until_date: str, instruments: List[str], include_incomplete: bool):
     """
     Generate DET notifications for REDCap records.
 
@@ -59,7 +76,10 @@ def generate(record_ids: List[int], project_id: int, token_name: str, since_date
     Requires environmental variables REDCAP_API_URL and REDCAP_API_TOKEN (or
     whatever you passed to --token-name).
 
-    DET notifications are only output for completed instruments.
+    DET notifications are output for all completed instruments for each record
+    by default.  Pass --include-incomplete to output DET notifications for
+    incomplete and unverified instruments too.  Pass one or more --instrument
+    options to limit output to specific instrument names.
 
     All DET notifications are output to stdout as newline-delimited JSON
     records.  You will likely want to redirect stdout to a file.
@@ -91,10 +111,20 @@ def generate(record_ids: List[int], project_id: int, token_name: str, since_date
         ids = record_ids or None,
         raw = True)
 
+    if instruments:
+        LOG.debug(f"Producing DET notifications for the following {'instruments' if include_incomplete else 'complete instruments'}: {instruments}")
+    else:
+        LOG.debug(f"Producing DET notifications for all {'instruments' if include_incomplete else 'complete instruments'} ({project.instruments})")
+        instruments = project.instruments
+
+    unknown_instruments = set(instruments) - set(project.instruments)
+
+    assert not unknown_instruments, \
+        f"The following --instrument names aren't in the REDCap project: {unknown_instruments}"
+
     for record in records:
-        # Find all instruments within a record that have been mark completed
-        for instrument in project.instruments:
-            if is_complete(instrument, record):
+        for instrument in instruments:
+            if include_incomplete or is_complete(instrument, record):
                 print(as_json(create_det_records(project, record, instrument)))
 
 
@@ -118,8 +148,8 @@ def create_det_records(project: Project, record: dict, instrument: str) -> dict:
 
     det_record = {
        'redcap_url': project.base_url,
-       'project_id': str(project.id),       # REDCap DETs send project_id as a string
-       'record': str(record['record_id']),  # ...and record as well.
+       'project_id': str(project.id),                   # REDCap DETs send project_id as a string
+       'record': str(record[project.record_id_field]),  # ...and record as well.
        'instrument': instrument,
        instrument_complete: record[instrument_complete],
        'redcap_repeat_instance': record.get('redcap_repeat_instance'),
@@ -134,6 +164,7 @@ def create_det_records(project: Project, record: dict, instrument: str) -> dict:
 
 
 @redcap_det.command("upload")
+
 @click.argument("det_file",
     metavar = "<det.ndjson>",
     type = click.File("r"))
