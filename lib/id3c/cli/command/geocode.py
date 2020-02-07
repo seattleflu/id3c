@@ -43,7 +43,7 @@ CACHE_TTL = 60 * 60 * 24 * 365  # 1 year
 CACHE_SIZE = float("inf")       # Unlimited
 
 # Shared SmartyStreets client, initialized when first needed.
-CLIENT = None
+STREET_CLIENT = None
 
 
 @cli.group("geocode", help = __doc__)
@@ -322,16 +322,16 @@ def geocode_address(address: dict) -> dict:
     """
     LOG.debug("Making SmartyStreets geocoding API request")
 
-    global CLIENT
-    if not CLIENT:
-        CLIENT = smartystreets_client_builder().build_us_street_api_client()
+    global STREET_CLIENT
+    if not STREET_CLIENT:
+        STREET_CLIENT = smartystreets_client_builder().build_us_street_api_client()
 
     lookup = us_street_lookup(address)
     if not lookup.street:
         LOG.warning(f"Missing street address; can't geocode")
         return None
 
-    CLIENT.send_lookup(lookup)
+    STREET_CLIENT.send_lookup(lookup)
     result = lookup.result
 
     if not result:
