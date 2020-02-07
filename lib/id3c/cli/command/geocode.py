@@ -31,6 +31,7 @@ from cachetools import TTLCache
 from typing import Optional, Tuple, Dict, Any
 from smartystreets_python_sdk import StaticCredentials, ClientBuilder
 from smartystreets_python_sdk.us_street import Lookup
+from smartystreets_python_sdk.us_extract import Lookup as ExtractLookup
 from id3c.cli import cli
 from id3c.cli.command import (
     load_file_as_dataframe
@@ -44,6 +45,7 @@ CACHE_SIZE = float("inf")       # Unlimited
 
 # Shared SmartyStreets client, initialized when first needed.
 STREET_CLIENT = None
+EXTRACT_CLIENT = None
 
 
 @cli.group("geocode", help = __doc__)
@@ -200,10 +202,10 @@ def get_geocoded_addresses(*,
     with pickled_cache(cache_file) as cache:
         address_column_map = {
             'street': street_column,
+            'secondary': secondary_column,
             'city': city_column,
             'state': state_column,
-            'zipcode': zipcode_column,
-            'secondary': secondary_column
+            'zipcode': zipcode_column
         }
 
         addresses_df = load_file_as_dataframe(filename)
@@ -335,6 +337,10 @@ def geocode_address(address: dict) -> dict:
     result = lookup.result
 
     if not result:
+        LOG.info("Previous lookup failed. Looking up address as free text")
+        result = extract_address(address)
+
+    if not result:
         LOG.info(f"Invalid address: no response from SmartyStreets.")
 
     return parse_first_smartystreets_result(result)
@@ -409,6 +415,36 @@ def parse_first_smartystreets_result(result: list) -> dict:
         response['lng'] = first_candidate.metadata.longitude
 
     return response
+
+
+def extract_address(address: dict) -> dict:
+    """
+    Given an *address*, converts it to text and returns a result from
+    the SmartyStreets US Extract API containing information about an address
+    connected to the text.
+
+    Note that this API is not consistent with the US Street API, and the lookup
+    and responses must be handled differently.
+    """
+    LOG.debug("Making SmartyStreets extract API request")
+
+    global EXTRACT_CLIENT
+    if not EXTRACT_CLIENT:
+        EXTRACT_CLIENT = smartystreets_client_builder().build_us_extract_api_client()
+
+    address_text = ', '.join([str(val) for val in list(address.values()) if val])
+
+    lookup = ExtractLookup()
+    lookup.text = address_text
+
+    result = EXTRACT_CLIENT.send(lookup)
+    addresses = result.addresses
+
+    for add in addresses:
+        if len(add.candidates) > 0:
+            return add.candidates
+
+    return None
 
 
 class InvalidAddressMappingError(KeyError):
