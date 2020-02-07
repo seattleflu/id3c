@@ -44,6 +44,7 @@ def command_for_project(name: str,
                         project_id: int,
                         revision: int,
                         required_instruments: Iterable[str] = [],
+                        include_incomplete: bool = False,
                         **kwargs) -> Callable[[Callable], click.Command]:
     """
     Decorator to create REDCap DET ETL subcommands.
@@ -108,8 +109,10 @@ def command_for_project(name: str,
 
                         instrument = det.document['instrument']
 
-                        # Only pull REDCap record if the current instrument is complete
-                        if not is_complete(instrument, det.document):
+                        # Only pull REDCap record if
+                        # `include_incomplete` flag was not included and
+                        # the current instrument is complete
+                        if not include_incomplete and not is_complete(instrument, det.document):
                             LOG.debug(f"Skipping incomplete or unverified REDCap DET {det.id}")
                             mark_skipped(db, det.id, etl_id)
                             continue
