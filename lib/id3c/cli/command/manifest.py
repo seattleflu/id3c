@@ -25,7 +25,7 @@ from deepdiff import DeepHash
 from hashlib import sha1
 from os import chdir
 from os.path import dirname
-from typing import Iterable, List
+from typing import Iterable, List, Tuple, Union
 from id3c.cli import cli
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json, Json
@@ -56,96 +56,20 @@ def manifest():
            "Must match exactly; shell-style glob patterns are supported.",
     required = True)
 
-@click.option("--sample-origin",
-    metavar = "<column>",
-    help = "Name of the single column containing sample origin. "
-           "Must match exactly; shell-style glob patterns are supported.",
-    required = False)
-
-@click.option("--swab-site",
-    metavar = "<column>",
-    help = "Name of the single column containing sample origin. "
-           "Must match exactly; shell-style glob patterns are supported.",
-    required = False)
-
-@click.option("--aliquot-columns",
-    metavar = "<column>",
-    help = "Name of the, possibly multiple, columns containing aliquot barcodes.  "
-           "Must match exactly; shell-style glob patterns are supported.",
-    required = False)
-
-@click.option("--collection-column",
-    metavar = "<column>",
-    help = "Name of the single column containing collection barcodes.  "
-           "Must match exactly; shell-style glob patterns are supported.",
-    required = False)
-
-@click.option("--date-column",
-    metavar = "<column>",
-    help = "Name of the single column containing a collection date.  "
-           "Must match exactly; shell-style glob patterns are supported.",
-    required = False)
-
-@click.option("--aliquot-date-column",
-    metavar = "<column>",
-    help = "Name of the single column containing an aliquot date.  "
-           "Must match exactly; shell-style glob patterns are supported.",
-    required = False)
-
-@click.option("--rack-columns",
-    metavar = "<column>",
-    help = "Name of the, possibly multiple, columns containing rack identifiers.  "
-           "Must match exactly; shell-style glob patterns are supported.",
-    required = False)
-
-@click.option("--test-results-column",
-    metavar = "<column>",
-    help = "Name of the single column containing test results.  "
-           "Must match exactly; shell-style glob patterns are supported.",
-    required = False)
-
-@click.option("--pcr-result-column",
-    metavar = "<column>",
-    help = "Name of the single column containing rapid PCR results.  "
-           "Must match exactly; shell-style glob patterns are supported.",
-    required = False)
-
-@click.option("--notes-column",
-    metavar = "<column>",
-    help = "Name of the single column containing additional information.  "
-           "Must match exactly; shell-style glob patterns are supported.",
-    required = False)
-
-@click.option("--kit-column",
-    metavar = "<column>",
-    help = "Name of the single column containing additional information. "
-           "Must match exactly; shell-style glob patterns are supported.",
-    required = False)
-
-@click.option("--test-strip-column",
-    metavar = "<column>",
-    help = "Name of the single column containing test strip barcodes. "
-           "Must match exactly; shell-style glob patterns are supported.",
-    required = False)
-
-@click.option("--test-origin-column",
-    metavar = "<column>",
-    help = "Name of the single column containing test origin. "
-           "Must match exactly; shell-style glob patterns are supported.",
-    required = False)
-
-@click.option("--arrival-date-column",
-    metavar = "<column>",
-    help = "Name of the single column containing the sample arrival date. "
-           "Must match exactly; shell-style glob patterns are supported.",
-    required = False)
-
 @click.option("--sample-type",
     metavar = "<type>",
     help = "The type of sample within this manifest. "
            "Only applicable to samples from self-test kits.",
     type=click.Choice(["utm", "rdt"]),
     required = False)
+
+@click.option("--extra-column", "extra_columns",
+    metavar = "<field>:<column>|<field>:{…}",
+    help = "Name of an additional <column> to extract into manifest record <field>.  "
+           "Must match exactly; shell-style glob patterns are supported.  "
+           "May be specified multiple times.  "
+           "Option value is parsed as a YAML fragment, so additional options supported by the sibling command \"parse-with-config\" may be inlined for testing, but you're likely better off using a config file at that point.",
+    multiple = True)
 
 def parse(**kwargs):
     """
@@ -154,12 +78,19 @@ def parse(**kwargs):
     <manifest.xlsx> must be an Excel workbook with at least one sheet in it,
     identified by name using the required option --sheet.
 
-    Other options specify columns to extract into the manifest records.  Of
-    these, only --sample-column is required.
+    The required --sample-column option specifies the name of the column
+    containing the sample barcode.  Other columns may be extracted into the
+    manifest records as desired using the --extra-column option.
 
     Manifest records are output to stdout as newline-delimited JSON records.
     You will likely want to redirect stdout to a file.
     """
+    kwargs["extra_columns"] = [
+        (dst, yaml.safe_load(src))
+            for dst, src
+            in [arg.split(":", 1) for arg in kwargs["extra_columns"]]
+    ]
+
     manifest = _parse(**kwargs)
     dump_ndjson(manifest)
 
@@ -182,26 +113,60 @@ def parse_using_config(config_file):
         ---
         workbook: OneDrive/SFS Prospective Samples 2018-2019.xlsx
         sheet: HMC
-        columns:
-          collection: "Collection ID*"
-          sample: "Barcode ID*"
-          aliquots: "Aliquot [ABC]"
+        sample_column: "Barcode ID*"
+        extra_columns:
+          collection:
+            name: "Collection ID*"
+            barcode: true
+          aliquots:
+            name: "Aliquot [ABC]"
+            multiple: true
           date: "Collection date*"
           aliquot_date: "Date aliquoted"
-          racks: "Rack [ABC]*"
+          racks:
+            name: "Rack [ABC]*"
+            multiple: true
           notes: "Notes"
     \b
         ---
         workbook: OneDrive/SFS Retrospective Samples 2018-2019.xlsx
         sheet: HMC
-        columns:
-          sample: "Barcode ID"
-          aliquots: "Aliquot [ABC]"
+        sample_column: "Barcode ID*"
+        extra_columns:
+          aliquots:
+            name: "Aliquot [ABC]"
+            multiple: true
           date: "Collection date*"
           aliquot_date: "Date aliquoted"
-          racks: "Rack [ABC]"
+          racks:
+            name: "Rack [ABC]*"
+            multiple: true
           test_results: "Test ResulTS"
         ...
+
+    The key: value pairs in "extra_columns" name destination record fields (as
+    the key) and source columns (as the value).  For most source columns, a
+    simple string name (or shell-glob pattern) is enough.  Other behaviour is
+    available by using a dictionary value.
+
+    To collect values from multiple source columns into one record field,
+    specify a dictionary like:
+
+    \b
+        field:
+          name: column_[abc]
+          multiple: true
+
+    To mark a field as containing unique barcodes, similar to the built-in
+    "sample_column" option, specify a dictionary like:
+
+    \b
+        field:
+          name: column
+          barcode: true
+
+    Barcode fields are checked for duplicates and any records containing a
+    duplicated value are dropped with a warning.
 
     Relative paths in <config.yaml> are treated relative to the containing
     directory of the configuration file itself.
@@ -222,24 +187,11 @@ def parse_using_config(config_file):
     for config in configs:
         try:
             kwargs = {
-                "workbook":             config["workbook"],
-                "sheet":                config["sheet"],
-                "sample_column":        config["columns"]["sample"],
-                "sample_origin":        config["columns"].get("sample_origin"),
-                "swab_site":            config["columns"].get("swab_site"),
-                "collection_column":    config["columns"].get("collection"),
-                "aliquot_columns":      config["columns"].get("aliquots"),
-                "date_column":          config["columns"].get("date"),
-                "aliquot_date_column":  config["columns"].get("aliquot_date"),
-                "rack_columns":         config["columns"].get("racks"),
-                "test_results_column":  config["columns"].get("test_results"),
-                "pcr_result_column":    config["columns"].get("pcr_result"),
-                "notes_column":         config["columns"].get("notes"),
-                "kit_column":           config["columns"].get("kit"),
-                "test_strip_column":    config["columns"].get("test_strip"),
-                "test_origin_column":   config["columns"].get("test_origin"),
-                "arrival_date_column":  config["columns"].get("arrival_date"),
-                "sample_type":          config.get("sample_type")
+                "workbook": config["workbook"],
+                "sheet": config["sheet"],
+                "sample_column": config["sample_column"],
+                "extra_columns": list(config.get("extra_columns", {}).items()),
+                "sample_type": config.get("sample_type")
             }
         except KeyError as key:
             LOG.error(f"Required key «{key}» missing from config {config}")
@@ -252,20 +204,7 @@ def _parse(*,
            workbook,
            sheet,
            sample_column,
-           sample_origin = None,
-           swab_site = None,
-           aliquot_columns = None,
-           collection_column = None,
-           date_column = None,
-           aliquot_date_column = None,
-           rack_columns = None,
-           test_results_column = None,
-           pcr_result_column = None,
-           notes_column = None,
-           kit_column = None,
-           test_strip_column = None,
-           test_origin_column = None,
-           arrival_date_column = None,
+           extra_columns: List[Tuple[str, Union[str, dict]]] = [],
            sample_type = None):
     """
     Internal function powering :func:`parse` and :func:`parse_using_config`.
@@ -288,40 +227,27 @@ def _parse(*,
     # multiple destination columns.
     parsed_manifest = pandas.DataFrame()
 
-    parsed_manifest["sample"] = select_column(manifest, sample_column)
+    column_map: List[Tuple[str, dict]] = [
+        ("sample", {"name": sample_column, "barcode": True})]
 
-    single_columns = {
-        "sample_origin": sample_origin,
-        "swab_site": swab_site,
-        "collection": collection_column,
-        "kit": kit_column,
-        "date": date_column,
-        "aliquot_date": aliquot_date_column,
-        "test_results": test_results_column,
-        "pcr_result": pcr_result_column,
-        "notes": notes_column,
-        "test_strip": test_strip_column,
-        "test_origin": test_origin_column,
-        "arrival_date": arrival_date_column }
+    column_map += [
+        (dst, src) if isinstance(src, dict) else (dst, {"name":src})
+            for dst, src
+            in extra_columns
+            if src]
 
-    for dst, src in single_columns.items():
-        if src:
-            parsed_manifest[dst] = select_column(manifest, src)
-
-    group_columns = {
-        "aliquots": aliquot_columns,
-        "racks": rack_columns }
-
-    for dst, src in group_columns.items():
-        if src:
-            parsed_manifest[dst] = select_columns(manifest, src).apply(list, axis="columns")
+    for dst, src in column_map:
+        if src.get("multiple"):
+            parsed_manifest[dst] = select_columns(manifest, src["name"]).apply(list, axis="columns")
+        else:
+            parsed_manifest[dst] = select_column(manifest, src["name"])
 
     # Drop rows with null sample values, which may be introduced by space
     # stripping.
     parsed_manifest = parsed_manifest.dropna(subset = ["sample"])
 
     # Set of columns names for barcodes
-    barcode_columns = {"sample", "collection", "kit", "test_strip"}
+    barcode_columns = {dst for dst, src in column_map if src.get("barcode")}
 
     # Drop any rows that have duplicated barcodes
     parsed_manifest = qc_barcodes(parsed_manifest, barcode_columns)
@@ -463,10 +389,6 @@ def qc_barcodes(df: pandas.DataFrame, columns: Iterable) -> pandas.DataFrame:
     deduplicated = df
 
     for column in columns:
-        if column not in df:
-            LOG.debug(f"Column «{column}» was not found in manifest")
-            continue
-
         # Drop null values so they don't get counted as duplicates
         col = df[column].dropna()
 
