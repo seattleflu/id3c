@@ -20,7 +20,6 @@ import logging
 import pandas
 import re
 import yaml
-from fsspec import open as urlopen
 from functools import reduce
 from deepdiff import DeepHash
 from hashlib import sha1
@@ -28,6 +27,7 @@ from os import chdir
 from os.path import dirname
 from typing import Iterable, List, Tuple, Union
 from id3c.cli import cli
+from id3c.cli.io import LocalOrRemoteFile, urlopen
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json, Json
 from id3c.utils import format_doc
@@ -213,7 +213,7 @@ def _parse(*,
     """
     LOG.debug(f"Reading Excel workbook «{workbook}»")
 
-    with urlopen(workbook) as file:
+    with urlopen(workbook, "rb") as file:
         workbook_bytes = file.read()
 
     LOG.debug(f"Parsing sheet «{sheet}» in workbook «{workbook}»")
@@ -283,11 +283,11 @@ def _parse(*,
 
 @click.argument("manifest_a",
     metavar = "<manifest-a.ndjson>",
-    type = click.File("r"))
+    type = LocalOrRemoteFile("r"))
 
 @click.argument("manifest_b",
     metavar = "<manifest-b.ndjson>",
-    type = click.File("r"))
+    type = LocalOrRemoteFile("r"))
 
 @format_doc(PROVENANCE_KEY = PROVENANCE_KEY)
 
@@ -317,7 +317,7 @@ def diff(manifest_a, manifest_b):
 @manifest.command("upload")
 @click.argument("manifest_file",
     metavar = "<manifest.ndjson>",
-    type = click.File("r"))
+    type = LocalOrRemoteFile("r"))
 
 def upload(manifest_file):
     """
@@ -332,7 +332,7 @@ def upload(manifest_file):
     db = DatabaseSession()
 
     try:
-        LOG.info(f"Copying sample manifest records from {manifest_file.name}")
+        LOG.info(f"Copying sample manifest records from {manifest_file.path}")
 
         row_count = db.copy_from_ndjson(("receiving", "manifest", "document"), manifest_file)
 
