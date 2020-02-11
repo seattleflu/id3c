@@ -11,7 +11,6 @@ sqlparse = "*"
 
 [packages]
 id3c = {editable = true,path = "."}
-fhir-resources = "*"
 
 [requires]
 python_version = "3.6"

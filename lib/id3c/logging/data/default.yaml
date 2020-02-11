@@ -16,6 +16,23 @@ loggers:
   urllib3:
     level: INFO
 
+  # Ditto with various sub-loggers of botocore, which DEBUG out various
+  # slightly sensitive things.
+  botocore:
+    level: INFO
+
+  # But useful to see in logs _where_ credentials were found (env, config, etc)
+  botocore.credentials:
+    level: DEBUG
+
+  # s3fs sets up a logger with its own console handler, which is bad practice
+  # for a library because it subverts the application's (our!) logging config.
+  # Set its level to ours.
+  s3fs:
+    level: !coalesce
+      - !LOG_LEVEL
+      - INFO
+
 handlers:
   console:
     class: logging.StreamHandler

@@ -59,19 +59,21 @@ setup(
     python_requires = ">=3.6",
 
     install_requires = [
+        "cachetools",
         "click >=7.0",
         "colorama",
-        "flask",
-        "psycopg2 >=2.8,<3",
-        "requests",
-        "pandas",
-        "xlrd",
-        "pyyaml",
         "deepdiff",
-        "fiona",
-        "cachetools",
-        "smartystreets-python-sdk >= 4.0.1",
         "fhir.resources",
+        "fiona",
+        "flask",
+        "fsspec",
+        "pandas",
+        "psycopg2 >=2.8,<3",
+        "pyyaml",
+        "requests",
+        "s3fs",
+        "smartystreets-python-sdk >= 4.0.1",
+        "xlrd",
 
         # We use pkg_resources, which (confusingly) is provided by setuptools.
         # setuptools is nearly ever-present, but it can be missing!
