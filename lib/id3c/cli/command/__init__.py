@@ -123,9 +123,9 @@ def load_file_as_dataframe(filename: str) -> pd.DataFrame:
 
     if filename.endswith(('.csv', '.tsv')):
         separator = '\t' if filename.endswith('.tsv') else ','
-        df = pd.read_csv(filename, sep=separator, dtype=str, na_filter=False)
+        df = pd.read_csv(filename, sep=separator, dtype="string", na_filter=False)
     else:
-        df = pd.read_excel(filename, dtype=str, na_filter=False)
+        df = pd.read_excel(filename, dtype="string", na_filter=False)
 
     return df
 
@@ -137,7 +137,7 @@ def load_input_from_file_or_stdin(filename: click.File) -> pd.DataFrame:
     LOG.debug(f"Loading input from {filename.name}")
 
     if filename.name == "<stdin>":
-        input_df = pd.read_csv(filename, dtype=str, na_filter=False)
+        input_df = pd.read_csv(filename, dtype="string", na_filter=False)
     else:
         input_df = load_file_as_dataframe(filename.name)
 

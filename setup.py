@@ -67,7 +67,7 @@ setup(
         "fiona",
         "flask",
         "fsspec",
-        "pandas",
+        "pandas >=1.0.1,<2",
         "psycopg2 >=2.8,<3",
         "pyyaml",
         "requests",

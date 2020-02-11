@@ -219,15 +219,22 @@ def _parse(*,
     LOG.debug(f"Parsing sheet «{sheet}» in workbook «{workbook}»")
 
     # All columns are read as strings so that we can type values at load time.
-    manifest = pandas.read_excel(workbook_bytes, sheet_name = sheet, dtype = str)
+    manifest = pandas.read_excel(workbook_bytes, sheet_name = sheet, dtype = "string")
     LOG.debug(f"Columns in manifest: {list(manifest.columns)}")
 
-    # Strip leading/trailing spaces from values and replace missing values
-    # (numpy's NaN) and empty strings (possibly from stripping) with None so
-    # they are converted to null in JSON.
-    manifest = manifest \
-        .apply(lambda column: column.str.strip()) \
-        .replace({ pandas.np.nan: None, "": None })
+    # Strip leading/trailing spaces from values and replace missing values and
+    # empty strings (possibly from stripping) with None so they are converted
+    # to null in JSON.
+    #
+    # Note that the two .replace() calls can't be combined because the first
+    # instance of NA → None will change the column dtype from string → object
+    # and render subsequent comparisons to NA invalid.
+    manifest = manifest.apply(
+        lambda column: (
+            column
+                .str.strip()
+                .replace({pandas.NA: ""})
+                .replace({"": None})))
 
     # Construct parsed manifest by copying columns from source to destination.
     # This approach is used to allow the same source column to end up as
