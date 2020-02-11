@@ -12,4 +12,4 @@ This scheme is short, somewhat informative, avoids issues with multiple
 releases happening on the same day, and is unlikely to be misinterpreted as a
 full date.
 """
-__version__ = '2019.1'
+__version__ = '2020.1'
