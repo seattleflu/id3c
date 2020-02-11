@@ -177,3 +177,5 @@ fuzzystrmatch 2020-01-22T20:30:05Z Thomas Sibley <tsibley@fredhutch.org> # Insta
 @2020-01-22 2020-02-06T18:32:03Z Jover Lee <joverlee@fredhutch.org> # Schma as of 22 Jan 2020
 functions/date_or_null [functions/date_or_null@2020-01-22] 2020-02-06T18:32:31Z Jover Lee <joverlee@fredhutch.org> # Mark function as parallel unsafe
 @2020-02-06 2020-02-06T18:58:08Z Jover Lee <joverlee@fredhutch.org> # Schema as of 06 Feb 2020
+
+roles/redcap-det-processor/grants [roles/redcap-det-processor/grants@2020-02-06] 2020-02-11T23:42:39Z Jover Lee <joverlee@fredhutch.org> # Add permission to select on warehouse.sample

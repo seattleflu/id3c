@@ -41,4 +41,8 @@ grant select
    on warehouse.location
    to "redcap-det-processor";
 
+grant select
+   on warehouse.sample
+   to "redcap-det-processor";
+
 commit;
