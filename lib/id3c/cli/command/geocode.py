@@ -404,7 +404,7 @@ def parse_first_smartystreets_result(result: list) -> dict:
         'lng': ''
     }
 
-    if len(result) > 0:
+    if result:
         first_candidate = result[0]
         address = ' '.join([
             first_candidate.delivery_line_1,
