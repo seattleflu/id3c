@@ -179,3 +179,4 @@ functions/date_or_null [functions/date_or_null@2020-01-22] 2020-02-06T18:32:31Z 
 @2020-02-06 2020-02-06T18:58:08Z Jover Lee <joverlee@fredhutch.org> # Schema as of 06 Feb 2020
 
 roles/redcap-det-processor/grants [roles/redcap-det-processor/grants@2020-02-06] 2020-02-11T23:42:39Z Jover Lee <joverlee@fredhutch.org> # Add permission to select on warehouse.sample
+@2020-02-11 2020-02-11T23:49:34Z Jover Lee <joverlee@fredhutch.org> # Schema as of 11 Feb 2020
