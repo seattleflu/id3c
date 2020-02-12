@@ -66,6 +66,7 @@ EXPECTED_COLLECTION_IDENTIFIER_SETS = [
     'collections-self-test',
     'collections-seattleflu.org',
 ]
+EXPECTED_SAMPLE_IDENTIFIER_SETS = ['samples']
 
 @etl.command("fhir", help = __doc__)
 
@@ -498,7 +499,8 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
             LOG.warning(f"Skipping collected specimen with unknown barcode «{barcode}»")
             continue
 
-        assert specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS, \
+        assert (specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS or
+                specimen_identifier.set_name in EXPECTED_SAMPLE_IDENTIFIER_SETS), \
             f"Speciment with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
 
         # XXX TODO: Improve details object here; the current approach produces
