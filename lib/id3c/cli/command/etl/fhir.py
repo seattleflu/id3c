@@ -618,12 +618,25 @@ def encounter_age(encounter: Encounter, resources: Dict[str, List[DomainResource
 
 def process_age(questionnaire_response: QuestionnaireResponse) -> Optional[str]:
     """
-    Returns the value of the first age in months response from a given
-    *questionnaire_response* as an interval.
+    Returns the value of the first age in months or age in years response from
+    a given *questionnaire_response* as an interval.
+
+    Gives precedence to age in months response to preserve specificty
+    if available.
     """
+    age_in_months: int = None
+    age_in_years: int = None
+
     for item in questionnaire_response.item:
         if item.linkId == 'age_months':
-            return age(item.answer[0].valueInteger / 12)
+            age_in_months = item.answer[0].valueInteger
+        if item.linkId == 'age':
+            age_in_years = item.answer[0].valueInteger
+
+    if age_in_months is not None:
+        return age(age_in_months / 12)
+    elif age_in_years is not None:
+        return age(age_in_years)
 
     return None
 
