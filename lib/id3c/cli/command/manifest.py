@@ -28,6 +28,7 @@ from os.path import dirname
 from typing import Iterable, List, Tuple, Union
 from id3c.cli import cli
 from id3c.cli.io import LocalOrRemoteFile, urlopen
+from id3c.cli.io.pandas import read_excel
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json, Json
 from id3c.utils import format_doc
@@ -218,8 +219,8 @@ def _parse(*,
 
     LOG.debug(f"Parsing sheet «{sheet}» in workbook «{workbook}»")
 
-    # All columns are read as strings so that we can type values at load time.
-    manifest = pandas.read_excel(workbook_bytes, sheet_name = sheet, dtype = "string")
+    # Read all columns as strings using our pandas wrapper
+    manifest = read_excel(workbook_bytes, sheet_name = sheet)
     LOG.debug(f"Columns in manifest: {list(manifest.columns)}")
 
     # Strip leading/trailing spaces from values and replace missing values and
