@@ -33,7 +33,7 @@ from smartystreets_python_sdk import StaticCredentials, ClientBuilder
 from smartystreets_python_sdk.us_street import Lookup
 from smartystreets_python_sdk.us_extract import Lookup as ExtractLookup
 from id3c.cli import cli
-from id3c.cli.command import (
+from id3c.cli.io.pandas import (
     load_file_as_dataframe
 )
 

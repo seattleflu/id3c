@@ -41,7 +41,7 @@ from id3c.cli import cli
 from id3c.db.datatypes import Json
 from id3c.db.types import MinimalLocationRecord
 from id3c.db.session import DatabaseSession
-from id3c.cli.command import (
+from id3c.cli.io.pandas import (
     load_input_from_file_or_stdin,
 )
 
