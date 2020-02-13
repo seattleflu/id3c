@@ -508,6 +508,8 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
             collection_identifier = specimen_identifier.uuid
         elif specimen_identifier.set_name in EXPECTED_SAMPLE_IDENTIFIER_SETS:
             sample_identifier = specimen_identifier.uuid
+        else:
+            assert False, "logic bug"
 
         # XXX TODO: Improve details object here; the current approach produces
         # an object like {"coding": [{…}]} which isn't very useful.
