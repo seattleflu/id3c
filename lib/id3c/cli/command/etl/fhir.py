@@ -34,7 +34,6 @@ from . import (
     upsert_encounter,
     upsert_encounter_location,
     upsert_location,
-    upsert_sample,
     upsert_presence_absence,
 
     SampleNotFoundError,
@@ -66,6 +65,7 @@ EXPECTED_COLLECTION_IDENTIFIER_SETS = [
     'collections-self-test',
     'collections-seattleflu.org',
 ]
+EXPECTED_SAMPLE_IDENTIFIER_SETS = ['samples']
 
 @etl.command("fhir", help = __doc__)
 
@@ -498,15 +498,102 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
             LOG.warning(f"Skipping collected specimen with unknown barcode «{barcode}»")
             continue
 
-        assert specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS, \
+        assert (specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS or
+                specimen_identifier.set_name in EXPECTED_SAMPLE_IDENTIFIER_SETS), \
             f"Speciment with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
+
+        sample_identifier: str = None
+        collection_identifier: str = None
+        if specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS:
+            collection_identifier = specimen_identifier.uuid
+        elif specimen_identifier.set_name in EXPECTED_SAMPLE_IDENTIFIER_SETS:
+            sample_identifier = specimen_identifier.uuid
+        else:
+            assert False, "logic bug"
 
         # XXX TODO: Improve details object here; the current approach produces
         # an object like {"coding": [{…}]} which isn't very useful.
         upsert_sample(db,
-            collection_identifier   = specimen_identifier.uuid,
+            identifier              = sample_identifier,
+            collection_identifier   = collection_identifier,
             encounter_id            = encounter_id,
-            details                 = specimen.type.as_json())
+            additional_details      = specimen.type.as_json())
+
+# Copied from etl manifest and edited to fit the needs for the FHIR etl.
+# We may want to consolidate `upsert_sample` at some point in the future,
+# but this was done to ensure that nothing goes wrong with the manifest etl.
+#       -Jover, 12 Feb 2020
+def upsert_sample(db: DatabaseSession,
+                  identifier: Optional[str],
+                  collection_identifier: Optional[str],
+                  encounter_id: int,
+                  additional_details: dict) -> Any:
+    """
+    Upsert sample by its *identifier* and/or *collection_identifier*.
+
+    An existing sample has its *identifier*, *collection_identifier*,
+    and *encounter_id* updated if provided, and the provided
+    *additional_details* are merged (at the top-level only)
+    into the existing sample details, if any.
+
+    Raises an exception if there is more than one matching sample.
+    """
+    data = {
+        "identifier": identifier,
+        "collection_identifier": collection_identifier,
+        "encounter_id": encounter_id,
+        "additional_details": Json(additional_details),
+    }
+
+    # Look for existing sample(s)
+    with db.cursor() as cursor:
+        cursor.execute("""
+            select sample_id as id, identifier, collection_identifier, encounter_id
+              from warehouse.sample
+             where identifier = %(identifier)s
+                or collection_identifier = %(collection_identifier)s
+               for update
+            """, data)
+
+        samples = list(cursor)
+
+    # Nothing found → create
+    if not samples:
+        LOG.info("Creating new sample")
+        sample = db.fetch_row("""
+            insert into warehouse.sample (identifier, collection_identifier, encounter_id, details)
+                values (%(identifier)s,
+                        %(collection_identifier)s,
+                        %(encounter_id)s,
+                        %(additional_details)s)
+            returning sample_id as id, identifier, collection_identifier, encounter_id
+            """, data)
+
+    # One found → update
+    elif len(samples) == 1:
+        sample = samples[0]
+
+        LOG.info(f"Updating existing sample {sample.id}")
+        sample = db.fetch_row("""
+            update warehouse.sample
+               set identifier = coalesce(%(identifier)s, identifier),
+                   collection_identifier = coalesce(%(collection_identifier)s, collection_identifier),
+                   encounter_id = %(encounter_id)s,
+                   details = coalesce(details, '{}') || %(additional_details)s
+
+             where sample_id = %(sample_id)s
+
+            returning sample_id as id, identifier, collection_identifier, encounter_id
+            """,
+            { **data, "sample_id": sample.id })
+
+        assert sample.id, "Update affected no rows!"
+
+    # More than one found → error
+    else:
+        raise Exception(f"More than one sample matching sample and/or collection barcodes: {samples}")
+
+    return sample
 
 
 def encounter_age(encounter: Encounter, resources: Dict[str, List[DomainResource]]) -> Optional[str]:
@@ -533,12 +620,25 @@ def encounter_age(encounter: Encounter, resources: Dict[str, List[DomainResource
 
 def process_age(questionnaire_response: QuestionnaireResponse) -> Optional[str]:
     """
-    Returns the value of the first age in months response from a given
-    *questionnaire_response* as an interval.
+    Returns the value of the first age in months or age in years response from
+    a given *questionnaire_response* as an interval.
+
+    Gives precedence to age in months response to preserve specificty
+    if available.
     """
+    age_in_months: int = None
+    age_in_years: int = None
+
     for item in questionnaire_response.item:
         if item.linkId == 'age_months':
-            return age(item.answer[0].valueInteger / 12)
+            age_in_months = item.answer[0].valueInteger
+        if item.linkId == 'age':
+            age_in_years = item.answer[0].valueInteger
+
+    if age_in_months is not None:
+        return age(age_in_months / 12)
+    elif age_in_years is not None:
+        return age(age_in_years)
 
     return None
 
