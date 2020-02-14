@@ -15,6 +15,7 @@ or updated records.
 """
 import click
 import logging
+import re
 from datetime import datetime, timezone
 from typing import Any, Tuple, Optional
 from id3c.cli.command import with_database_session
@@ -110,6 +111,14 @@ def etl_manifest(*, db: DatabaseSession):
             # identifier set.
             collection_barcode = manifest_record.document.pop("collection", None)
             collection_identifier = find_identifier(db, collection_barcode) if collection_barcode else None
+
+            sample_origin = manifest_record.document["sample_origin"]
+            # Only UW retrospectives do not have collection barcodes, prevent
+            # ingestion of other samples that do not have collection barcode yet
+            if not collection_barcode and not re.match("(uwmc|nwh|hmc)_retro", sample_origin):
+                LOG.info(f"Skipping sample that is not a UW retrospective sample that does not have a collection barcode.")
+                mark_skipped(db, manifest_record.id)
+                continue
 
             if collection_barcode and not collection_identifier:
                 LOG.warning(f"Skipping sample with unknown collection barcode «{collection_barcode}»")
