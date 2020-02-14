@@ -244,7 +244,7 @@ def find_sample(db: DatabaseSession, identifier: str, for_update = True) -> Any:
         """ + query_ending, (identifier,identifier,))
 
     if not sample:
-        LOG.error(f"No sample with identifier «{identifier}» found")
+        LOG.info(f"No sample with identifier «{identifier}» found")
         return None
 
     LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
