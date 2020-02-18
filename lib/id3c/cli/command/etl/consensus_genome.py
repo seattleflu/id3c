@@ -78,6 +78,8 @@ def etl_consensus_genome(*, db: DatabaseSession):
                 record.document["sample_identifier"],
                 for_update=False)
 
+            assert sample, f"No sample found with identifier «{record.document['sample_identifier']}»"
+
             # Most of the time we expect to see existing sequence read sets,
             # but we also want to update the details log. However, the
             # only unique constraint on the sequence_read_set table is
