@@ -62,6 +62,7 @@ def etl_manifest(*, db: DatabaseSession):
             "collections-kiosks",
             "collections-seattleflu.org",
             "collections-swab&send",
+            "collections-self-test",
         },
         "rdt": {"collections-fluathome.org"}
     }
