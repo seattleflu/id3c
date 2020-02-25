@@ -51,7 +51,7 @@ LOG = logging.getLogger(__name__)
 # this revision number should be incremented.
 # The etl name has been added to allow multiple etls to process the same
 # receiving table
-REVISION = 2
+REVISION = 3
 ETL_NAME = 'fhir'
 INTERNAL_SYSTEM = 'https://seattleflu.org'
 LOCATION_RELATION_SYSTEM = 'http://terminology.hl7.org/CodeSystem/v3-RoleCode'
@@ -822,12 +822,14 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
         if result_value is None:
             continue
 
+        details = { "device": observation.device.identifier.value }
+
         upsert_presence_absence(db,
             identifier = f'{barcode}/{snomed_code}/{observation.device.identifier.value}',
             sample_id = sample_id,
             target_id = target.id,
             present = result_value,
-            details = {})
+            details = details)
 
 
 def mark_skipped(db, fhir_id: int) -> None:
