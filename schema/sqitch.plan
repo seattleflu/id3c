@@ -182,3 +182,4 @@ roles/redcap-det-processor/grants [roles/redcap-det-processor/grants@2020-02-06]
 @2020-02-11 2020-02-11T23:49:34Z Jover Lee <joverlee@fredhutch.org> # Schema as of 11 Feb 2020
 
 shipping/views [shipping/views@2020-02-11] 2020-02-26T00:31:32Z Jover Lee <joverlee@fredhutch.org> # Add device to shipping.presence_absence_result
+@2020-02-25 2020-02-26T00:41:34Z Jover Lee <joverlee@fredhutch.org> # Schema as of 25 Feb 2020
