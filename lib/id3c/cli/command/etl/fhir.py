@@ -817,6 +817,10 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
         snomed_code = matching_system_code(observation.code, SNOMED_SYSTEM)
         assert snomed_code, "No SNOMED code found"
 
+        # Skip results that are Inconclusive
+        if snomed_code == '911000124104':
+            continue
+
         # Most of the time we expect to see existing targets so a
         # select-first approach makes the most sense to avoid useless
         # updates.
