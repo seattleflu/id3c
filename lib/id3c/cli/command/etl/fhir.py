@@ -180,16 +180,18 @@ def process_diagnostic_report_bundle_entry(db: DatabaseSession, bundle: Bundle, 
     LOG.debug(f"Processing DiagnosticReport Resource «{entry.fullUrl}».")
 
     for reference in resource.specimen:
+        barcode = None
         if not reference.identifier:
             specimen = reference.resolved(Specimen)
-            reference.identifier = specimen.identifier[0]
-            if not matching_system(reference.identifier, f"{INTERNAL_SYSTEM}/sample"):
+            barcode = identifier(specimen, f"{INTERNAL_SYSTEM}/sample").strip()
+            if not barcode:
                 continue
 
         elif not matching_system(reference.identifier, INTERNAL_SYSTEM):
             continue
 
-        barcode = reference.identifier.value.strip()
+        else:
+            barcode = reference.identifier.value.strip()
 
         LOG.debug(f"Looking up collected specimen barcode «{barcode}»")
         specimen_identifier = find_identifier(db, barcode)
