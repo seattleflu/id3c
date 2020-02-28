@@ -158,6 +158,7 @@ def set_():
     """Manage identifier sets."""
     pass
 
+
 @set_.command("ls")
 def set_ls():
     """List identifier sets."""
@@ -178,3 +179,30 @@ def set_ls():
     for set in sets:
         click.secho(template.format(set.name), bold = True, nl = False)
         click.echo(set.description)
+
+
+@set_.command("create")
+@click.argument("name", metavar = "<name>")
+@click.argument("description", metavar = "<description>")
+
+def set_create(name, description):
+    """
+    Create a new identifier set.
+
+    \b
+    <name> is the name of the new set.
+    <description> is a comment explaining the purpose of the set.
+    """
+    session = DatabaseSession()
+
+    with session:
+        identifier_set_id, = session.fetch_row("""
+            insert into warehouse.identifier_set (name, description)
+            values (%s, %s)
+            returning identifier_set_id
+            """, (name, description))
+
+    click.echo(
+        "Created identifier set " +
+        click.style(name, bold = True) +
+        f" (#{identifier_set_id})")
