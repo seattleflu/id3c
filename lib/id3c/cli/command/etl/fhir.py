@@ -180,16 +180,17 @@ def process_diagnostic_report_bundle_entry(db: DatabaseSession, bundle: Bundle, 
     LOG.debug(f"Processing DiagnosticReport Resource «{entry.fullUrl}».")
 
     for reference in resource.specimen:
+        barcode = None
+
         if not reference.identifier:
             specimen = reference.resolved(Specimen)
-            reference.identifier = specimen.identifier[0]
-            if not matching_system(reference.identifier, f"{INTERNAL_SYSTEM}/sample"):
-                continue
+            barcode = identifier(specimen, f"{INTERNAL_SYSTEM}/sample").strip()
 
-        elif not matching_system(reference.identifier, INTERNAL_SYSTEM):
+        elif matching_system(reference.identifier, INTERNAL_SYSTEM):
+            barcode = reference.identifier.value.strip()
+
+        if not barcode:
             continue
-
-        barcode = reference.identifier.value.strip()
 
         LOG.debug(f"Looking up collected specimen barcode «{barcode}»")
         specimen_identifier = find_identifier(db, barcode)
@@ -814,6 +815,10 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
 
         snomed_code = matching_system_code(observation.code, SNOMED_SYSTEM)
         assert snomed_code, "No SNOMED code found"
+
+        # Skip results that are Inconclusive
+        if snomed_code == '911000124104':
+            continue
 
         # Most of the time we expect to see existing targets so a
         # select-first approach makes the most sense to avoid useless
