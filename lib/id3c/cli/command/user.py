@@ -101,7 +101,7 @@ def ls():
 
     # Line up name + description nicely into a column
     def maxlen(attr):
-        return max(map(len, filter(None, map(attrgetter(attr), users)))) or 0
+        return max(map(len, filter(None, map(attrgetter(attr), users))), default = 0)
 
     template = "{:<%d}" % (maxlen("name") + 3)
 
