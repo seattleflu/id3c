@@ -60,8 +60,10 @@ def etl_manifest(*, db: DatabaseSession):
             "collections-household-intervention",
             "collections-household-observation",
             "collections-kiosks",
+            "collections-kiosks-asymptomatic",
             "collections-seattleflu.org",
             "collections-swab&send",
+            "collections-swab&send-asymptomatic",
             "collections-self-test",
         },
         "rdt": {"collections-fluathome.org"}
