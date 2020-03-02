@@ -148,7 +148,7 @@ def command_for_project(name: str,
                             print(as_json(bundle))
 
                         insert_fhir_bundle(db, bundle)
-                        mark_loaded(db, det.id, etl_id)
+                        mark_loaded(db, det.id, etl_id, bundle['id'])
 
 
 
@@ -229,9 +229,9 @@ def insert_fhir_bundle(db: DatabaseSession, bundle: dict) -> None:
     LOG.info(f"Inserted FHIR document {fhir.id} «{bundle['id']}»")
 
 
-def mark_loaded(db: DatabaseSession, det_id: int, etl_id: dict) -> None:
+def mark_loaded(db: DatabaseSession, det_id: int, etl_id: dict, bundle_uuid: str) -> None:
     LOG.debug(f"Marking REDCap DET record {det_id} as loaded")
-    mark_processed(db, det_id, {**etl_id, "status": "loaded"})
+    mark_processed(db, det_id, {**etl_id, "status": "loaded", "fhir_bundle_id": bundle_uuid})
 
 
 def mark_skipped(db: DatabaseSession, det_id: int, etl_id: dict) -> None:
