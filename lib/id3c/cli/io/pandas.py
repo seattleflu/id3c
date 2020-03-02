@@ -25,6 +25,8 @@ def load_file_as_dataframe(filename: str) -> pd.DataFrame:
     Given a *filename*, loads its data as a pandas DataFrame.
     Supported extensions are csv, tsv, xls, and xlsx.
 
+    If given an Excel workbook, defaults to loading only the first sheet.
+
     Raises a :class: `UnsupportedFileExtensionError` if the given *filename*
     ends with an unsupported extension.
     """
@@ -61,7 +63,7 @@ def load_input_from_file_or_stdin(filename: click.File) -> pd.DataFrame:
     return input_df
 
 
-def read_excel(io, sheet_name = None, na_filter: bool = True):
+def read_excel(io, sheet_name = 0, na_filter: bool = True):
     """
     Reads an Excel file while ensuring all values are treated as strings.
 
