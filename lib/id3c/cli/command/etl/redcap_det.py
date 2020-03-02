@@ -231,7 +231,7 @@ def insert_fhir_bundle(db: DatabaseSession, bundle: dict) -> None:
 
 def mark_loaded(db: DatabaseSession, det_id: int, etl_id: dict, bundle_uuid: str) -> None:
     LOG.debug(f"Marking REDCap DET record {det_id} as loaded")
-    mark_processed(db, det_id, {**etl_id, "status": "loaded", "fhir_bundle_uuid": bundle_uuid})
+    mark_processed(db, det_id, {**etl_id, "status": "loaded", "fhir_bundle_id": bundle_uuid})
 
 
 def mark_skipped(db: DatabaseSession, det_id: int, etl_id: dict) -> None:
