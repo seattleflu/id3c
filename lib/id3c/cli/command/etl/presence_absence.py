@@ -132,38 +132,21 @@ def etl_presence_absence(*, db: DatabaseSession):
                         identifier = test_result_target_id,
                         control = target_control(test_result["controlStatus"]))
 
-                    # Guard against bad data pushes we've seen from NWGC.
-                    # This isn't great, but it's better than processing the
-                    # data as-sent.
-                    assert test_result["id"] > 0, "bogus targetResult id"
-
-                    # Old format for the presence/absence identifier prior
-                    # to the format change
-                    #  -Jover, 07 November 2019
-                    old_identifier = f"NWGC_{test_result['id']}"
-
-                    # With the new format, the unqiue identifier for each
-                    # result is NWGC/{sampleId}/{geneTarget}/{chip}
-                    new_identifier = "/".join([
+                    # The unique identifier for each result is:
+                    #   NWGC/{sampleId}/{geneTarget}/{chip}
+                    identifier = "/".join([
                         "NWGC",
                         received_sample_id,
                         test_result_target_id,
                         chip
                     ])
 
-                    # Update all old format identifiers to the new format
-                    # so that the following upsert can work as expected
-                    update_presence_absence_identifier(db,
-                        new_identifier = new_identifier,
-                        old_identifier = old_identifier
-                    )
-
                     # Most of the time we expect to see new samples and new
                     # presence_absence tests, so an insert-first approach makes more sense.
                     # Presence-absence tests we see more than once are presumed to be
                     # corrections.
                     upsert_presence_absence(db,
-                        identifier = new_identifier,
+                        identifier = identifier,
                         sample_id  = sample.id,
                         target_id  = target.id,
                         present    = get_target_result(test_result["targetStatus"]),
@@ -286,28 +269,6 @@ def presence_absence_details(document: dict) -> dict:
     return {
         "replicates": document['wellResults']
     }
-
-
-def update_presence_absence_identifier(db: DatabaseSession,
-                                       old_identifier: str,
-                                       new_identifier: str) -> None:
-    """
-    Update the presence absence identifier if the presence absence result
-    already exists within warehouse.presence_absence with the *old_identifier*
-    """
-    LOG.debug(f"Updating presence_absence identifier «{old_identifier}» with new identifier «{new_identifier}»")
-
-    identifiers = {
-        "old_identifier": old_identifier,
-        "new_identifier": new_identifier
-    }
-
-    with db.cursor() as cursor:
-        cursor.execute("""
-            update warehouse.presence_absence
-              set identifier = %(new_identifier)s
-             where identifier = %(old_identifier)s
-        """, identifiers)
 
 
 def get_target_result(target_status: str) -> Any:
