@@ -97,7 +97,11 @@ def etl_presence_absence(*, db: DatabaseSession):
                     raise error from None
 
             for received_sample in received_samples:
-                received_sample_barcode = received_sample["investigatorId"]
+                received_sample_barcode = received_sample.get("investigatorId")
+                if not received_sample_barcode:
+                    LOG.info(f"Skipping sample «{received_sample['sampleId']}» without SFS barcode")
+                    continue
+
                 LOG.info(f"Processing sample «{received_sample_barcode}»")
 
                 if not received_sample.get("isCurrentExpressionResult"):
