@@ -102,6 +102,14 @@ def etl_presence_absence(*, db: DatabaseSession):
                     LOG.info(f"Skipping sample «{received_sample['sampleId']}» without SFS barcode")
                     continue
 
+                received_sample_id = str(received_sample["sampleId"])
+                chip = received_sample.get("chip")
+
+                # Guard against empty chip values
+                if not chip:
+                    LOG.info(f"Skipping sample «{received_sample_id}» without chip value")
+                    continue
+
                 LOG.info(f"Processing sample «{received_sample_barcode}»")
 
                 if not received_sample.get("isCurrentExpressionResult"):
@@ -117,12 +125,6 @@ def etl_presence_absence(*, db: DatabaseSession):
                 sample = update_sample(db,
                     identifier = received_sample_identifier,
                     additional_details = sample_details(received_sample))
-
-                received_sample_id = str(received_sample["sampleId"])
-                chip = received_sample["chip"]
-
-                # Guard against empty chip values
-                assert chip, "Received bogus chip id"
 
                 for test_result in received_sample["targetResults"]:
                     test_result_target_id = test_result["geneTarget"]
