@@ -102,31 +102,42 @@ def etl_presence_absence(*, db: DatabaseSession):
                     LOG.info(f"Skipping sample «{received_sample['sampleId']}» without SFS barcode")
                     continue
 
+                # Don't go any further if there are no results to import.
+                test_results = received_sample["targetResults"]
+
+                if not test_results:
+                    LOG.warning(f"Skipping sample «{received_sample_barcode}» without any results")
+                    continue
+
                 received_sample_id = str(received_sample["sampleId"])
                 chip = received_sample.get("chip")
 
                 # Guard against empty chip values
-                if not chip:
-                    LOG.info(f"Skipping sample «{received_sample_id}» without chip value")
-                    continue
+                assert chip or "chip" not in received_sample, "Received bogus chip id"
 
+                # Must be current results
                 LOG.info(f"Processing sample «{received_sample_barcode}»")
 
                 if not received_sample.get("isCurrentExpressionResult"):
                     LOG.warning(f"Skipping out-of-date results for sample «{received_sample_barcode}»")
                     continue
 
+                # Barcode must match a known identifier
                 received_sample_identifier = sample_identifier(db, received_sample_barcode)
 
                 if not received_sample_identifier:
                     LOG.warning(f"Skipping results for sample without a known identifier «{received_sample_barcode}»")
                     continue
 
+                # Track Samplify's internal ids for our samples, which is
+                # unfortunately necessary for linking genomic data NWGC also
+                # sends.
                 sample = update_sample(db,
                     identifier = received_sample_identifier,
                     additional_details = sample_details(received_sample))
 
-                for test_result in received_sample["targetResults"]:
+                # Finally, process all results.
+                for test_result in test_results:
                     test_result_target_id = test_result["geneTarget"]
                     LOG.debug(f"Processing target «{test_result_target_id}» for \
                     sample «{received_sample_barcode}»")
@@ -138,14 +149,14 @@ def etl_presence_absence(*, db: DatabaseSession):
                         identifier = test_result_target_id,
                         control = target_control(test_result["controlStatus"]))
 
-                    # The unique identifier for each result is:
-                    #   NWGC/{sampleId}/{geneTarget}/{chip}
-                    identifier = "/".join([
-                        "NWGC",
-                        received_sample_id,
-                        test_result_target_id,
-                        chip
-                    ])
+                    # The unique identifier for each result.  If chip is
+                    # applicable, then it's included to differentiate the same
+                    # sample being run on multiple chips (uncommon, but it
+                    # happens).
+                    if chip:
+                        identifier = f"NWGC/{received_sample_id}/{target.identifier}/{chip}"
+                    else:
+                        identifier = f"NWGC/{received_sample_id}/{target.identifier}"
 
                     # Most of the time we expect to see new samples and new
                     # presence_absence tests, so an insert-first approach makes more sense.
@@ -156,7 +167,7 @@ def etl_presence_absence(*, db: DatabaseSession):
                         sample_id  = sample.id,
                         target_id  = target.id,
                         present    = get_target_result(test_result["targetStatus"]),
-                        details = presence_absence_details(test_result))
+                        details = presence_absence_details(test_result, chip))
 
             mark_processed(db, group.id)
 
@@ -267,13 +278,13 @@ def sample_details(document: dict) -> dict:
         },
     }
 
-def presence_absence_details(document: dict) -> dict:
+def presence_absence_details(document: dict, chip: Any = None) -> dict:
     """
     Describe presence/absence details in a simple data structure designed to
     be used from SQL.
     """
     return {
-        "device": "OpenArray",
+        "device": "OpenArray" if chip else None,
         "replicates": document['wellResults']
     }
 
