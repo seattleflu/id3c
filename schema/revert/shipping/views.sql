@@ -38,4 +38,10 @@ grant select
     on shipping.presence_absence_result_v1
     to "incidence-modeler";
 
+revoke all
+    on shipping.presence_absence_result_v2
+  from "incidence-modeler";
+
+drop view shipping.presence_absence_result_v2;
+
 commit;

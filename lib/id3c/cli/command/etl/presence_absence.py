@@ -41,7 +41,7 @@ LOG = logging.getLogger(__name__)
 # presence-absence tests lacking this revision number in their log.  If a
 # change to the ETL routine necessitates re-processing all presence-absence tests,
 # this revision number should be incremented.
-REVISION = 5
+REVISION = 6
 
 
 @etl.command("presence-absence", help = __doc__)
@@ -273,6 +273,7 @@ def presence_absence_details(document: dict) -> dict:
     be used from SQL.
     """
     return {
+        "device": "OpenArray",
         "replicates": document['wellResults']
     }
 
