@@ -44,7 +44,7 @@ def receive_enrollment(*, session):
     """
     document = request.get_data(as_text = True)
 
-    LOG.debug(f"Received enrollment {document}")
+    LOG.debug(f"Received enrollment")
 
     datastore.store_enrollment(session, document)
 
@@ -64,7 +64,7 @@ def receive_presence_absence(*, session):
     """
     document = request.get_data(as_text = True)
 
-    LOG.debug(f"Received presence/absence {document}")
+    LOG.debug(f"Received presence/absence")
 
     datastore.store_presence_absence(session, document)
 
@@ -104,7 +104,7 @@ def receive_consensus_genome(*, session):
     """
     document = request.get_data(as_text = True)
 
-    LOG.debug(f"Received consensus genome {document}")
+    LOG.debug(f"Received consensus genome")
 
     datastore.store_consensus_genome(session, document)
 
@@ -140,7 +140,7 @@ def receive_fhir(*, session):
     """
     document = request.get_data(as_text = True)
 
-    LOG.debug(f'Received FHIR document {document}')
+    LOG.debug(f'Received FHIR document')
 
     datastore.store_fhir(session, document)
 
