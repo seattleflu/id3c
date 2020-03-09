@@ -45,6 +45,7 @@ def command_for_project(name: str,
                         revision: int,
                         required_instruments: Iterable[str] = [],
                         include_incomplete: bool = False,
+                        raw_coded_values: bool = False,
                         **kwargs) -> Callable[[Callable], click.Command]:
     """
     Decorator to create REDCap DET ETL subcommands.
@@ -69,6 +70,10 @@ def command_for_project(name: str,
     *revision* is an integer specifying the version of the routine.  If it
     increments, previously processed DETs will be re-processed by the new
     version of the routine.
+
+    *raw_coded_values* is a boolean specifying if raw coded values are returned
+    for multiple choice answers. When false (default), the entire string labels
+    are returned.
     """
     etl_id = {
         "etl": f"redcap-det {name}",
@@ -117,7 +122,7 @@ def command_for_project(name: str,
                             mark_skipped(db, det.id, etl_id)
                             continue
 
-                        redcap_record = get_redcap_record_from_det(det.document)
+                        redcap_record = get_redcap_record_from_det(det.document, raw_coded_values)
 
                         if not redcap_record:
                             LOG.debug(f"REDCap record is missing or invalid.  Skipping REDCap DET {det.id}")
@@ -156,9 +161,11 @@ def command_for_project(name: str,
     return decorator
 
 
-def get_redcap_record_from_det(det: dict) -> Optional[dict]:
+def get_redcap_record_from_det(det: dict, raw: bool) -> Optional[dict]:
     """
     Fetch the REDCap record for the given *det* notification.
+    The *raw* parameter indicates whether to pull the raw coded values or labels
+    for multiple choice answers.
 
     The DET's ``redcap_url``, ``project_id``, and ``record`` fields are used to
     make the API call.
@@ -178,7 +185,7 @@ def get_redcap_record_from_det(det: dict) -> Optional[dict]:
     LOG.info(f"Fetching REDCap record {record_id}")
 
     project = CachedProject(api_url, api_token, project_id)
-    record = project.record(record_id)
+    record = project.record(record_id, raw)
 
     # XXX TODO: Handle records with repeating instruments or longitudinal
     # events.
