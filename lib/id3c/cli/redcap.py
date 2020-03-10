@@ -91,9 +91,13 @@ class Project:
         return self.fields[0]["field_name"]
 
 
-    def record(self, record_id: str) -> List[dict]:
+    def record(self, record_id: str, *, raw: bool = False) -> List[dict]:
         """
         Fetch the REDCap record *record_id* with all its instruments.
+
+        The optional *raw* parameter controls if numeric/coded values are
+        returned for multiple choice fields.  When false (the default),
+        string labels are returned.
 
         Note that in longitudinal projects with events or classic projects with
         repeating instruments, this may return more than one result.  The
@@ -101,10 +105,10 @@ class Project:
         fields ``redcap_event_name``, ``redcap_repeat_instrument``, and
         ``redcap_repeat_instance``.
         """
-        return self.records(ids = [record_id])
+        return self.records(ids = [record_id], raw = raw)
 
 
-    def records(self,
+    def records(self, *,
                 since_date: str = None,
                 until_date: str = None,
                 ids: List[str] = None,
@@ -126,14 +130,14 @@ class Project:
         The optional *ids* parameter can be used to limit results to the given
         record ids.
 
-        The optional *raw* parameter controls if numeric values are returned
-        for multiple choice fields.  When false (the default), string labels
-        are returned.
+        The optional *raw* parameter controls if numeric/coded values are
+        returned for multiple choice fields.  When false (the default), string
+        labels are returned.
         """
         parameters = {
             'type': 'flat',
             'rawOrLabel': 'raw' if raw else 'label',
-            'exportCheckboxLabel': 'true',
+            'exportCheckboxLabel': 'true', # ignored by API if rawOrLabel == raw
         }
 
         assert not ((since_date or until_date) and ids), \
