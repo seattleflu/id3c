@@ -137,7 +137,7 @@ class Project:
         parameters = {
             'type': 'flat',
             'rawOrLabel': 'raw' if raw else 'label',
-            'exportCheckboxLabel': 'true',
+            'exportCheckboxLabel': 'true', # ignored by API if rawOrLabel == raw
         }
 
         assert not ((since_date or until_date) and ids), \
