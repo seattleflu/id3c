@@ -164,6 +164,7 @@ def command_for_project(name: str,
 def get_redcap_record_from_det(det: dict, raw: bool) -> Optional[dict]:
     """
     Fetch the REDCap record for the given *det* notification.
+
     The *raw* parameter indicates whether to pull the raw coded values or labels
     for multiple choice answers.
 
