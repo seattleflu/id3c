@@ -235,7 +235,7 @@ def _parse(*,
             column
                 .str.strip()
                 .replace({pandas.NA: ""})
-                .replace({"": None})))
+                .replace({"": None, "na": None})))
 
     # Construct parsed manifest by copying columns from source to destination.
     # This approach is used to allow the same source column to end up as
