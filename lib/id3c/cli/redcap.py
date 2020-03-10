@@ -95,6 +95,10 @@ class Project:
         """
         Fetch the REDCap record *record_id* with all its instruments.
 
+        The optional *raw* parameter controls if numeric/coded values are
+        returned for multiple choice fields.  When false (the default),
+        string labels are returned.
+
         Note that in longitudinal projects with events or classic projects with
         repeating instruments, this may return more than one result.  The
         results will be share the same record id but be differentiated by the
@@ -126,9 +130,9 @@ class Project:
         The optional *ids* parameter can be used to limit results to the given
         record ids.
 
-        The optional *raw* parameter controls if numeric values are returned
-        for multiple choice fields.  When false (the default), string labels
-        are returned.
+        The optional *raw* parameter controls if numeric/coded values are
+        returned for multiple choice fields.  When false (the default), string
+        labels are returned.
         """
         parameters = {
             'type': 'flat',
