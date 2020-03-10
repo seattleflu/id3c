@@ -91,7 +91,7 @@ class Project:
         return self.fields[0]["field_name"]
 
 
-    def record(self, record_id: str, raw: bool = False) -> List[dict]:
+    def record(self, record_id: str, *, raw: bool = False) -> List[dict]:
         """
         Fetch the REDCap record *record_id* with all its instruments.
 
@@ -108,7 +108,7 @@ class Project:
         return self.records(ids = [record_id], raw = raw)
 
 
-    def records(self,
+    def records(self, *,
                 since_date: str = None,
                 until_date: str = None,
                 ids: List[str] = None,

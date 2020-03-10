@@ -186,7 +186,7 @@ def get_redcap_record_from_det(det: dict, raw: bool) -> Optional[dict]:
     LOG.info(f"Fetching REDCap record {record_id}")
 
     project = CachedProject(api_url, api_token, project_id)
-    record = project.record(record_id, raw)
+    record = project.record(record_id, raw = raw)
 
     # XXX TODO: Handle records with repeating instruments or longitudinal
     # events.
