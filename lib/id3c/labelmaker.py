@@ -172,8 +172,16 @@ class _TestStripsFluAtHomeLayout(LabelLayout):
     reference = "fluathome.org"
 
 
+class CollectionsScanLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'SCAN'
+    copies_per_barcode = 2
+    reference = "scanpublichealth.org"
+
+
 LAYOUTS = {
     "samples": SamplesLayout,
+    "collections-scan": CollectionsScanLayout,
     "collections-seattleflu.org": CollectionsSeattleFluLayout,
     "collections-kiosks": CollectionsKiosksLayout,
     "collections-environmental": CollectionsEnvironmentalLayout,
