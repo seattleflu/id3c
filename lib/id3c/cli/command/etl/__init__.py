@@ -278,18 +278,28 @@ def upsert_location(db: DatabaseSession,
     """
     Upserts a location by its *scale* and *identifier*.
 
-    If *hierarchy* is None and the location already exists, any existing
-    hierarchy is preserved.
+    If *hierarchy* is None, it will be set to the location's
+    `scale => identifier`. Otherwise, the location's `scale => identifier`
+    will be appended to the *hierarchy*.
+
+    On update, new hierarchy and existing hierarchy are concatenated, with
+    new hierarchy taking precedence if there is overlap of keys.
     """
     LOG.debug(f"Upserting location {(scale, identifier)}")
+
+    # Always includes the new location's own scale => identifier in hierarchy
+    location_hierarchy = f"{scale} => {identifier}".lower()
+    if hierarchy is None:
+        hierarchy = location_hierarchy
+    else:
+        hierarchy = hierarchy + "," + location_hierarchy
 
     location = db.fetch_row("""
         insert into warehouse.location (scale, identifier, hierarchy)
         values (%s, %s, %s)
 
         on conflict (scale, identifier) do update
-            set hierarchy = coalesce(excluded.hierarchy, location.hierarchy)
-                    || hstore(lower(location.scale), lower(location.identifier))
+            set hierarchy = location.hierarchy || excluded.hierarchy
 
         returning location_id as id, scale, identifier, hierarchy
         """, (scale, identifier, hierarchy))
