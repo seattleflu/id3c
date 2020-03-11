@@ -299,7 +299,7 @@ def upsert_location(db: DatabaseSession,
         values (%s, %s, %s)
 
         on conflict (scale, identifier) do update
-            set hierarchy = location.hierarchy || excluded.hierarchy
+            set hierarchy = coalesce(location.hierarchy, '') || excluded.hierarchy
 
         returning location_id as id, scale, identifier, hierarchy
         """, (scale, identifier, hierarchy))
