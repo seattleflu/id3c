@@ -826,6 +826,9 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
 
         raise Exception("Could not find presence/absence observation value in valueBoolean or valueCodeableConcept")
 
+    if not report.result:
+        raise Exception("An empty value for `result` violates the FHIR docs.")
+
     for result in report.result:
         observation = result.resolved(Observation)
 
