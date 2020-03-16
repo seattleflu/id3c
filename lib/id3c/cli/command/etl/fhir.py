@@ -200,11 +200,26 @@ def process_diagnostic_report_bundle_entry(db: DatabaseSession, bundle: Bundle, 
             LOG.warning(f"Skipping collected specimen with unknown barcode «{barcode}»")
             continue
 
-        assert specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS, \
-            f"Specimen with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
+        # By default, assume that the incoming barcode is for a collection identifier
+        is_collection_identifier = True
+
+        try:
+            assert specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS, \
+                f"Specimen with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
+
+        except AssertionError:
+            assert specimen_identifier.set_name in EXPECTED_SAMPLE_IDENTIFIER_SETS, \
+                f"Specimen with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
+
+            is_collection_identifier = False
 
         sample = find_sample(db, specimen_identifier.uuid)
+        if not is_collection_identifier and not sample:
+            raise SampleNotFoundError("No sample with identifier «{specimen_identifier.uuid}» found.")
 
+        # Sometimes the Ellume samples come in faster than the specimen manifest
+        # is updated. In this case, create a new collection identifier that will
+        # be filled in later.
         if not sample:
             LOG.debug(f"Creating sample with collection identifier «{specimen_identifier.uuid}»")
 
@@ -810,6 +825,9 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
             return code_map[code]
 
         raise Exception("Could not find presence/absence observation value in valueBoolean or valueCodeableConcept")
+
+    if not report.result:
+        raise Exception("An empty value for `result` violates the FHIR docs.")
 
     for result in report.result:
         observation = result.resolved(Observation)
