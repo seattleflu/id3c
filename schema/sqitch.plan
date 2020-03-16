@@ -183,3 +183,8 @@ roles/redcap-det-processor/grants [roles/redcap-det-processor/grants@2020-02-06]
 
 shipping/views [shipping/views@2020-02-11] 2020-02-26T00:31:32Z Jover Lee <joverlee@fredhutch.org> # Add device to shipping.presence_absence_result
 @2020-02-25 2020-02-26T00:41:34Z Jover Lee <joverlee@fredhutch.org> # Schema as of 25 Feb 2020
+
+warehouse/encounter-location-relation [warehouse/schema] 2020-03-13T16:45:45Z Thomas Sibley <tsibley@fredhutch.org> # Control values for warehouse.encounter_location.relation
+warehouse/encounter-location-relation/data [warehouse/encounter-location-relation] 2020-03-13T16:51:37Z Thomas Sibley <tsibley@fredhutch.org> # Default encounter-location relations
+warehouse/encounter-location/relation-fk [warehouse/encounter-location-relation] 2020-03-13T17:04:43Z Thomas Sibley <tsibley@fredhutch.org> # Make warehouse.encounter_location.relation a FK
+warehouse/primary-encounter-location [warehouse/encounter-location/relation-fk] 2020-03-13T17:09:24Z Thomas Sibley <tsibley@fredhutch.org> # Core view to choose a single encounter-location
