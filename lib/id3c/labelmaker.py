@@ -172,8 +172,21 @@ class _TestStripsFluAtHomeLayout(LabelLayout):
     reference = "fluathome.org"
 
 
+class CollectionsScanLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'SCAN'
+    copies_per_barcode = 2
+    reference = "scanpublichealth.org"
+class CollectionsCliaComplianceLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = "CLIA"
+    copies_per_barcode = 1
+    reference = "scanpublichealth.org"
+
+
 LAYOUTS = {
     "samples": SamplesLayout,
+    "collections-scan": CollectionsScanLayout,
     "collections-seattleflu.org": CollectionsSeattleFluLayout,
     "collections-kiosks": CollectionsKiosksLayout,
     "collections-environmental": CollectionsEnvironmentalLayout,
@@ -182,6 +195,7 @@ LAYOUTS = {
     "collections-household-intervention": CollectionsHouseholdInterventionLayout,
     "collections-self-test": CollectionsSelfTestLayout,
     "collections-fluathome.org": CollectionsFluAtHomeLayout,
+    "collections-clia-compliance": CollectionsCliaComplianceLayout,
     "kits-fluathome.org": KitsFluAtHomeLayout,
     "test-strips-fluathome.org": _TestStripsFluAtHomeLayout,
 }
