@@ -523,7 +523,7 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
 
         assert (specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS or
                 specimen_identifier.set_name in EXPECTED_SAMPLE_IDENTIFIER_SETS), \
-            f"Speciment with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
+            f"Specimen with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
 
         sample_identifier: str = None
         collection_identifier: str = None
