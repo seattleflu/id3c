@@ -57,6 +57,7 @@ INTERNAL_SYSTEM = 'https://seattleflu.org'
 LOCATION_RELATION_SYSTEM = 'http://terminology.hl7.org/CodeSystem/v3-RoleCode'
 SNOMED_SYSTEM = 'http://snomed.info/sct'
 SNOMED_TERM = 'http://snomed.info/id'
+LANGUAGE_SYSTEM = 'urn:ietf:bcp:47'
 EXPECTED_COLLECTION_IDENTIFIER_SETS = [
     'collections-household-observation',
     'collections-household-intervention',
@@ -424,9 +425,19 @@ def process_encounter(db: DatabaseSession, encounter: Encounter,
         LOG.warning("Encounter site not found.")
         return None
 
-    individual  = process_encounter_individual(db, encounter)
+    patient = encounter.subject.resolved(Patient)
+    patient_language = process_patient_language(patient)
+
+    individual  = process_encounter_individual(db, patient)
 
     contained_resources = extract_contained_resources(encounter)
+
+    # XXX FIXME: This shallow dictionary merge is buggy if there are
+    # resources of the same type in both the related and contained sets.
+    #   -trs, 19 Dec 2019
+    details: Dict[str, Any] = encounter_details({ **related_resources, **contained_resources })
+    if patient_language:
+        details['language'] = patient_language
 
     return upsert_encounter(db,
         identifier      = identifier(encounter, f"{INTERNAL_SYSTEM}/encounter"),
@@ -434,20 +445,26 @@ def process_encounter(db: DatabaseSession, encounter: Encounter,
         individual_id   = individual.id,
         site_id         = site.id,
         age             = age,
-
-        # XXX FIXME: This shallow dictionary merge is buggy if there are
-        # resources of the same type in both the related and contained sets.
-        #   -trs, 19 Dec 2019
-        details         = encounter_details({ **related_resources, **contained_resources }))
+        details         = details)
 
 
-def process_encounter_individual(db: DatabaseSession, encounter: Encounter) -> Any:
+def process_patient_language(patient: Patient) -> Optional[str]:
     """
-    Returns an upserted individual using data from the given *encounter*'s
-    linked Patient Resource.
+    Returns the preferred langauge code for the given *Patient*
     """
-    patient = encounter.subject.resolved(Patient)
+    if not patient.communication:
+        return None
 
+    preferred_language = list(filter(lambda c: c.preferred, patient.communication))
+    assert len(preferred_language) == 1, "Found more than one preferred language for patient communication"
+
+    return matching_system_code(preferred_language[0].language, LANGUAGE_SYSTEM)
+
+
+def process_encounter_individual(db: DatabaseSession, patient: Patient) -> Any:
+    """
+    Returns an upserted individual using data from the given *patient*.
+    """
     return upsert_individual(db,
         identifier  = identifier(patient, f"{INTERNAL_SYSTEM}/individual"),
         sex         = sex(patient))
