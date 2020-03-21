@@ -428,7 +428,7 @@ def process_encounter(db: DatabaseSession, encounter: Encounter,
     patient = encounter.subject.resolved(Patient)
     patient_language = process_patient_language(patient)
 
-    individual  = process_encounter_individual(db, patient)
+    individual  = process_patient(db, patient)
 
     contained_resources = extract_contained_resources(encounter)
 
@@ -461,7 +461,7 @@ def process_patient_language(patient: Patient) -> Optional[str]:
     return matching_system_code(preferred_language[0].language, LANGUAGE_SYSTEM)
 
 
-def process_encounter_individual(db: DatabaseSession, patient: Patient) -> Any:
+def process_patient(db: DatabaseSession, patient: Patient) -> Any:
     """
     Returns an upserted individual using data from the given *patient*.
     """
