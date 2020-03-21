@@ -142,6 +142,13 @@ def etl_presence_absence(*, db: DatabaseSession):
                     LOG.debug(f"Processing target «{test_result_target_id}» for \
                     sample «{received_sample_barcode}»")
 
+                    # Skip this result if it's actually a non-result
+                    present = target_present(test_result)
+
+                    if present is ...:
+                        LOG.debug(f"No test result for «{test_result_target_id}», skipping")
+                        continue
+
                     # Most of the time we expect to see existing targets so a
                     # select-first approach makes the most sense to avoid useless
                     # updates.
@@ -166,7 +173,7 @@ def etl_presence_absence(*, db: DatabaseSession):
                         identifier = identifier,
                         sample_id  = sample.id,
                         target_id  = target.id,
-                        present    = get_target_result(test_result["targetStatus"]),
+                        present    = present,
                         details = presence_absence_details(test_result, chip))
 
             mark_processed(db, group.id)
@@ -288,19 +295,49 @@ def presence_absence_details(document: dict, chip: Any = None) -> dict:
         "replicates": document['wellResults']
     }
 
-
-def get_target_result(target_status: str) -> Any:
+def target_present(test_result: dict) -> Any:
     """
-    Takes a given target status and its sample and target ids. Returns the decoded
-    target_result as a boolean if the given target status is known. If the given
-    target status is an unexpected value, error will be raised and the ETL process will abort.
+    Returns a value for ``warehouse.presence_absence.present``
+    for the given received *test_result*, or ``...``
+    (``Ellipsis``) if the test should be skipped.
+
+    Raises a :py:class:`ValueError` if a value cannot be determined.
     """
-    expected_values = ['Detected', 'NotDetected']
+    status = (
+           test_result.get("targetStatus")
+        or test_result.get("sampleState")
+    )
 
-    if not target_status or target_status not in expected_values:
-        raise UnknownTargetResultError(f"Unknown target result «{target_status}».")
+    mapping = {
+        "Detected": True,
+        "NotDetected": False,
 
-    return target_status == 'Detected'
+        "Positive": True,
+        "PositiveControlPass": True,
+        "Negative": False,
+        "Indeterminate": None,
+
+        # These are valid _workflow_ statuses, but they're not really test
+        # results; they describe the circumstances around performing the test,
+        # not the result of the test itself.  We skip ingesting them for now as
+        # there is no place for them in our current data model.
+        #
+        # I did consider making these map to None/null like Indeterminate.
+        # That would make "present is null" results in the database mean "this
+        # test was run, but the result is unknown due to circumstances left
+        # unspecified".  I ultimately decided against it as the goal with ID3C
+        # is to aim for simpler data models which are easier to reckon about,
+        # not track everything that's performed like a LIMS/LIS does.
+        #   -trs, 20 Mar 2020
+        "Fail": ...,
+        "Repeat": ...,
+        "Review": ...,
+    }
+
+    if not status or status not in mapping:
+        raise ValueError(f"Unable to determine target presence given «{test_result}»")
+
+    return mapping[status]
 
 
 def mark_processed(db, group_id: int) -> None:
@@ -325,13 +362,6 @@ def mark_processed(db, group_id: int) -> None:
 class UnknownControlStatusError(ValueError):
     """
     Raised by :function:`target_control` if its provided *control*
-    is not among the set of expected values.
-    """
-    pass
-
-class UnknownTargetResultError(ValueError):
-    """
-    Raised by :function:`get_target_result` if its provided *target_result*
     is not among the set of expected values.
     """
     pass
