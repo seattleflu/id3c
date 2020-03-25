@@ -66,6 +66,7 @@ EXPECTED_COLLECTION_IDENTIFIER_SETS = [
     'collections-self-test',
     'collections-seattleflu.org',
     'collections-swab&send-asymptomatic',
+    'collections-scan',
 ]
 EXPECTED_SAMPLE_IDENTIFIER_SETS = ['samples']
 
@@ -311,25 +312,26 @@ def assert_required_resource_types_present(resources: Dict[str, List[DomainResou
     Raises an :class:`SkipBundleError` if the given *resources* do not meet the
     following requirements:
     * There is at least one Patient or DiagnosticReport Resource
-    * If there is a Patient, there is at least one Specimen
+    * If there is a Patient, there is at least one Encounter
     * The number of Observation Resources equals or exceeds the total number
-      of Encounter or Patient Resources.
+      of Encounter or Patient Resources when there are Specimen Resources.
     """
     if not (resources['Patient'] or resources['DiagnosticReport']):
         raise SkipBundleError("Either a Patient or a DiagnosticReport Resource are required in a FHIR Bundle.")
 
-    if resources['Patient'] and not resources['Specimen']:
-        raise SkipBundleError("At least one Specimen Resource is required in a FHIR Bundle containing a Patient Resource")
+    if resources['Patient'] and not resources['Encounter']:
+        raise SkipBundleError("At least one Encounter Resource is required in a FHIR Bundle containing a Patient Resource")
 
-    patients = len(resources['Patient'])
-    encounters = len(resources['Encounter'])
-    observations = len(resources['Observation'])
+    if resources['Specimen']:
+        patients = len(resources['Patient'])
+        encounters = len(resources['Encounter'])
+        observations = len(resources['Observation'])
 
-    if not observations >= max([patients, encounters]):
-        raise SkipBundleError(
-            f"Expected the total number of Observation Resources ({observations}) "
-            f"to equal or exceed the total number of Patient or Encounter resources "
-            f"({patients} or {encounters}, respectively).")
+        if not observations >= max([patients, encounters]):
+            raise SkipBundleError(
+                f"Expected the total number of Observation Resources ({observations}) "
+                f"to equal or exceed the total number of Patient or Encounter resources "
+                f"({patients} or {encounters}, respectively).")
 
 
 def identifier(resource: DomainResource, system: str=None) -> Optional[str]:
