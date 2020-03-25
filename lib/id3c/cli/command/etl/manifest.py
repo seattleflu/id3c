@@ -65,6 +65,7 @@ def etl_manifest(*, db: DatabaseSession):
             "collections-swab&send",
             "collections-swab&send-asymptomatic",
             "collections-self-test",
+            "collections-scan",
         },
         "rdt": {"collections-fluathome.org"}
     }
