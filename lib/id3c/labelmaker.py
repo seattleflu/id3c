@@ -184,6 +184,13 @@ class CollectionsCliaComplianceLayout(LabelLayout):
     reference = "scanpublichealth.org"
 
 
+class SamplesHaarviLayout(LabelLayout):
+    sku = "LCRY-2380"
+    barcode_type = "SAMPLE"
+    copies_per_barcode = 1
+    reference = "HAARVI"
+
+
 LAYOUTS = {
     "samples": SamplesLayout,
     "collections-scan": CollectionsScanLayout,
@@ -198,6 +205,7 @@ LAYOUTS = {
     "collections-clia-compliance": CollectionsCliaComplianceLayout,
     "kits-fluathome.org": KitsFluAtHomeLayout,
     "test-strips-fluathome.org": _TestStripsFluAtHomeLayout,
+    "samples-haarvi": SamplesHaarviLayout,
 }
 
 
