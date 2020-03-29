@@ -316,6 +316,7 @@ def target_present(test_result: dict) -> Any:
         "PositiveControlPass": True,
         "Negative": False,
         "Indeterminate": None,
+        "Inconclusive": None,
 
         # These are valid _workflow_ statuses, but they're not really test
         # results; they describe the circumstances around performing the test,
