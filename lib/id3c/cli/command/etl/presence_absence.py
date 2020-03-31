@@ -111,6 +111,7 @@ def etl_presence_absence(*, db: DatabaseSession):
 
                 received_sample_id = str(received_sample["sampleId"])
                 chip = received_sample.get("chip")
+                extraction_date = received_sample.get("extractionDate")
                 assay_name = received_sample.get("assayName")
                 assay_date = received_sample.get("assayDate")
 
@@ -178,6 +179,7 @@ def etl_presence_absence(*, db: DatabaseSession):
                         present    = present,
                         details    = presence_absence_details(test_result,
                                                               chip,
+                                                              extraction_date,
                                                               assay_name,
                                                               assay_date))
 
@@ -292,6 +294,7 @@ def sample_details(document: dict) -> dict:
 
 def presence_absence_details(document: dict,
                              chip: Any = None,
+                             extraction_date: Any = None,
                              assay_name: Any = None,
                              assay_date: Any = None) -> dict:
     """
@@ -311,6 +314,7 @@ def presence_absence_details(document: dict,
     return {
         "device": device,
         "assay_date": assay_date,
+        "extraction_date": extraction_date,
         "replicates": document['wellResults']
     }
 
