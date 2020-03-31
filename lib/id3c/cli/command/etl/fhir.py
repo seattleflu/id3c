@@ -51,7 +51,7 @@ LOG = logging.getLogger(__name__)
 # this revision number should be incremented.
 # The etl name has been added to allow multiple etls to process the same
 # receiving table
-REVISION = 3
+REVISION = 4
 ETL_NAME = 'fhir'
 INTERNAL_SYSTEM = 'https://seattleflu.org'
 LOCATION_RELATION_SYSTEM = 'http://terminology.hl7.org/CodeSystem/v3-RoleCode'
@@ -553,13 +553,19 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
         else:
             assert False, "logic bug"
 
+        sample_details = {}
+        if specimen.note:
+            sample_details['note'] = specimen.note[0].text
+
+        additional_details = { **specimen.type.as_json(), **sample_details}
+
         # XXX TODO: Improve details object here; the current approach produces
         # an object like {"coding": [{…}]} which isn't very useful.
         upsert_sample(db,
             identifier              = sample_identifier,
             collection_identifier   = collection_identifier,
             encounter_id            = encounter_id,
-            additional_details      = specimen.type.as_json())
+            additional_details      = additional_details)
 
 # Copied from etl manifest and edited to fit the needs for the FHIR etl.
 # We may want to consolidate `upsert_sample` at some point in the future,
