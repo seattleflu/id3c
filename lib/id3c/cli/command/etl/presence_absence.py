@@ -41,7 +41,7 @@ LOG = logging.getLogger(__name__)
 # presence-absence tests lacking this revision number in their log.  If a
 # change to the ETL routine necessitates re-processing all presence-absence tests,
 # this revision number should be incremented.
-REVISION = 6
+REVISION = 7
 
 
 @etl.command("presence-absence", help = __doc__)
@@ -111,6 +111,9 @@ def etl_presence_absence(*, db: DatabaseSession):
 
                 received_sample_id = str(received_sample["sampleId"])
                 chip = received_sample.get("chip")
+                extraction_date = received_sample.get("extractionDate")
+                assay_name = received_sample.get("assayName")
+                assay_date = received_sample.get("assayDate")
 
                 # Guard against empty chip values
                 assert chip or "chip" not in received_sample, "Received bogus chip id"
@@ -174,7 +177,11 @@ def etl_presence_absence(*, db: DatabaseSession):
                         sample_id  = sample.id,
                         target_id  = target.id,
                         present    = present,
-                        details = presence_absence_details(test_result, chip))
+                        details    = presence_absence_details(test_result,
+                                                              chip,
+                                                              extraction_date,
+                                                              assay_name,
+                                                              assay_date))
 
             mark_processed(db, group.id)
 
@@ -285,13 +292,29 @@ def sample_details(document: dict) -> dict:
         },
     }
 
-def presence_absence_details(document: dict, chip: Any = None) -> dict:
+def presence_absence_details(document: dict,
+                             chip: Any = None,
+                             extraction_date: Any = None,
+                             assay_name: Any = None,
+                             assay_date: Any = None) -> dict:
     """
     Describe presence/absence details in a simple data structure designed to
     be used from SQL.
+
+    Raises `AssertionError` if we find an unknown *assay_name*.
     """
+    device = None
+
+    if assay_name:
+        assert assay_name in {'OpenArray', 'TaqmanQPCR'}, f"Found unknown assay name «{assay_name}»"
+        device = assay_name
+    elif chip:
+        device = "OpenArray"
+
     return {
-        "device": "OpenArray" if chip else None,
+        "device": device,
+        "assay_date": assay_date,
+        "extraction_date": extraction_date,
         "replicates": document['wellResults']
     }
 
