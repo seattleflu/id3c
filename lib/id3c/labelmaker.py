@@ -141,8 +141,22 @@ class CollectionsHouseholdObservationLayout(LCRY1100TriplicateLayout):
     reference = "seattleflu.org"
 
 
+class CollectionsHouseholdObservationAsymptomaticLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = "ASYMPTOMATIC HH OBS"
+    copies_per_barcode = 1
+    reference = "seattleflu.org"
+
+
 class CollectionsHouseholdInterventionLayout(LCRY1100TriplicateLayout):
     barcode_type = "HH INTERVENTION"
+    reference = "seattleflu.org"
+
+
+class CollectionsHouseholdInterventionAsymptomaticLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = "ASYMPTOMATIC HH INT"
+    copies_per_barcode = 1
     reference = "seattleflu.org"
 
 
@@ -199,7 +213,9 @@ LAYOUTS = {
     "collections-environmental": CollectionsEnvironmentalLayout,
     "collections-swab&send": CollectionsSwabAndSendLayout,
     "collections-household-observation": CollectionsHouseholdObservationLayout,
+    "collections-household-observation-asymptomatic": CollectionsHouseholdObservationAsymptomaticLayout,
     "collections-household-intervention": CollectionsHouseholdInterventionLayout,
+    "collections-household-intervention-asymptomatic": CollectionsHouseholdInterventionAsymptomaticLayout,
     "collections-self-test": CollectionsSelfTestLayout,
     "collections-fluathome.org": CollectionsFluAtHomeLayout,
     "collections-clia-compliance": CollectionsCliaComplianceLayout,
