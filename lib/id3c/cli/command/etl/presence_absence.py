@@ -41,7 +41,7 @@ LOG = logging.getLogger(__name__)
 # presence-absence tests lacking this revision number in their log.  If a
 # change to the ETL routine necessitates re-processing all presence-absence tests,
 # this revision number should be incremented.
-REVISION = 7
+REVISION = 8
 
 
 @etl.command("presence-absence", help = __doc__)
@@ -114,6 +114,7 @@ def etl_presence_absence(*, db: DatabaseSession):
                 extraction_date = received_sample.get("extractionDate")
                 assay_name = received_sample.get("assayName")
                 assay_date = received_sample.get("assayDate")
+                assay_type = received_sample.get("assayType")
 
                 # Guard against empty chip values
                 assert chip or "chip" not in received_sample, "Received bogus chip id"
@@ -181,7 +182,8 @@ def etl_presence_absence(*, db: DatabaseSession):
                                                               chip,
                                                               extraction_date,
                                                               assay_name,
-                                                              assay_date))
+                                                              assay_date,
+                                                              assay_type))
 
             mark_processed(db, group.id)
 
@@ -296,12 +298,14 @@ def presence_absence_details(document: dict,
                              chip: Any = None,
                              extraction_date: Any = None,
                              assay_name: Any = None,
-                             assay_date: Any = None) -> dict:
+                             assay_date: Any = None,
+                             assay_type: Any = None) -> dict:
     """
     Describe presence/absence details in a simple data structure designed to
     be used from SQL.
 
-    Raises `AssertionError` if we find an unknown *assay_name*.
+    Raises `AssertionError` if we find an unknown *assay_name* or unknown
+    *assay_type*.
     """
     device = None
 
@@ -311,9 +315,17 @@ def presence_absence_details(document: dict,
     elif chip:
         device = "OpenArray"
 
+    if assay_type:
+        assert assay_type in {'Clia', 'Research'}, f"Found unknown assay type «{assay_type}»"
+    else:
+        # Assumes anything with 4 wellResults is "Clia" and everything else
+        # "Research" assays
+        assay_type = 'Clia' if len(document['wellResults']) == 4 else 'Research'
+
     return {
         "device": device,
         "assay_date": assay_date,
+        "assay_type": assay_type,
         "extraction_date": extraction_date,
         "replicates": document['wellResults']
     }
