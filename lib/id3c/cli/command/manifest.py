@@ -413,7 +413,7 @@ def qc_barcodes(df: pandas.DataFrame, columns: Iterable) -> pandas.DataFrame:
         # If duplicates are found, drop rows with duplicate barcodes
         if len(duplicates) > 0:
             LOG.warning(f"Found duplicate barcodes in column «{column}»")
-            dup_barcodes = duplicates.unique().tolist()
+            dup_barcodes = list(duplicates.unique())
             LOG.warning(f"Duplicated barcodes: {dup_barcodes}")
             LOG.warning(f"Dropping records with duplicate barcodes")
             deduplicated_df = df[(~df[column].duplicated(keep=False)) \

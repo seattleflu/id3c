@@ -221,7 +221,7 @@ def import_(features_path,
             raise Exception("hierarchy_by_feature CSV must include 'feature_identifier' column")
         duplicated_feature_identifier = hierarchy_df["feature_identifier"].duplicated(keep=False)
         duplicates = hierarchy_df["feature_identifier"][duplicated_feature_identifier]
-        dup_identifiers = duplicates.unique().tolist()
+        dup_identifiers = list(duplicates.unique())
         assert len(dup_identifiers) == 0, f"Found duplicate feature_identifiers: {dup_identifiers}"
 
     locations = list(map(as_location, parse_features(features_path)))
