@@ -124,6 +124,13 @@ class CollectionsKiosksLayout(LabelLayout):
     reference = "seattleflu.org"
 
 
+class CollectionsKiosksAsymptomaticLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = "ASYMPTOMATIC KIOSK"
+    copies_per_barcode = 1
+    reference = "seattleflu.org"
+
+
 class CollectionsEnvironmentalLayout(LabelLayout):
     sku = "LCRY-1100"
     barcode_type = "ENVIRON"
@@ -196,6 +203,7 @@ LAYOUTS = {
     "collections-scan": CollectionsScanLayout,
     "collections-seattleflu.org": CollectionsSeattleFluLayout,
     "collections-kiosks": CollectionsKiosksLayout,
+    "collections-kiosks-asymptomatic": CollectionsKiosksAsymptomaticLayout,
     "collections-environmental": CollectionsEnvironmentalLayout,
     "collections-swab&send": CollectionsSwabAndSendLayout,
     "collections-household-observation": CollectionsHouseholdObservationLayout,
