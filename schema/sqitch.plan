@@ -191,3 +191,4 @@ warehouse/primary-encounter-location [warehouse/encounter-location/relation-fk] 
 @2020-03-13 2020-04-21T23:31:54Z Jover Lee <joverlee@fredhutch.org> # Schema as of 13 March 2020
 
 warehouse/sample/collection-date [warehouse/sample] 2020-04-20T18:49:35Z Jover Lee <joverlee@fredhutch.org> # Add collection-date to samples
+@2020-04-20 2020-04-20T19:47:27Z Jover Lee <joverlee@fredhutch.org> # Schema as of 20 April 2020
