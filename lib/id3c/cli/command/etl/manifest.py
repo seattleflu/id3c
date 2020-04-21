@@ -128,6 +128,9 @@ def etl_manifest(*, db: DatabaseSession):
                 or collection_identifier.set_name in expected_identifier_sets["collections"], \
                     f"Collection identifier found in set «{collection_identifier.set_name}», not {expected_identifier_sets['collections']}" # type: ignore
 
+            # Sample collection date
+            collection_date = manifest_record.document.get("date")
+
             # Upsert sample cooperatively with enrollments ETL routine
             #
             # The details document was intentionally modified by two pop()s
@@ -137,6 +140,7 @@ def etl_manifest(*, db: DatabaseSession):
             sample, status = upsert_sample(db,
                 identifier            = sample_identifier.uuid,
                 collection_identifier = collection_identifier.uuid if collection_identifier else None,
+                collection_date       = collection_date,
                 additional_details    = manifest_record.document)
 
             mark_loaded(db, manifest_record.id,
@@ -149,19 +153,21 @@ def etl_manifest(*, db: DatabaseSession):
 def upsert_sample(db: DatabaseSession,
                   identifier: str,
                   collection_identifier: Optional[str],
+                  collection_date: Optional[str],
                   additional_details: dict) -> Tuple[Any, str]:
     """
     Upsert sample by its *identifier* and/or *collection_identifier*.
 
-    An existing sample has its *identifier* and *collection_identifier* updated,
-    and the provided *additional_details* are merged (at the top-level only)
-    into the existing sample details, if any.
+    An existing sample has its *identifier*, *collection_identifier*,
+    *collection_date* updated, and the provided *additional_details* are
+    merged (at the top-level only) into the existing sample details, if any.
 
     Raises an exception if there is more than one matching sample.
     """
     data = {
         "identifier": identifier,
         "collection_identifier": collection_identifier,
+        "collection_date": collection_date,
         "additional_details": Json(additional_details),
     }
 
@@ -182,9 +188,10 @@ def upsert_sample(db: DatabaseSession,
         LOG.info("Creating new sample")
         status = 'created'
         sample = db.fetch_row("""
-            insert into warehouse.sample (identifier, collection_identifier, details)
+            insert into warehouse.sample (identifier, collection_identifier, collected, details)
                 values (%(identifier)s,
                         %(collection_identifier)s,
+                        date_or_null(%(collection_date)s),
                         %(additional_details)s)
             returning sample_id as id, identifier, collection_identifier, encounter_id
             """, data)
@@ -199,6 +206,7 @@ def upsert_sample(db: DatabaseSession,
             update warehouse.sample
                set identifier = %(identifier)s,
                    collection_identifier = %(collection_identifier)s,
+                   collected = date_or_null(%(collection_date)s),
                    details = coalesce(details, '{}') || %(additional_details)s
 
              where sample_id = %(sample_id)s
