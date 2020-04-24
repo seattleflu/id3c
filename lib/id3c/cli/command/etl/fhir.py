@@ -314,7 +314,9 @@ def assert_required_resource_types_present(resources: Dict[str, List[DomainResou
     * There is at least one Patient or DiagnosticReport Resource
     * If there is a Patient, there is at least one Encounter
     * The number of Observation Resources equals or exceeds the total number
-      of Encounter or Patient Resources when there are Specimen Resources.
+      of Specimen Resources when there are Encounter Resources. (This is
+      required because Observation Resources are the only way to link Specimen
+      Resources to Encounter Resources.)
     """
     if not (resources['Patient'] or resources['DiagnosticReport']):
         raise SkipBundleError("Either a Patient or a DiagnosticReport Resource are required in a FHIR Bundle.")
@@ -322,16 +324,15 @@ def assert_required_resource_types_present(resources: Dict[str, List[DomainResou
     if resources['Patient'] and not resources['Encounter']:
         raise SkipBundleError("At least one Encounter Resource is required in a FHIR Bundle containing a Patient Resource")
 
-    if resources['Specimen']:
-        patients = len(resources['Patient'])
-        encounters = len(resources['Encounter'])
+    if resources['Specimen'] and resources['Encounter']:
+        specimens = len(resources['Specimen'])
         observations = len(resources['Observation'])
 
-        if not observations >= max([patients, encounters]):
+        if not observations >= specimens:
             raise SkipBundleError(
                 f"Expected the total number of Observation Resources ({observations}) "
-                f"to equal or exceed the total number of Patient or Encounter resources "
-                f"({patients} or {encounters}, respectively).")
+                f"to equal or exceed the total number of Specimen resources "
+                f"({specimens}) when Encounter resources are present.")
 
 
 def identifier(resource: DomainResource, system: str=None) -> Optional[str]:
