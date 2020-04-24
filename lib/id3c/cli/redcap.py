@@ -91,7 +91,7 @@ class Project:
         return self.fields[0]["field_name"]
 
 
-    def record(self, record_id: str, *, raw: bool = False) -> List[dict]:
+    def record(self, record_id: str, *, raw: bool = False) -> List['Record']:
         """
         Fetch the REDCap record *record_id* with all its instruments.
 
@@ -112,7 +112,7 @@ class Project:
                 since_date: str = None,
                 until_date: str = None,
                 ids: List[str] = None,
-                raw: bool = False) -> List[dict]:
+                raw: bool = False) -> List['Record']:
         """
         Fetch records for this REDCap project.
 
@@ -152,7 +152,7 @@ class Project:
         if ids is not None:
             parameters['records'] = ",".join(map(str, ids))
 
-        return self._fetch("record", parameters)
+        return [Record(self, r) for r in self._fetch("record", parameters)]
 
 
     def _fetch(self, content: str, parameters: Dict[str, str] = {}) -> Any:
@@ -191,6 +191,26 @@ def CachedProject(api_url: str, api_token: str, project_id: int) -> Project:
     notifications, to avoid the initial fetch of project details every time.
     """
     return Project(api_url, api_token, project_id)
+
+
+class Record(dict):
+    """
+    A single REDCap record ``dict``.
+
+    All key/value pairs returned by the REDCap API request are present as
+    dictionary items.
+
+    Must be constructed with a REDCap :py:class:``Project``, which is stored as
+    the ``project`` attribute and used to set the ``id`` attribute storing the
+    record's primary id.
+    """
+    project: Project
+    id: str
+
+    def __init__(self, project: Project, data: Any = {}) -> None:
+        super().__init__(data)
+        self.project = project
+        self.id = self[self.project.record_id_field]
 
 
 class InstrumentStatus(Enum):
