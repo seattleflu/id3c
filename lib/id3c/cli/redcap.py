@@ -28,6 +28,7 @@ class Project:
     _details: dict
     _instruments: List[str] = None
     _fields: List[dict] = None
+    _redcap_version: str = None
 
     def __init__(self, api_url: str, api_token: str, project_id: int) -> None:
         self.api_url = api_url
@@ -91,6 +92,17 @@ class Project:
         return self.fields[0]["field_name"]
 
 
+    @property
+    def redcap_version(self) -> str:
+        """
+        Version string of the REDCap instance.
+        """
+        if not self._redcap_version:
+            self._redcap_version = self._fetch("version", format = "text")
+
+        return self._redcap_version
+
+
     def record(self, record_id: str, *, raw: bool = False) -> List['Record']:
         """
         Fetch the REDCap record *record_id* with all its instruments.
@@ -112,6 +124,7 @@ class Project:
                 since_date: str = None,
                 until_date: str = None,
                 ids: List[str] = None,
+                fields: List[str] = None,
                 raw: bool = False) -> List['Record']:
         """
         Fetch records for this REDCap project.
@@ -129,6 +142,9 @@ class Project:
 
         The optional *ids* parameter can be used to limit results to the given
         record ids.
+
+        The optional *fields* parameter can be used to limit the fields
+        returned for each record.
 
         The optional *raw* parameter controls if numeric/coded values are
         returned for multiple choice fields.  When false (the default), string
@@ -152,10 +168,13 @@ class Project:
         if ids is not None:
             parameters['records'] = ",".join(map(str, ids))
 
+        if fields is not None:
+            parameters['fields'] = ",".join(map(str, fields))
+
         return [Record(self, r) for r in self._fetch("record", parameters)]
 
 
-    def _fetch(self, content: str, parameters: Dict[str, str] = {}) -> Any:
+    def _fetch(self, content: str, parameters: Dict[str, str] = {}, *, format: str = "json") -> Any:
         """
         Fetch REDCap *content* with a POST request to the REDCap API.
 
@@ -166,20 +185,20 @@ class Project:
 
         headers = {
             'Content-type': 'application/x-www-form-urlencoded',
-            'Accept': 'application/json'
+            'Accept': 'application/json' if format == "json" else 'text/*'
         }
 
         data = {
             **parameters,
             'content': content,
             'token': self.api_token,
-            'format': 'json',
+            'format': format,
         }
 
         response = requests.post(self.api_url, data=data, headers=headers)
         response.raise_for_status()
 
-        return response.json()
+        return response.json() if format == "json" else response.text
 
 
 @lru_cache()
