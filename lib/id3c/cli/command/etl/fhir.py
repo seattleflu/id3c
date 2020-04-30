@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any, List, Dict, Optional, Tuple
 from fhir.resources.bundle import Bundle, BundleEntry
 from fhir.resources.codeableconcept import CodeableConcept
+from fhir.resources.coding import Coding
 from fhir.resources.diagnosticreport import DiagnosticReport
 from fhir.resources.domainresource import DomainResource
 from fhir.resources.encounter import Encounter
@@ -435,12 +436,16 @@ def process_encounter(db: DatabaseSession, encounter: Encounter,
 
     contained_resources = extract_contained_resources(encounter)
 
+    encounter_reason = process_encounter_reason(encounter)
+
     # XXX FIXME: This shallow dictionary merge is buggy if there are
     # resources of the same type in both the related and contained sets.
     #   -trs, 19 Dec 2019
     details: Dict[str, Any] = encounter_details({ **related_resources, **contained_resources })
     if patient_language:
         details['language'] = patient_language
+    if encounter_reason:
+        details['reason'] = encounter_reason
 
     return upsert_encounter(db,
         identifier      = identifier(encounter, f"{INTERNAL_SYSTEM}/encounter"),
@@ -462,6 +467,22 @@ def process_patient_language(patient: Patient) -> Optional[str]:
     assert len(preferred_language) == 1, "Found more than one preferred language for patient communication"
 
     return matching_system_code(preferred_language[0].language, LANGUAGE_SYSTEM)
+
+
+def process_encounter_reason(encounter: Encounter) -> Optional[List[dict]]:
+    """
+    Returns the coding concept for all the reason codes of an *encounter*.
+    """
+    if not encounter.reasonCode:
+        return None
+
+    reason_codes: List[Coding] = []
+
+    for codeable_concept in encounter.reasonCode:
+        codes = codeable_concept.coding
+        reason_codes.extend(codes)
+
+    return [r.as_json() for r in reason_codes]
 
 
 def process_patient(db: DatabaseSession, patient: Patient) -> Any:
