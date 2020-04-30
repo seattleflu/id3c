@@ -28,6 +28,7 @@ class Project:
     _details: dict
     _instruments: List[str] = None
     _fields: List[dict] = None
+    _redcap_version: str = None
 
     def __init__(self, api_url: str, api_token: str, project_id: int) -> None:
         self.api_url = api_url
@@ -89,6 +90,17 @@ class Project:
         the first field in a project.
         """
         return self.fields[0]["field_name"]
+
+
+    @property
+    def redcap_version(self) -> str:
+        """
+        Version string of the REDCap instance.
+        """
+        if not self._redcap_version:
+            self._redcap_version = self._fetch("version", format = "text")
+
+        return self._redcap_version
 
 
     def record(self, record_id: str, *, raw: bool = False) -> List['Record']:
@@ -162,7 +174,7 @@ class Project:
         return [Record(self, r) for r in self._fetch("record", parameters)]
 
 
-    def _fetch(self, content: str, parameters: Dict[str, str] = {}) -> Any:
+    def _fetch(self, content: str, parameters: Dict[str, str] = {}, *, format: str = "json") -> Any:
         """
         Fetch REDCap *content* with a POST request to the REDCap API.
 
@@ -173,20 +185,20 @@ class Project:
 
         headers = {
             'Content-type': 'application/x-www-form-urlencoded',
-            'Accept': 'application/json'
+            'Accept': 'application/json' if format == "json" else 'text/*'
         }
 
         data = {
             **parameters,
             'content': content,
             'token': self.api_token,
-            'format': 'json',
+            'format': format,
         }
 
         response = requests.post(self.api_url, data=data, headers=headers)
         response.raise_for_status()
 
-        return response.json()
+        return response.json() if format == "json" else response.text
 
 
 @lru_cache()
