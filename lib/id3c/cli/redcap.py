@@ -112,6 +112,7 @@ class Project:
                 since_date: str = None,
                 until_date: str = None,
                 ids: List[str] = None,
+                fields: List[str] = None,
                 raw: bool = False) -> List['Record']:
         """
         Fetch records for this REDCap project.
@@ -129,6 +130,9 @@ class Project:
 
         The optional *ids* parameter can be used to limit results to the given
         record ids.
+
+        The optional *fields* parameter can be used to limit the fields
+        returned for each record.
 
         The optional *raw* parameter controls if numeric/coded values are
         returned for multiple choice fields.  When false (the default), string
@@ -151,6 +155,9 @@ class Project:
 
         if ids is not None:
             parameters['records'] = ",".join(map(str, ids))
+
+        if fields is not None:
+            parameters['fields'] = ",".join(map(str, fields))
 
         return [Record(self, r) for r in self._fetch("record", parameters)]
 
