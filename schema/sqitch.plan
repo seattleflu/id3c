@@ -188,3 +188,7 @@ warehouse/encounter-location-relation [warehouse/schema] 2020-03-13T16:45:45Z Th
 warehouse/encounter-location-relation/data [warehouse/encounter-location-relation] 2020-03-13T16:51:37Z Thomas Sibley <tsibley@fredhutch.org> # Default encounter-location relations
 warehouse/encounter-location/relation-fk [warehouse/encounter-location-relation] 2020-03-13T17:04:43Z Thomas Sibley <tsibley@fredhutch.org> # Make warehouse.encounter_location.relation a FK
 warehouse/primary-encounter-location [warehouse/encounter-location/relation-fk] 2020-03-13T17:09:24Z Thomas Sibley <tsibley@fredhutch.org> # Core view to choose a single encounter-location
+@2020-03-13 2020-04-21T23:31:54Z Jover Lee <joverlee@fredhutch.org> # Schema as of 13 March 2020
+
+warehouse/sample/collection-date [warehouse/sample] 2020-04-20T18:49:35Z Jover Lee <joverlee@fredhutch.org> # Add collection-date to samples
+@2020-04-20 2020-04-20T19:47:27Z Jover Lee <joverlee@fredhutch.org> # Schema as of 20 April 2020
