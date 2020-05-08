@@ -438,6 +438,11 @@ def process_encounter(db: DatabaseSession, encounter: Encounter,
 
     encounter_reason = process_encounter_reason(encounter)
 
+    part_of_identifier = None
+    if encounter.partOf:
+        part_of_encounter = encounter.partOf.resolved(Encounter)
+        part_of_identifier = identifier(part_of_encounter, f"{INTERNAL_SYSTEM}/encounter")
+
     # XXX FIXME: This shallow dictionary merge is buggy if there are
     # resources of the same type in both the related and contained sets.
     #   -trs, 19 Dec 2019
@@ -446,6 +451,8 @@ def process_encounter(db: DatabaseSession, encounter: Encounter,
         details['language'] = patient_language
     if encounter_reason:
         details['reason'] = encounter_reason
+    if part_of_identifier:
+        details['part_of'] = part_of_identifier
 
     return upsert_encounter(db,
         identifier      = identifier(encounter, f"{INTERNAL_SYSTEM}/encounter"),
