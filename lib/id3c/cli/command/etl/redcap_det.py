@@ -9,10 +9,10 @@ import click
 import logging
 from datetime import datetime, timezone
 from functools import wraps
-from typing import Callable, Iterable, Optional, Tuple
+from typing import Callable, Iterable, Optional, Tuple, Dict, List, Any
 from urllib.parse import urljoin
 from id3c.cli.command import with_database_session
-from id3c.cli.redcap import CachedProject, is_complete
+from id3c.cli.redcap import CachedProject, is_complete, Project, Record
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json, Json
 from id3c.cli.command.geocode import pickled_cache
@@ -108,11 +108,11 @@ def command_for_project(name: str,
                 """, (Json([etl_id]), Json(det_contains)))
 
             with pickled_cache(CACHE_FILE) as cache:
+                latest_complete_dets: Dict[str, Any] = {}
                 for det in redcap_det:
                     with db.savepoint(f"redcap_det {det.id}"):
-                        LOG.info(f"Processing REDCap DET {det.id}")
-
                         instrument = det.document['instrument']
+                        record_id = det.document['record']
 
                         # Only pull REDCap record if
                         # `include_incomplete` flag was not included and
@@ -122,12 +122,37 @@ def command_for_project(name: str,
                             mark_skipped(db, det.id, etl_id)
                             continue
 
-                        redcap_record = get_redcap_record_from_det(det.document, raw_coded_values)
+                        # Check if this is record has an older DET
+                        # Skip older DET in favor of the latest DET
+                        elif latest_complete_dets.get(record_id):
+                            old_det = latest_complete_dets[record_id]
+                            LOG.debug(f"Skipping older REDCap DET {old_det.id}")
+                            mark_skipped(db, old_det.id, etl_id)
 
-                        if not redcap_record:
-                            LOG.debug(f"REDCap record is missing or invalid.  Skipping REDCap DET {det.id}")
-                            mark_skipped(db, det.id, etl_id)
-                            continue
+                        latest_complete_dets.update({record_id: det})
+
+                # Batch request records from REDCap
+                project = get_redcap_project(redcap_url, project_id)
+                record_ids = list(latest_complete_dets.keys())
+                redcap_records = get_redcap_records(project, record_ids, raw_coded_values)
+
+                # If no valid records are returned, mark all DETs as skipped.
+                if not redcap_records:
+                    skip_missing_records(db, latest_complete_dets.values(), etl_id)
+                    return
+
+                for redcap_record in redcap_records:
+                    record_id = redcap_record[project.record_id_field]
+                    # XXX TODO: Handle records with repeating instruments or longitudinal
+                    # events.
+                    try:
+                        det = latest_complete_dets.pop(record_id)
+                    except KeyError:
+                        LOG.warning(f"Found duplicate record id «{record_id}» in project {project.id}")
+                        continue
+
+                    with db.savepoint(f"redcap_det {det.id}"):
+                        LOG.info(f"Processing REDCap DET {det.id}")
 
                         # Only process REDCap record if all required instruments are complete
                         incomplete_instruments = {
@@ -155,42 +180,25 @@ def command_for_project(name: str,
                         insert_fhir_bundle(db, bundle)
                         mark_loaded(db, det.id, etl_id, bundle['id'])
 
+                # After all of REDCap records are processed, mark missing or
+                # invalid DETs as skipped.
+                skip_missing_records(db, latest_complete_dets.values(), etl_id)
 
 
         return decorated
     return decorator
 
 
-def get_redcap_record_from_det(det: dict, raw: bool) -> Optional[dict]:
+def get_redcap_project(redcap_url: str, project_id: int) -> Project:
     """
-    Fetch the REDCap record for the given *det* notification.
-
-    The *raw* parameter indicates whether to pull the raw coded values or labels
-    for multiple choice answers.
-
-    The DET's ``redcap_url``, ``project_id``, and ``record`` fields are used to
-    make the API call.
-
-    All instruments will be fetched.
+    Fetch a REDCap project using provided *redcap_url* and *project_id*.
     """
-    api_url = urljoin(det["redcap_url"], "api/")
+    api_url = urljoin(redcap_url, "api/")
     api_token = get_redcap_api_token(api_url)
 
-    project_id = int(det["project_id"])
+    LOG.info(f"Fetching REDCap project {project_id}")
 
-    try:
-        record_id = str(det["record"])
-    except ValueError:
-        return None
-
-    LOG.info(f"Fetching REDCap record {record_id}")
-
-    project = CachedProject(api_url, api_token, project_id)
-    record = project.record(record_id, raw = raw)
-
-    # XXX TODO: Handle records with repeating instruments or longitudinal
-    # events.
-    return record[0] if record else None
+    return CachedProject(api_url, api_token, project_id)
 
 
 def get_redcap_api_token(api_url: str) -> str:
@@ -219,6 +227,23 @@ def get_redcap_api_token(api_url: str) -> str:
     return token
 
 
+def get_redcap_records(project: Project, record_ids: List[str], raw: bool) -> Optional[List[Record]]:
+    """
+    Fetch the REDCap records for the given *project* with the provided
+    *record_ids*.
+
+    The *raw* parameter indicates whether to pull the raw coded values or labels
+    for multiple choice answers.
+
+    All instruments will be fetched.
+    """
+    LOG.info(f"Fetching {len(record_ids)} REDCap records from project {project.id}")
+
+    records = project.records(ids = record_ids, raw = raw)
+
+    return records if records else None
+
+
 def insert_fhir_bundle(db: DatabaseSession, bundle: dict) -> None:
     """
     Insert FHIR bundles into the receiving area of the database.
@@ -235,6 +260,13 @@ def insert_fhir_bundle(db: DatabaseSession, bundle: dict) -> None:
     assert fhir.id, "Insert affected no rows!"
 
     LOG.info(f"Inserted FHIR document {fhir.id} «{bundle['id']}»")
+
+
+def skip_missing_records(db: DatabaseSession, dets: Iterable[Any], etl_id: dict) -> None:
+    for det in dets:
+        with db.savepoint(f"redcap_det {det.id}"):
+            LOG.debug(f"REDCap record is missing or invalid.  Skipping REDCap DET {det.id}")
+            mark_skipped(db, det.id, etl_id)
 
 
 def mark_loaded(db: DatabaseSession, det_id: int, etl_id: dict, bundle_uuid: str) -> None:
