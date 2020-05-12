@@ -129,7 +129,7 @@ def command_for_project(name: str,
                             LOG.debug(f"Skipping older REDCap DET {old_det.id}")
                             mark_skipped(db, old_det.id, etl_id)
 
-                        latest_complete_dets.update({record_id: det})
+                        latest_complete_dets[record_id] = det
 
                 # Batch request records from REDCap
                 project = get_redcap_project(redcap_url, project_id)
