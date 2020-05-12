@@ -131,6 +131,10 @@ def command_for_project(name: str,
 
                         latest_complete_dets[record_id] = det
 
+                if not latest_complete_dets:
+                    LOG.info("No new complete DETs found.")
+                    return
+
                 # Batch request records from REDCap
                 project = get_redcap_project(redcap_url, project_id)
                 record_ids = list(latest_complete_dets.keys())
