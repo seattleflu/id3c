@@ -483,13 +483,10 @@ def process_encounter_reason(encounter: Encounter) -> Optional[List[dict]]:
     if not encounter.reasonCode:
         return None
 
-    reason_codes: List[Coding] = []
-
-    for codeable_concept in encounter.reasonCode:
-        codes = codeable_concept.coding
-        reason_codes.extend(codes)
-
-    return [r.as_json() for r in reason_codes]
+    return [
+        coding.as_json()
+        for concept in encounter.reasonCode
+        for coding in concept.coding]
 
 
 def process_patient(db: DatabaseSession, patient: Patient) -> Any:
