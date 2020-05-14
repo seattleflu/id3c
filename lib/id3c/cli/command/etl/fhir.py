@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from typing import Any, List, Dict, Optional, Tuple
 from fhir.resources.bundle import Bundle, BundleEntry
 from fhir.resources.codeableconcept import CodeableConcept
+from fhir.resources.coding import Coding
 from fhir.resources.diagnosticreport import DiagnosticReport
 from fhir.resources.domainresource import DomainResource
 from fhir.resources.encounter import Encounter
@@ -314,7 +315,9 @@ def assert_required_resource_types_present(resources: Dict[str, List[DomainResou
     * There is at least one Patient or DiagnosticReport Resource
     * If there is a Patient, there is at least one Encounter
     * The number of Observation Resources equals or exceeds the total number
-      of Encounter or Patient Resources when there are Specimen Resources.
+      of Specimen Resources when there are Encounter Resources. (This is
+      required because Observation Resources are the only way to link Specimen
+      Resources to Encounter Resources.)
     """
     if not (resources['Patient'] or resources['DiagnosticReport']):
         raise SkipBundleError("Either a Patient or a DiagnosticReport Resource are required in a FHIR Bundle.")
@@ -322,16 +325,15 @@ def assert_required_resource_types_present(resources: Dict[str, List[DomainResou
     if resources['Patient'] and not resources['Encounter']:
         raise SkipBundleError("At least one Encounter Resource is required in a FHIR Bundle containing a Patient Resource")
 
-    if resources['Specimen']:
-        patients = len(resources['Patient'])
-        encounters = len(resources['Encounter'])
+    if resources['Specimen'] and resources['Encounter']:
+        specimens = len(resources['Specimen'])
         observations = len(resources['Observation'])
 
-        if not observations >= max([patients, encounters]):
+        if not observations >= specimens:
             raise SkipBundleError(
                 f"Expected the total number of Observation Resources ({observations}) "
-                f"to equal or exceed the total number of Patient or Encounter resources "
-                f"({patients} or {encounters}, respectively).")
+                f"to equal or exceed the total number of Specimen resources "
+                f"({specimens}) when Encounter resources are present.")
 
 
 def identifier(resource: DomainResource, system: str=None) -> Optional[str]:
@@ -434,12 +436,23 @@ def process_encounter(db: DatabaseSession, encounter: Encounter,
 
     contained_resources = extract_contained_resources(encounter)
 
+    encounter_reason = process_encounter_reason(encounter)
+
+    part_of_identifier = None
+    if encounter.partOf:
+        part_of_encounter = encounter.partOf.resolved(Encounter)
+        part_of_identifier = identifier(part_of_encounter, f"{INTERNAL_SYSTEM}/encounter")
+
     # XXX FIXME: This shallow dictionary merge is buggy if there are
     # resources of the same type in both the related and contained sets.
     #   -trs, 19 Dec 2019
     details: Dict[str, Any] = encounter_details({ **related_resources, **contained_resources })
     if patient_language:
         details['language'] = patient_language
+    if encounter_reason:
+        details['reason'] = encounter_reason
+    if part_of_identifier:
+        details['part_of'] = part_of_identifier
 
     return upsert_encounter(db,
         identifier      = identifier(encounter, f"{INTERNAL_SYSTEM}/encounter"),
@@ -461,6 +474,19 @@ def process_patient_language(patient: Patient) -> Optional[str]:
     assert len(preferred_language) == 1, "Found more than one preferred language for patient communication"
 
     return matching_system_code(preferred_language[0].language, LANGUAGE_SYSTEM)
+
+
+def process_encounter_reason(encounter: Encounter) -> Optional[List[dict]]:
+    """
+    Returns the coding concept for all the reason codes of an *encounter*.
+    """
+    if not encounter.reasonCode:
+        return None
+
+    return [
+        coding.as_json()
+        for concept in encounter.reasonCode
+        for coding in concept.coding]
 
 
 def process_patient(db: DatabaseSession, patient: Patient) -> Any:
