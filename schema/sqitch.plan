@@ -192,3 +192,6 @@ warehouse/primary-encounter-location [warehouse/encounter-location/relation-fk] 
 
 warehouse/sample/collection-date [warehouse/sample] 2020-04-20T18:49:35Z Jover Lee <joverlee@fredhutch.org> # Add collection-date to samples
 @2020-04-20 2020-04-20T19:47:27Z Jover Lee <joverlee@fredhutch.org> # Schema as of 20 April 2020
+
+roles/materialized-view-refresher/create 2020-05-18T18:52:40Z Jover Lee <joverlee@fredhutch.org> # Role for refreshing materialize-view-refresher
+roles/materialized-view-refresher/grants [roles/materialized-view-refresher/create] 2020-05-18T18:54:04Z Jover Lee <joverlee@fredhutch.org> # Grants to materialized-view-refresher
