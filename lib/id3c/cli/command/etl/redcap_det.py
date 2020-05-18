@@ -155,13 +155,12 @@ def command_for_project(name: str,
                     return
 
                 for redcap_record in redcap_records:
-                    record_id = redcap_record[project.record_id_field]
                     # XXX TODO: Handle records with repeating instruments or longitudinal
                     # events.
                     try:
-                        det = latest_complete_dets.pop(record_id)
+                        det = latest_complete_dets.pop(redcap_record.id)
                     except KeyError:
-                        LOG.warning(f"Found duplicate record id «{record_id}» in project {project.id}")
+                        LOG.warning(f"Found duplicate record id «{redcap_record.id}» in project {redcap_record.project.id}")
                         continue
 
                     with db.savepoint(f"redcap_det {det.id}"):
