@@ -12,7 +12,7 @@ from functools import wraps
 from typing import Callable, Iterable, Optional, Tuple, Dict, List, Any
 from urllib.parse import urljoin
 from id3c.cli.command import with_database_session
-from id3c.cli.redcap import CachedProject, is_complete, Project, Record
+from id3c.cli.redcap import is_complete, Project
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json, Json
 from id3c.cli.command.geocode import pickled_cache
@@ -97,6 +97,12 @@ def command_for_project(name: str,
         def decorated(*args, db: DatabaseSession, log_output: bool, **kwargs):
             LOG.debug(f"Starting the REDCap DET ETL routine {name}, revision {revision}")
 
+            # If the correct environment variables aren't defined, this will
+            # throw an exception.  Check early to fail fast before we do
+            # anything else.
+            api_url = urljoin(redcap_url, "api/")
+            api_token = get_redcap_api_token(api_url)
+
             redcap_det = db.cursor(f"redcap-det {name}")
             redcap_det.execute("""
                 select redcap_det_id as id, document
@@ -136,9 +142,12 @@ def command_for_project(name: str,
                     return
 
                 # Batch request records from REDCap
-                project = get_redcap_project(redcap_url, project_id)
+                LOG.info(f"Fetching REDCap project {project_id}")
+                project = Project(api_url, api_token, project_id)
                 record_ids = list(latest_complete_dets.keys())
-                redcap_records = get_redcap_records(project, record_ids, raw_coded_values)
+
+                LOG.info(f"Fetching {len(record_ids)} REDCap records from project {project.id}")
+                redcap_records = project.records(ids = record_ids, raw = raw_coded_values)
 
                 # If no valid records are returned, mark all DETs as skipped.
                 if not redcap_records:
@@ -193,18 +202,6 @@ def command_for_project(name: str,
     return decorator
 
 
-def get_redcap_project(redcap_url: str, project_id: int) -> Project:
-    """
-    Fetch a REDCap project using provided *redcap_url* and *project_id*.
-    """
-    api_url = urljoin(redcap_url, "api/")
-    api_token = get_redcap_api_token(api_url)
-
-    LOG.info(f"Fetching REDCap project {project_id}")
-
-    return CachedProject(api_url, api_token, project_id)
-
-
 def get_redcap_api_token(api_url: str) -> str:
     """
     Returns the authentication token configured for use with the REDCap web API
@@ -229,23 +226,6 @@ def get_redcap_api_token(api_url: str) -> str:
         raise Exception(f"The environment variable REDCAP_API_URL does not match the requested API endpoint «{api_url}»")
 
     return token
-
-
-def get_redcap_records(project: Project, record_ids: List[str], raw: bool) -> Optional[List[Record]]:
-    """
-    Fetch the REDCap records for the given *project* with the provided
-    *record_ids*.
-
-    The *raw* parameter indicates whether to pull the raw coded values or labels
-    for multiple choice answers.
-
-    All instruments will be fetched.
-    """
-    LOG.info(f"Fetching {len(record_ids)} REDCap records from project {project.id}")
-
-    records = project.records(ids = record_ids, raw = raw)
-
-    return records if records else None
 
 
 def insert_fhir_bundle(db: DatabaseSession, bundle: dict) -> None:
