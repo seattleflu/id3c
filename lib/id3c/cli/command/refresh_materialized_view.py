@@ -28,7 +28,7 @@ def refresh_materialized_view(schema_name, view_name, db: DatabaseSession):
 
     LOG.info(f"Refreshing materialized view «{schema_name}.{view_name}»")
 
-    db.cursor("refresh materialized view").execute("""
+    db.cursor().execute("""
         select refresh_materialized_view(%s, %s)
     """, (schema_name, view_name ))
 
