@@ -19,6 +19,7 @@ __all__ = [
     "receiving",
     "geocode",
     "de_identify",
+    "refresh_materialized_view",
 ]
 
 
