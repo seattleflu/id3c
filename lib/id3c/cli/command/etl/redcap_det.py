@@ -126,7 +126,7 @@ def command_for_project(name: str,
                         # the current instrument is complete
                         if not include_incomplete and not is_complete(instrument, det.document):
                             LOG.debug(f"Skipping incomplete or unverified REDCap DET {det.id}")
-                            mark_skipped(db, det.id, etl_id)
+                            mark_skipped(db, det.id, etl_id, "incomplete/unverified")
                             continue
 
                         # Check if this is record has an older DET
@@ -135,7 +135,7 @@ def command_for_project(name: str,
                         # semantics of our receiving tables
                         elif first_complete_dets.get(record_id):
                             LOG.debug(f"Skipping latest REDCap DET {det.id}")
-                            mark_skipped(db, det.id, etl_id)
+                            mark_skipped(db, det.id, etl_id, "repeat record id")
 
                         else:
                             first_complete_dets[record_id] = det
@@ -185,13 +185,13 @@ def command_for_project(name: str,
                         if incomplete_instruments:
                             LOG.debug(f"The following required instruments «{incomplete_instruments}» are not yet marked complete. " + \
                                       f"Skipping REDCap DET {det.id}")
-                            mark_skipped(db, det.id, etl_id)
+                            mark_skipped(db, det.id, etl_id, "required instruments incomplete")
                             continue
 
                         bundle = routine(db = db, cache = cache, det = det, redcap_record = redcap_record)
 
                         if not bundle:
-                            mark_skipped(db, det.id, etl_id)
+                            mark_skipped(db, det.id, etl_id, "insufficient data in record")
                             continue
 
                         if log_output:
@@ -257,7 +257,7 @@ def skip_missing_records(db: DatabaseSession, dets: Iterable[Any], etl_id: dict)
     for det in dets:
         with db.savepoint(f"redcap_det {det.id}"):
             LOG.debug(f"REDCap record is missing or invalid.  Skipping REDCap DET {det.id}")
-            mark_skipped(db, det.id, etl_id)
+            mark_skipped(db, det.id, etl_id, "invalid record")
 
 
 def mark_loaded(db: DatabaseSession, det_id: int, etl_id: dict, bundle_uuid: str) -> None:
@@ -265,9 +265,9 @@ def mark_loaded(db: DatabaseSession, det_id: int, etl_id: dict, bundle_uuid: str
     mark_processed(db, det_id, {**etl_id, "status": "loaded", "fhir_bundle_id": bundle_uuid})
 
 
-def mark_skipped(db: DatabaseSession, det_id: int, etl_id: dict) -> None:
+def mark_skipped(db: DatabaseSession, det_id: int, etl_id: dict, reason: str) -> None:
     LOG.debug(f"Marking REDCap DET record {det_id} as skipped")
-    mark_processed(db, det_id, {**etl_id, "status": "skipped"})
+    mark_processed(db, det_id, {**etl_id, "status": "skipped", "skip_reason": reason})
 
 
 def mark_processed(db: DatabaseSession, det_id: int, entry = {}) -> None:
