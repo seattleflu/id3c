@@ -114,65 +114,90 @@ def command_for_project(name: str,
                    for update
                 """, (Json([etl_id]), Json(det_contains)))
 
-            with pickled_cache(CACHE_FILE) as cache:
-                first_complete_dets: Dict[str, Any] = {}
-                for det in redcap_det:
-                    with db.savepoint(f"redcap_det {det.id}"):
-                        instrument = det.document['instrument']
-                        record_id = det.document['record']
+            # First loop of the DETs to determine how to process each one.
+            # Uses `first_complete_dets` to keep track of which DET to
+            # use to process a unique REDCap record.
+            # Uses `all_dets` to keep track of the status for each DET record
+            # so that they can be processed in order of `redcap_det_id` later.
+            #   --Jover, 21 May 2020
+            first_complete_dets: Dict[str, Any] = {}
+            all_dets: List[Dict[str, str]] = []
+            for det in redcap_det:
+                instrument = det.document['instrument']
+                record_id = det.document['record']
+                # Assume we are loading all DETs
+                # Status will be updated to "skip" if DET does not need to be processed
+                det_record = { "id": det.id, "status": "load" }
 
-                        # Only pull REDCap record if
-                        # `include_incomplete` flag was not included and
-                        # the current instrument is complete
-                        if not include_incomplete and not is_complete(instrument, det.document):
-                            LOG.debug(f"Skipping incomplete or unverified REDCap DET {det.id}")
-                            mark_skipped(db, det.id, etl_id, "incomplete/unverified")
-                            continue
+                # Only pull REDCap record if
+                # `include_incomplete` flag was not included and
+                # the current instrument is complete
+                if not include_incomplete and not is_complete(instrument, det.document):
+                   det_record.update({
+                       "status": "skip",
+                       "reason": "incomplete/unverified DET"
+                   })
 
-                        # Check if this is record has an older DET
-                        # Skip latest DET in favor of the first DET
-                        # This is done to continue our first-in-first-out
-                        # semantics of our receiving tables
-                        elif first_complete_dets.get(record_id):
-                            LOG.debug(f"Skipping latest REDCap DET {det.id}")
-                            mark_skipped(db, det.id, etl_id, "repeat record id")
+                # Check if this is record has an older DET
+                # Skip latest DET in favor of the first DET
+                # This is done to continue our first-in-first-out
+                # semantics of our receiving tables
+                elif first_complete_dets.get(record_id):
+                    det_record.update({
+                        "status": "skip",
+                        "reason": "repeat REDCap record"
+                    })
 
-                        else:
-                            first_complete_dets[record_id] = det
+                else:
+                    first_complete_dets[record_id] = det
+                    det_record["record_id"] = record_id
 
-                if not first_complete_dets:
-                    LOG.info("No new complete DETs found.")
-                    return
+                all_dets.append(det_record)
 
+            if not first_complete_dets:
+                LOG.info("No new complete DETs found.")
+            else:
                 # Batch request records from REDCap
                 LOG.info(f"Fetching REDCap project {project_id}")
                 project = Project(api_url, api_token, project_id)
                 record_ids = list(first_complete_dets.keys())
 
                 LOG.info(f"Fetching {len(record_ids)} REDCap records from project {project.id}")
-                redcap_records = project.records(ids = record_ids, raw = raw_coded_values)
 
-                # If no valid records are returned, mark all DETs as skipped.
-                if not redcap_records:
-                    skip_missing_records(db, first_complete_dets.values(), etl_id)
-                    return
-
-                for redcap_record in redcap_records:
-                    # XXX TODO: Handle records with repeating instruments or longitudinal
-                    # events.
-                    try:
-                        det = first_complete_dets.pop(redcap_record.id)
-                    except KeyError:
+                # Convert list of REDCap records to a dict so that
+                # records can be looked up by record id
+                # XXX TODO: Handle records with repeating instruments or longitudinal
+                # events.
+                redcap_records: Dict[str, dict] = {}
+                for record in project.records(ids = record_ids, raw = raw_coded_values):
+                    if not redcap_records.get(record.id):
+                        redcap_records[record.id] = record
+                    else:
                         LOG.warning(dedent(f"""
-                        Found duplicate record id «{redcap_record.id}» in project {redcap_record.project.id}.
-                        Duplicate record ids are commonly due to repeating instruments/longitudinal events in REDCap.
+                        Found duplicate record id «{record.id}» in project {project_id}.
+                        Duplicate record ids are commonly due to repeating instruments/longitudinal events in REDCap,
+                        which the redcap-det ETL is currently unable to handle.
                         If your REDCap project does not have repeating instruments or longitudinal events,
                         then this may be caused by a bug in REDCap."""))
 
-                        continue
+            # Process all DETs in order of redcap_det_id
+            with pickled_cache(CACHE_FILE) as cache:
+                for det in all_dets:
+                    with db.savepoint(f"redcap_det {det['id']}"):
+                        LOG.info(f"Processing REDCap DET {det['id']}")
 
-                    with db.savepoint(f"redcap_det {det.id}"):
-                        LOG.info(f"Processing REDCap DET {det.id}")
+                        if det["status"] == "skip":
+                            LOG.debug(f"Skipping REDCap DET {det['id']} due to {det['reason']}")
+                            mark_skipped(db, det["id"], etl_id, det["reason"])
+                            continue
+
+                        received_det = first_complete_dets.pop(det["record_id"])
+                        redcap_record = redcap_records.get(received_det.document["record"])
+
+                        if not redcap_record:
+                            LOG.debug(f"REDCap record is missing or invalid.  Skipping REDCap DET {received_det.id}")
+                            mark_skipped(db, received_det.id, etl_id, "invalid REDCap record")
+                            continue
 
                         # Only process REDCap record if all required instruments are complete
                         incomplete_instruments = {
@@ -184,26 +209,22 @@ def command_for_project(name: str,
 
                         if incomplete_instruments:
                             LOG.debug(f"The following required instruments «{incomplete_instruments}» are not yet marked complete. " + \
-                                      f"Skipping REDCap DET {det.id}")
-                            mark_skipped(db, det.id, etl_id, "required instruments incomplete")
+                                      f"Skipping REDCap DET {received_det.id}")
+                            mark_skipped(db, received_det.id, etl_id, "required instruments incomplete")
                             continue
 
-                        bundle = routine(db = db, cache = cache, det = det, redcap_record = redcap_record)
+                        bundle = routine(db = db, cache = cache, det = received_det, redcap_record = redcap_record)
 
                         if not bundle:
-                            mark_skipped(db, det.id, etl_id, "insufficient data in record")
+                            LOG.debug(f"Skipping REDCap DET {received_det.id} due to insufficient data in REDCap record.")
+                            mark_skipped(db, received_det.id, etl_id, "insufficient data in record")
                             continue
 
                         if log_output:
                             print(as_json(bundle))
 
                         insert_fhir_bundle(db, bundle)
-                        mark_loaded(db, det.id, etl_id, bundle['id'])
-
-                # After all of REDCap records are processed, mark missing or
-                # invalid DETs as skipped.
-                skip_missing_records(db, first_complete_dets.values(), etl_id)
-
+                        mark_loaded(db, received_det.id, etl_id, bundle['id'])
 
         return decorated
     return decorator
@@ -251,13 +272,6 @@ def insert_fhir_bundle(db: DatabaseSession, bundle: dict) -> None:
     assert fhir.id, "Insert affected no rows!"
 
     LOG.info(f"Inserted FHIR document {fhir.id} «{bundle['id']}»")
-
-
-def skip_missing_records(db: DatabaseSession, dets: Iterable[Any], etl_id: dict) -> None:
-    for det in dets:
-        with db.savepoint(f"redcap_det {det.id}"):
-            LOG.debug(f"REDCap record is missing or invalid.  Skipping REDCap DET {det.id}")
-            mark_skipped(db, det.id, etl_id, "invalid record")
 
 
 def mark_loaded(db: DatabaseSession, det_id: int, etl_id: dict, bundle_uuid: str) -> None:
