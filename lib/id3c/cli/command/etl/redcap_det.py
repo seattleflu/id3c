@@ -115,7 +115,7 @@ def command_for_project(name: str,
                 """, (Json([etl_id]), Json(det_contains)))
 
             with pickled_cache(CACHE_FILE) as cache:
-                latest_complete_dets: Dict[str, Any] = {}
+                first_complete_dets: Dict[str, Any] = {}
                 for det in redcap_det:
                     with db.savepoint(f"redcap_det {det.id}"):
                         instrument = det.document['instrument']
@@ -130,36 +130,38 @@ def command_for_project(name: str,
                             continue
 
                         # Check if this is record has an older DET
-                        # Skip older DET in favor of the latest DET
-                        elif latest_complete_dets.get(record_id):
-                            old_det = latest_complete_dets[record_id]
-                            LOG.debug(f"Skipping older REDCap DET {old_det.id}")
-                            mark_skipped(db, old_det.id, etl_id)
+                        # Skip latest DET in favor of the first DET
+                        # This is done to continue our first-in-first-out
+                        # semantics of our receiving tables
+                        elif first_complete_dets.get(record_id):
+                            LOG.debug(f"Skipping latest REDCap DET {det.id}")
+                            mark_skipped(db, det.id, etl_id)
 
-                        latest_complete_dets[record_id] = det
+                        else:
+                            first_complete_dets[record_id] = det
 
-                if not latest_complete_dets:
+                if not first_complete_dets:
                     LOG.info("No new complete DETs found.")
                     return
 
                 # Batch request records from REDCap
                 LOG.info(f"Fetching REDCap project {project_id}")
                 project = Project(api_url, api_token, project_id)
-                record_ids = list(latest_complete_dets.keys())
+                record_ids = list(first_complete_dets.keys())
 
                 LOG.info(f"Fetching {len(record_ids)} REDCap records from project {project.id}")
                 redcap_records = project.records(ids = record_ids, raw = raw_coded_values)
 
                 # If no valid records are returned, mark all DETs as skipped.
                 if not redcap_records:
-                    skip_missing_records(db, latest_complete_dets.values(), etl_id)
+                    skip_missing_records(db, first_complete_dets.values(), etl_id)
                     return
 
                 for redcap_record in redcap_records:
                     # XXX TODO: Handle records with repeating instruments or longitudinal
                     # events.
                     try:
-                        det = latest_complete_dets.pop(redcap_record.id)
+                        det = first_complete_dets.pop(redcap_record.id)
                     except KeyError:
                         LOG.warning(dedent(f"""
                         Found duplicate record id «{redcap_record.id}» in project {redcap_record.project.id}.
@@ -200,7 +202,7 @@ def command_for_project(name: str,
 
                 # After all of REDCap records are processed, mark missing or
                 # invalid DETs as skipped.
-                skip_missing_records(db, latest_complete_dets.values(), etl_id)
+                skip_missing_records(db, first_complete_dets.values(), etl_id)
 
 
         return decorated
