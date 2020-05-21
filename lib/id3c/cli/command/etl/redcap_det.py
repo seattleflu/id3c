@@ -9,6 +9,7 @@ import click
 import logging
 from datetime import datetime, timezone
 from functools import wraps
+from textwrap import dedent
 from typing import Callable, Iterable, Optional, Tuple, Dict, List, Any
 from urllib.parse import urljoin
 from id3c.cli.command import with_database_session
@@ -160,7 +161,12 @@ def command_for_project(name: str,
                     try:
                         det = latest_complete_dets.pop(redcap_record.id)
                     except KeyError:
-                        LOG.warning(f"Found duplicate record id «{redcap_record.id}» in project {redcap_record.project.id}")
+                        LOG.warning(dedent(f"""
+                        Found duplicate record id «{redcap_record.id}» in project {redcap_record.project.id}.
+                        Duplicate record ids are commonly due to repeating instruments/longitudinal events in REDCap.
+                        If your REDCap project does not have repeating instruments or longitudinal events,
+                        then this may be caused by a bug in REDCap."""))
+
                         continue
 
                     with db.savepoint(f"redcap_det {det.id}"):
