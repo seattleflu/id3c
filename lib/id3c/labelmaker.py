@@ -218,6 +218,12 @@ class SamplesHaarviLayout(LabelLayout):
     reference = "HAARVI"
 
 
+class CollectionsValidationLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = "VALIDATION"
+    copies_per_barcode = 1
+    reference = "scanpublichealth.org"
+
 LAYOUTS = {
     "samples": SamplesLayout,
     "collections-scan": CollectionsScanLayout,
@@ -237,6 +243,7 @@ LAYOUTS = {
     "test-strips-fluathome.org": _TestStripsFluAtHomeLayout,
     "samples-haarvi": SamplesHaarviLayout,
     "collections-haarvi": CollectionsHaarviLayout,
+    "collections-validation": CollectionsValidationLayout,
 }
 
 
