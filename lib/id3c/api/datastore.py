@@ -53,27 +53,6 @@ def login(username: str, password: str) -> DatabaseSession:
 
 @export
 @catch_permission_denied
-def store_enrollment(session: DatabaseSession, document: str) -> None:
-    """
-    Store the given enrollment JSON *document* (a **string**) in the backing
-    database using *session*.
-
-    Raises a :class:`BadRequestDatabaseError` exception if the given *document*
-    isn't valid and a :class:`Forbidden` exception if the database reports a
-    `permission denied` error.
-    """
-    with session, session.cursor() as cursor:
-        try:
-            cursor.execute(
-                "INSERT INTO receiving.enrollment (document) VALUES (%s)",
-                    (document,))
-
-        except (DataError, IntegrityError) as error:
-            raise BadRequestDatabaseError(error) from None
-
-
-@export
-@catch_permission_denied
 def store_presence_absence(session: DatabaseSession, document: str) -> None:
     """
     Store the given presence/absence *document* (a **string**) in the backing
