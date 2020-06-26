@@ -23,7 +23,6 @@ def etl():
 __all__ = [
     "manifest",
     "presence_absence",
-    "kit",
     "consensus_genome",
     "redcap_det",
     "fhir",
