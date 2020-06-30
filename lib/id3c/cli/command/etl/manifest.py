@@ -70,6 +70,7 @@ def etl_manifest(*, db: DatabaseSession):
             "collections-scan",
             "collections-haarvi",
             "samples-haarvi",
+            "collections-validation",
         },
         "rdt": {"collections-fluathome.org"}
     }
