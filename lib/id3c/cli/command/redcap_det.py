@@ -39,7 +39,7 @@ def redcap_det():
            "Used as a sanity check that the correct API token is provided.",
     required = True)
 
-@click.option("--token-name",
+@click.option("--token",
     metavar = "<token-name>",
     help = "The name of the environment variable that holds the API token",
     default = "REDCAP_API_TOKEN")
@@ -55,7 +55,7 @@ def redcap_det():
            "Format must be YYYY-MM-DD HH:MM:SS (e.g. '2019-01-01 00:00:00')")
 
 @click.option("--instrument", "instruments",
-    metavar = "<name>",
+    metavar = "<instrument-name>",
     help = "Limit generated DET notifications to the named instrument; may be used multiple times",
     multiple = True)
 
@@ -64,7 +64,7 @@ def redcap_det():
     is_flag = True,
     flag_value = True)
 
-def generate(record_ids: List[str], project_id: int, token_name: str, since_date: str, until_date: str, instruments: List[str], include_incomplete: bool):
+def generate(record_ids: List[str], project_id: int, token: str, since_date: str, until_date: str, instruments: List[str], include_incomplete: bool):
     """
     Generate DET notifications for REDCap records.
 
@@ -74,7 +74,7 @@ def generate(record_ids: List[str], project_id: int, token_name: str, since_date
     of specific record ids with date filters, so this command does not either.
 
     Requires environmental variables REDCAP_API_URL and REDCAP_API_TOKEN (or
-    whatever you passed to --token-name).
+    whatever you passed to --token).
 
     DET notifications are output for all completed instruments for each record
     by default.  Pass --include-incomplete to output DET notifications for
@@ -84,7 +84,7 @@ def generate(record_ids: List[str], project_id: int, token_name: str, since_date
     All DET notifications are output to stdout as newline-delimited JSON
     records.  You will likely want to redirect stdout to a file.
     """
-    api_token = os.environ[token_name]
+    api_token = os.environ[token]
     api_url = os.environ['REDCAP_API_URL']
 
     project = Project(api_url, api_token, project_id)
