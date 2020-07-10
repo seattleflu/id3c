@@ -59,12 +59,18 @@ def redcap_det():
     help = "Limit generated DET notifications to the named instrument; may be used multiple times",
     multiple = True)
 
+@click.option("--event", "events",
+    metavar = "<event-name>",
+    help = "Limit generated DET notifications to the named unique event (e.g. priority_arm_1); may be used multiple times",
+    multiple = True)
+
 @click.option("--include-incomplete",
     help = "Generate DET notifications for instruments marked as incomplete and unverified too, instead of only those marked complete",
     is_flag = True,
     flag_value = True)
 
-def generate(record_ids: List[str], project_id: int, token: str, since_date: str, until_date: str, instruments: List[str], include_incomplete: bool):
+def generate(record_ids: List[str], project_id: int, token: str, since_date: str, until_date: str,
+    instruments: List[str], events: List[str], include_incomplete: bool):
     """
     Generate DET notifications for REDCap records.
 
@@ -79,7 +85,8 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
     DET notifications are output for all completed instruments for each record
     by default.  Pass --include-incomplete to output DET notifications for
     incomplete and unverified instruments too.  Pass one or more --instrument
-    options to limit output to specific instrument names.
+    options to limit output to specific instrument names.  Pass one or more
+    --event options to limit output to specific event names.
 
     All DET notifications are output to stdout as newline-delimited JSON
     records.  You will likely want to redirect stdout to a file.
@@ -105,10 +112,17 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
     else:
         LOG.debug(f"Getting all records")
 
+    if events:
+        LOG.debug(f"Producing DET notifications for the following events: {events}")
+    else:
+        LOG.debug(f"Producing DET notifications for all events ({project.events})")
+        events = project.events
+
     records = project.records(
         since_date = since_date,
         until_date = until_date,
         ids = record_ids or None,
+        events = events,
         raw = True)
 
     if instruments:
@@ -116,6 +130,11 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
     else:
         LOG.debug(f"Producing DET notifications for all {'instruments' if include_incomplete else 'complete instruments'} ({project.instruments})")
         instruments = project.instruments
+
+    unknown_events = set(events) - set(project.events)
+
+    assert not unknown_events, \
+        f"The following --event names aren't in the REDCap project: {unknown_events}"
 
     unknown_instruments = set(instruments) - set(project.instruments)
 

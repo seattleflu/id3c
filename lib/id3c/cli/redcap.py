@@ -138,6 +138,7 @@ class Project:
                 until_date: str = None,
                 ids: List[str] = None,
                 fields: List[str] = None,
+                events: List[str] = None,
                 raw: bool = False) -> List['Record']:
         """
         Fetch records for this REDCap project.
@@ -158,6 +159,9 @@ class Project:
 
         The optional *fields* parameter can be used to limit the fields
         returned for each record.
+
+        The optional *events* parameters can be used to limit the events (i.e.
+        arms) returned for each record.
 
         The optional *raw* parameter controls if numeric/coded values are
         returned for multiple choice fields.  When false (the default), string
@@ -183,6 +187,9 @@ class Project:
 
         if fields is not None:
             parameters['fields'] = ",".join(map(str, fields))
+
+        if events is not None:
+            parameters['events'] = ",".join(map(str, events))
 
         return [Record(self, r) for r in self._fetch("record", parameters)]
 
