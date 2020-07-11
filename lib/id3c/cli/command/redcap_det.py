@@ -114,10 +114,7 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
 
     if events:
         LOG.debug(f"Producing DET notifications for the following events: {events}")
-        unknown_events = set(events) - set(project.events)
-
-        assert not unknown_events, \
-            f"The following --event names aren't in the REDCap project: {unknown_events}"
+        assert_known_attribute_value(project, 'events', events, 'event')
     else:
         LOG.debug(f"Producing DET notifications for all events ({project.events})")
         events = project.events
@@ -131,10 +128,7 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
 
     if instruments:
         LOG.debug(f"Producing DET notifications for the following {'instruments' if include_incomplete else 'complete instruments'}: {instruments}")
-        unknown_instruments = set(instruments) - set(project.instruments)
-
-        assert not unknown_instruments, \
-            f"The following --instrument names aren't in the REDCap project: {unknown_instruments}"
+        assert_known_attribute_value(project, 'instruments', instruments, 'instrument')
     else:
         LOG.debug(f"Producing DET notifications for all {'instruments' if include_incomplete else 'complete instruments'} ({project.instruments})")
         instruments = project.instruments
@@ -144,6 +138,24 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
         for instrument in instruments:
             if include_incomplete or is_complete(instrument, record):
                 print(as_json(create_det_records(project, record, instrument)))
+
+
+def assert_known_attribute_value(project: Project, attribute: str, values: List[str], option: str=None):
+    """
+    Throws an :class:`AssertionError` if any of the given *values* are not
+    contained in the *attribute* of the given REDCap *project*.
+
+    Provide an optional *option* value that is the name of the (unhyphenated)
+    command option as presented to the user. If not provided, defaults to
+    *attribute*.
+    """
+    unknown_values = set(values) - set(getattr(project, attribute))
+
+    if not option:
+        option = attribute
+
+    assert not unknown_values, \
+        f"The following --{option} names aren't in the REDCap project: {unknown_values}"
 
 
 def create_det_records(project: Project, record: dict, instrument: str) -> dict:
