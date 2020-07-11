@@ -27,6 +27,7 @@ class Project:
     base_url: str
     _details: dict
     _instruments: List[str] = None
+    _events: List[str] = None
     _fields: List[dict] = None
     _redcap_version: str = None
 
@@ -67,6 +68,18 @@ class Project:
             self._instruments = list(map(nameof, self._fetch("instrument")))
 
         return self._instruments
+
+
+    @property
+    def events(self) -> List[str]:
+        """
+        Names of all events in this REDCap project.
+        """
+        if not self._events:
+            nameof = itemgetter("unique_event_name")
+            self._events = list(map(nameof, self._fetch("event")))
+
+        return self._events
 
 
     @property
