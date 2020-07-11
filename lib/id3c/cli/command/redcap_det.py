@@ -114,6 +114,10 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
 
     if events:
         LOG.debug(f"Producing DET notifications for the following events: {events}")
+        unknown_events = set(events) - set(project.events)
+
+        assert not unknown_events, \
+            f"The following --event names aren't in the REDCap project: {unknown_events}"
     else:
         LOG.debug(f"Producing DET notifications for all events ({project.events})")
         events = project.events
@@ -127,19 +131,14 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
 
     if instruments:
         LOG.debug(f"Producing DET notifications for the following {'instruments' if include_incomplete else 'complete instruments'}: {instruments}")
+        unknown_instruments = set(instruments) - set(project.instruments)
+
+        assert not unknown_instruments, \
+            f"The following --instrument names aren't in the REDCap project: {unknown_instruments}"
     else:
         LOG.debug(f"Producing DET notifications for all {'instruments' if include_incomplete else 'complete instruments'} ({project.instruments})")
         instruments = project.instruments
 
-    unknown_events = set(events) - set(project.events)
-
-    assert not unknown_events, \
-        f"The following --event names aren't in the REDCap project: {unknown_events}"
-
-    unknown_instruments = set(instruments) - set(project.instruments)
-
-    assert not unknown_instruments, \
-        f"The following --instrument names aren't in the REDCap project: {unknown_instruments}"
 
     for record in records:
         for instrument in instruments:
