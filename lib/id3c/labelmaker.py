@@ -198,6 +198,15 @@ class CollectionsScanLayout(LabelLayout):
     barcode_type = 'SCAN'
     copies_per_barcode = 2
     reference = "scanpublichealth.org"
+
+
+class CollectionsScanKiosksLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'SCAN - STAVE'
+    copies_per_barcode = 1
+    reference = "scanpublichealth.org"
+
+
 class CollectionsCliaComplianceLayout(LabelLayout):
     sku = "LCRY-1100"
     barcode_type = "CLIA"
@@ -221,6 +230,7 @@ class SamplesHaarviLayout(LabelLayout):
 LAYOUTS = {
     "samples": SamplesLayout,
     "collections-scan": CollectionsScanLayout,
+    "collections-scan-kiosks": CollectionsScanKiosksLayout,
     "collections-seattleflu.org": CollectionsSeattleFluLayout,
     "collections-kiosks": CollectionsKiosksLayout,
     "collections-kiosks-asymptomatic": CollectionsKiosksAsymptomaticLayout,
