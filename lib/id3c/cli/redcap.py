@@ -75,9 +75,13 @@ class Project:
         """
         Names of all events in this REDCap project.
         """
-        if not self._events:
+        if self._events is None:
             nameof = itemgetter("unique_event_name")
-            self._events = list(map(nameof, self._fetch("event")))
+
+            if self._details["is_longitudinal"]:
+                self._events = list(map(nameof, self._fetch("event")))
+            else:
+                self._events = []
 
         return self._events
 

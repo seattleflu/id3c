@@ -142,6 +142,9 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
 
 def assert_known_attribute_value(project: Project, attribute: str, values: List[str], option: str=None):
     """
+    Throws an :class:`Exception` if the given REDCap *project* contains no
+    values for the given *attribute*.
+
     Throws an :class:`AssertionError` if any of the given *values* are not
     contained in the *attribute* of the given REDCap *project*.
 
@@ -149,7 +152,11 @@ def assert_known_attribute_value(project: Project, attribute: str, values: List[
     command option as presented to the user. If not provided, defaults to
     *attribute*.
     """
-    unknown_values = set(values) - set(getattr(project, attribute))
+    known_values = getattr(project, attribute)
+    if not known_values:
+        raise Exception(f"There are no --{option} values in the REDCap project.")
+
+    unknown_values = set(values) - set(known_values)
 
     if not option:
         option = attribute
