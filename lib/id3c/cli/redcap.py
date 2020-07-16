@@ -39,7 +39,7 @@ class Project:
         # trailing 'api' from the API URL
         self.base_url = re.sub(r'api/?$', '', api_url)
 
-        # Sanity check project details
+        # Check if project details match our expectations
         self._details = self._fetch("project")
 
         assert self.id == project_id, \
