@@ -68,6 +68,7 @@ EXPECTED_COLLECTION_IDENTIFIER_SETS = [
     'collections-seattleflu.org',
     'collections-swab&send-asymptomatic',
     'collections-scan',
+    'collections-scan-kiosks',
 ]
 EXPECTED_SAMPLE_IDENTIFIER_SETS = ['samples']
 
