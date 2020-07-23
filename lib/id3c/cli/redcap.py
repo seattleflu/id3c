@@ -247,6 +247,9 @@ def is_complete(instrument: str, data: dict) -> bool:
 
     The *data* may be a DET notification or a record.
 
+    Will return `None` if the *instrument*_complete key does not exist in
+    given *data*.
+
     >>> is_complete("test", {"test_complete": "Complete"})
     True
     >>> is_complete("test", {"test_complete": 2})
@@ -255,10 +258,15 @@ def is_complete(instrument: str, data: dict) -> bool:
     True
     >>> is_complete("test", {"test_complete": "Incomplete"})
     False
-    >>> is_complete("test", {})
-    False
+    >>> is_complete("test", {}) is None
+    True
     """
-    return data.get(f"{instrument}_complete") in {
+    instrument_complete_field = data.get(f"{instrument}_complete")
+
+    if instrument_complete_field is None:
+        return None
+
+    return instrument_complete_field in {
         InstrumentStatus.Complete.name,
         InstrumentStatus.Complete.value,
         str(InstrumentStatus.Complete.value)
