@@ -39,7 +39,7 @@ def redcap_det():
            "Used as a sanity check that the correct API token is provided.",
     required = True)
 
-@click.option("--token-name",
+@click.option("--token",
     metavar = "<token-name>",
     help = "The name of the environment variable that holds the API token",
     default = "REDCAP_API_TOKEN")
@@ -55,8 +55,13 @@ def redcap_det():
            "Format must be YYYY-MM-DD HH:MM:SS (e.g. '2019-01-01 00:00:00')")
 
 @click.option("--instrument", "instruments",
-    metavar = "<name>",
+    metavar = "<instrument-name>",
     help = "Limit generated DET notifications to the named instrument; may be used multiple times",
+    multiple = True)
+
+@click.option("--event", "events",
+    metavar = "<event-name>",
+    help = "Limit generated DET notifications to the named unique event (e.g. priority_arm_1); may be used multiple times",
     multiple = True)
 
 @click.option("--include-incomplete",
@@ -64,7 +69,8 @@ def redcap_det():
     is_flag = True,
     flag_value = True)
 
-def generate(record_ids: List[str], project_id: int, token_name: str, since_date: str, until_date: str, instruments: List[str], include_incomplete: bool):
+def generate(record_ids: List[str], project_id: int, token: str, since_date: str, until_date: str,
+    instruments: List[str], events: List[str], include_incomplete: bool):
     """
     Generate DET notifications for REDCap records.
 
@@ -74,17 +80,18 @@ def generate(record_ids: List[str], project_id: int, token_name: str, since_date
     of specific record ids with date filters, so this command does not either.
 
     Requires environmental variables REDCAP_API_URL and REDCAP_API_TOKEN (or
-    whatever you passed to --token-name).
+    whatever you passed to --token).
 
     DET notifications are output for all completed instruments for each record
     by default.  Pass --include-incomplete to output DET notifications for
     incomplete and unverified instruments too.  Pass one or more --instrument
-    options to limit output to specific instrument names.
+    options to limit output to specific instrument names.  Pass one or more
+    --event options to limit output to specific event names.
 
     All DET notifications are output to stdout as newline-delimited JSON
     records.  You will likely want to redirect stdout to a file.
     """
-    api_token = os.environ[token_name]
+    api_token = os.environ[token]
     api_url = os.environ['REDCAP_API_URL']
 
     project = Project(api_url, api_token, project_id)
@@ -105,27 +112,57 @@ def generate(record_ids: List[str], project_id: int, token_name: str, since_date
     else:
         LOG.debug(f"Getting all records")
 
+    if events:
+        LOG.debug(f"Producing DET notifications for the following events: {events}")
+        assert_known_attribute_value(project, 'events', events, 'event')
+    else:
+        LOG.debug(f"Producing DET notifications for all events ({project.events})")
+        events = project.events
+
     records = project.records(
         since_date = since_date,
         until_date = until_date,
         ids = record_ids or None,
+        events = events,
         raw = True)
 
     if instruments:
         LOG.debug(f"Producing DET notifications for the following {'instruments' if include_incomplete else 'complete instruments'}: {instruments}")
+        assert_known_attribute_value(project, 'instruments', instruments, 'instrument')
     else:
         LOG.debug(f"Producing DET notifications for all {'instruments' if include_incomplete else 'complete instruments'} ({project.instruments})")
         instruments = project.instruments
 
-    unknown_instruments = set(instruments) - set(project.instruments)
-
-    assert not unknown_instruments, \
-        f"The following --instrument names aren't in the REDCap project: {unknown_instruments}"
 
     for record in records:
         for instrument in instruments:
             if include_incomplete or is_complete(instrument, record):
                 print(as_json(create_det_records(project, record, instrument)))
+
+
+def assert_known_attribute_value(project: Project, attribute: str, values: List[str], option: str=None):
+    """
+    Throws an :class:`Exception` if the given REDCap *project* contains no
+    values for the given *attribute*.
+
+    Throws an :class:`AssertionError` if any of the given *values* are not
+    contained in the *attribute* of the given REDCap *project*.
+
+    Provide an optional *option* value that is the name of the (unhyphenated)
+    command option as presented to the user. If not provided, defaults to
+    *attribute*.
+    """
+    known_values = getattr(project, attribute)
+    if not known_values:
+        raise Exception(f"There are no --{option} values in the REDCap project.")
+
+    unknown_values = set(values) - set(known_values)
+
+    if not option:
+        option = attribute
+
+    assert not unknown_values, \
+        f"The following --{option} names aren't in the REDCap project: {unknown_values}"
 
 
 def create_det_records(project: Project, record: dict, instrument: str) -> dict:
