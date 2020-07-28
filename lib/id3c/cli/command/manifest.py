@@ -390,7 +390,7 @@ def select_columns(table: pandas.DataFrame, name: str) -> pandas.DataFrame:
     *table*.
     """
     pattern = re.compile(fnmatch.translate(name), re.IGNORECASE)
-    matches = list(filter(pattern.match, table.columns))
+    matches = list(filter(pattern.match, table.columns.astype(str)))
 
     assert matches, f"No column name matching «{name}» found; column names are: {list(table.columns)}"
     return table[matches]
