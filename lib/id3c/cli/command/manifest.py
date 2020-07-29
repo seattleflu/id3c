@@ -25,7 +25,7 @@ from deepdiff import DeepHash
 from hashlib import sha1
 from os import chdir
 from os.path import dirname
-from typing import Iterable, List, Tuple, Union
+from typing import Iterable, List, Optional, Tuple, Union
 from id3c.cli import cli
 from id3c.cli.io import LocalOrRemoteFile, urlopen
 from id3c.cli.io.pandas import read_excel
@@ -73,6 +73,13 @@ def manifest():
            "Option value is parsed as a YAML fragment, so additional options supported by the sibling command \"parse-with-config\" may be inlined for testing, but you're likely better off using a config file at that point.",
     multiple = True)
 
+@click.option("--row-filter",
+    metavar = "<query>",
+    help = "The pandas query to filter rows (using the python engine) in the manifest.  "
+           "Column names refer to columns in the manifest itself.  "
+           "Example: `corrective action`.notnull() and `corrective action`.str.lower().str.startswith(\"discard\") ",
+    required = False)
+
 def parse(**kwargs):
     """
     Parse a single manifest workbook sheet.
@@ -84,6 +91,11 @@ def parse(**kwargs):
     The required --sample-column option specifies the name of the column
     containing the sample barcode.  Other columns may be extracted into the
     manifest records as desired using the --extra-column option.
+
+    The row-filter entry specifies a pandas query to filter
+    (using the python engine) rows in the manifest. Column names refer to columns
+    in the manifest itself.
+    Example: `corrective action`.notnull() and `corrective action`.str.lower().str.startswith("discard")
 
     Manifest records are output to stdout as newline-delimited JSON records.
     You will likely want to redirect stdout to a file.
@@ -147,6 +159,14 @@ def parse_using_config(config_file):
           test_results: "Test ResulTS"
         ...
 
+    The sample_column entry specifies the name of the column
+    containing the sample barcode.
+
+    The row_filter entry specifies a pandas query to filter
+    (using the python engine) rows in the manifest. Column names refer to columns
+    in the manifest itself.
+    Example: `corrective action`.notnull() and `corrective action`.str.lower().str.startswith("discard")
+
     The key: value pairs in "extra_columns" name destination record fields (as
     the key) and source columns (as the value).  For most source columns, a
     simple string name (or shell-glob pattern) is enough.  Other behaviour is
@@ -194,7 +214,8 @@ def parse_using_config(config_file):
                 "sheet": config["sheet"],
                 "sample_column": config["sample_column"],
                 "extra_columns": list(config.get("extra_columns", {}).items()),
-                "sample_type": config.get("sample_type")
+                "sample_type": config.get("sample_type"),
+                "row_filter" : config.get("row_filter")
             }
         except KeyError as key:
             LOG.error(f"Required key «{key}» missing from config {config}")
@@ -208,7 +229,8 @@ def _parse(*,
            sheet,
            sample_column,
            extra_columns: List[Tuple[str, Union[str, dict]]] = [],
-           sample_type = None):
+           sample_type = None,
+           row_filter: Optional[str] = None):
     """
     Internal function powering :func:`parse` and :func:`parse_using_config`.
     """
@@ -236,6 +258,11 @@ def _parse(*,
                 .str.strip()
                 .replace({pandas.NA: ""})
                 .replace({"": None, "na": None})))
+
+    # If a filter query was provided filter the manifest rows
+    # using the python engine.
+    if row_filter:
+        manifest = manifest.query(row_filter, engine="python")
 
     # Construct parsed manifest by copying columns from source to destination.
     # This approach is used to allow the same source column to end up as
