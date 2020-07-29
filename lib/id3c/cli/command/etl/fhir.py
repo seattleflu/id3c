@@ -62,6 +62,7 @@ LANGUAGE_SYSTEM = 'urn:ietf:bcp:47'
 EXPECTED_COLLECTION_IDENTIFIER_SETS = [
     'collections-household-observation',
     'collections-household-intervention',
+    'collections-household-intervention-asymptomatic',
     'collections-swab&send',
     'collections-kiosks',
     'collections-self-test',
