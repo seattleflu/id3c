@@ -24,6 +24,7 @@ from id3c.cli.command import with_database_session
 from id3c.db import find_identifier
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
+from id3c.utils import getattrpath
 from . import (
     etl,
 
@@ -585,6 +586,19 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
         if specimen.note:
             sample_details['note'] = specimen.note[0].text
 
+        # A Specimen's collection can specify a collectedDateTime or a
+        # collectedPeriod.  We don't use the latter currently, but support it
+        # since it's not much extra to do so and external FHIR documents could
+        # contain it.
+        collectedDateTime    = getattrpath(specimen, "collection.collectedDateTime.isostring")
+        collectedPeriodStart = getattrpath(specimen, "collection.collectedPeriod.start.isostring")
+        collectedPeriodEnd   = getattrpath(specimen, "collection.collectedPeriod.end.isostring")
+
+        collection_date = (
+            collectedDateTime or
+            collectedPeriodStart or
+            collectedPeriodEnd)
+
         additional_details = { **specimen.type.as_json(), **sample_details}
 
         # XXX TODO: Improve details object here; the current approach produces
@@ -592,6 +606,7 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
         upsert_sample(db,
             identifier              = sample_identifier,
             collection_identifier   = collection_identifier,
+            collection_date         = collection_date,
             encounter_id            = encounter_id,
             additional_details      = additional_details)
 
@@ -602,6 +617,7 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
 def upsert_sample(db: DatabaseSession,
                   identifier: Optional[str],
                   collection_identifier: Optional[str],
+                  collection_date: Optional[str],
                   encounter_id: int,
                   additional_details: dict) -> Any:
     """
@@ -617,6 +633,7 @@ def upsert_sample(db: DatabaseSession,
     data = {
         "identifier": identifier,
         "collection_identifier": collection_identifier,
+        "collection_date": collection_date,
         "encounter_id": encounter_id,
         "additional_details": Json(additional_details),
     }
@@ -637,9 +654,10 @@ def upsert_sample(db: DatabaseSession,
     if not samples:
         LOG.info("Creating new sample")
         sample = db.fetch_row("""
-            insert into warehouse.sample (identifier, collection_identifier, encounter_id, details)
+            insert into warehouse.sample (identifier, collection_identifier, collected, encounter_id, details)
                 values (%(identifier)s,
                         %(collection_identifier)s,
+                        date_or_null(%(collection_date)s),
                         %(encounter_id)s,
                         %(additional_details)s)
             returning sample_id as id, identifier, collection_identifier, encounter_id
@@ -654,6 +672,7 @@ def upsert_sample(db: DatabaseSession,
             update warehouse.sample
                set identifier = coalesce(%(identifier)s, identifier),
                    collection_identifier = coalesce(%(collection_identifier)s, collection_identifier),
+                   collected = coalesce(date_or_null(%(collection_date)s), collected),
                    encounter_id = %(encounter_id)s,
                    details = coalesce(details, '{}') || %(additional_details)s
 
