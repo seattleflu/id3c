@@ -28,6 +28,7 @@ from os.path import dirname
 from typing import Iterable, List, Optional, Tuple, Union
 from id3c.cli import cli
 from id3c.cli.io import LocalOrRemoteFile, urlopen
+from id3c.cli.io.google import export_file_from_google_drive, extract_document_id_from_google_url, GoogleDriveExportFormat
 from id3c.cli.io.pandas import read_excel
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json, Json
@@ -45,7 +46,7 @@ def manifest():
 
 
 @manifest.command("parse")
-@click.argument("workbook", metavar = "<manifest.xlsx>")
+@click.argument("workbook", metavar = "<filepath>")
 
 @click.option("--sheet",
     metavar = "<name>",
@@ -84,8 +85,8 @@ def parse(**kwargs):
     """
     Parse a single manifest workbook sheet.
 
-    <manifest.xlsx> must be a path or URL to an Excel workbook with at least
-    one sheet in it, identified by name using the required option --sheet.
+    <filepath> must be a path or URL to an Excel workbook or Google Sheets
+    spreadsheet with at least one sheet in it, identified by name using the required option --sheet.
     Supported URL schemes include http[s]:// and s3://, as well as others.
 
     The required --sample-column option specifies the name of the column
@@ -234,10 +235,20 @@ def _parse(*,
     """
     Internal function powering :func:`parse` and :func:`parse_using_config`.
     """
-    LOG.debug(f"Reading Excel workbook «{workbook}»")
+    # Determine if the workbook URL is for a Google Document and if so
+    # retrieve the Google Sheets file as an Excel spreadsheet. Otherwise,
+    # retrieve it using urlopen.
+    google_docs_document_id = extract_document_id_from_google_url(workbook)
 
-    with urlopen(workbook, "rb") as file:
-        workbook_bytes = file.read()
+    if google_docs_document_id:
+        LOG.debug(f"Reading Google Sheets document «{workbook}»")
+        with export_file_from_google_drive(google_docs_document_id, GoogleDriveExportFormat.EXCEL) as file:
+            workbook_bytes = file.read()
+
+    else:
+        LOG.debug(f"Reading Excel workbook «{workbook}»")
+        with urlopen(workbook, "rb") as file:
+            workbook_bytes = file.read()
 
     LOG.debug(f"Parsing sheet «{sheet}» in workbook «{workbook}»")
 
