@@ -39,6 +39,8 @@ LOG = logging.getLogger(__name__)
 
 PROVENANCE_KEY = "_provenance"
 
+RESERVED_COLUMNS = {"sample", "collection", "date"}
+
 
 @cli.group("manifest", help = __doc__)
 def manifest():
@@ -57,7 +59,18 @@ def manifest():
     metavar = "<column>",
     help = "Name of the single column containing sample barcodes.  "
            "Must match exactly; shell-style glob patterns are supported.",
-    required = True)
+    required = False)
+
+@click.option("--collection-column",
+    metavar = "<column>",
+    help = "Name of the single column containing collection barcodes.  "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--date-column",
+    metavar = "<column>",
+    help = "Name of the single column containing the sample collected date.",
+    required = False)
 
 @click.option("--sample-type",
     metavar = "<type>",
@@ -89,9 +102,15 @@ def parse(**kwargs):
     spreadsheet with at least one sheet in it, identified by name using the required option --sheet.
     Supported URL schemes include http[s]:// and s3://, as well as others.
 
-    The required --sample-column option specifies the name of the column
-    containing the sample barcode.  Other columns may be extracted into the
-    manifest records as desired using the --extra-column option.
+    The --sample-column option specifies the name of the column
+    containing the sample barcode. The --collection-column option specifies
+    the name of the column containing the collection barcode. You must supply one
+    or both of those options.
+
+    The --date-column specifies the name of the column containing the sample collected date.
+
+    Other columns may be extracted into the manifest records as desired using the
+    --extra-column option.
 
     The row-filter entry specifies a pandas query to filter
     (using the python engine) rows in the manifest. Column names refer to columns
@@ -105,7 +124,8 @@ def parse(**kwargs):
         (dst, yaml.safe_load(src))
             for dst, src
             in [arg.split(":", 1) for arg in kwargs["extra_columns"]]
-    ]
+
+       ]
 
     manifest = _parse(**kwargs)
     dump_ndjson(manifest)
@@ -130,6 +150,7 @@ def parse_using_config(config_file):
         workbook: OneDrive/SFS Prospective Samples 2018-2019.xlsx
         sheet: HMC
         sample_column: "Barcode ID*"
+        date_column: "Coll_date"
         extra_columns:
           collection:
             name: "Collection ID*"
@@ -161,7 +182,11 @@ def parse_using_config(config_file):
         ...
 
     The sample_column entry specifies the name of the column
-    containing the sample barcode.
+    containing the sample barcode. The collection_column entry specifies
+    the name of the column containing the collection barcode. You must supply one
+    or both of those entries.
+
+    The date_column specifies the name of the column containing the sample collected date.
 
     The row_filter entry specifies a pandas query to filter
     (using the python engine) rows in the manifest. Column names refer to columns
@@ -213,7 +238,9 @@ def parse_using_config(config_file):
             kwargs = {
                 "workbook": config["workbook"],
                 "sheet": config["sheet"],
-                "sample_column": config["sample_column"],
+                "sample_column": config.get("sample_column"),
+                "collection_column": config.get("collection_column"),
+                "date_column": config.get("date_column"),
                 "extra_columns": list(config.get("extra_columns", {}).items()),
                 "sample_type": config.get("sample_type"),
                 "row_filter" : config.get("row_filter")
@@ -228,13 +255,22 @@ def parse_using_config(config_file):
 def _parse(*,
            workbook,
            sheet,
-           sample_column,
+           sample_column = None,
+           collection_column = None,
+           date_column = None,
            extra_columns: List[Tuple[str, Union[str, dict]]] = [],
            sample_type = None,
            row_filter: Optional[str] = None):
     """
     Internal function powering :func:`parse` and :func:`parse_using_config`.
     """
+    if not sample_column and not collection_column:
+        raise ValueError("You must specify the sample_column, the collection_column, or both.")
+
+    disallowed_extra_columns = {dst for dst, src in extra_columns} & RESERVED_COLUMNS
+    assert len(disallowed_extra_columns) == 0, \
+        f"A reserved column name has been configured in extra_columns: {disallowed_extra_columns}"
+
     # Determine if the workbook URL is for a Google Document and if so
     # retrieve the Google Sheets file as an Excel spreadsheet. Otherwise,
     # retrieve it using urlopen.
@@ -280,8 +316,16 @@ def _parse(*,
     # multiple destination columns.
     parsed_manifest = pandas.DataFrame()
 
-    column_map: List[Tuple[str, dict]] = [
-        ("sample", {"name": sample_column, "barcode": True})]
+    column_map: List[Tuple[str, dict]] = []
+
+    if sample_column:
+        column_map += [("sample", {"name": sample_column, "barcode": True})]
+
+    if collection_column:
+        column_map += [("collection", {"name": collection_column, "barcode": True})]
+
+    if date_column:
+        column_map += [("date", {"name": date_column})]
 
     column_map += [
         (dst, src) if isinstance(src, dict) else (dst, {"name":src})
@@ -295,9 +339,15 @@ def _parse(*,
         else:
             parsed_manifest[dst] = select_column(manifest, src["name"])
 
-    # Drop rows with null sample values, which may be introduced by space
-    # stripping.
-    parsed_manifest = parsed_manifest.dropna(subset = ["sample"])
+    # Drop rows that have no data for the sample_column and/or the collection_column, depending
+    # on which columns are configured. If both sample_column and collection_column are configured,
+    # drop rows if both columns don't have data.
+    if sample_column and collection_column:
+        parsed_manifest = parsed_manifest.dropna(subset = ["sample", "collection"], how='all')
+    elif sample_column:
+        parsed_manifest = parsed_manifest.dropna(subset = ["sample"])
+    elif collection_column:
+        parsed_manifest = parsed_manifest.dropna(subset = ["collection"])
 
     # Set of columns names for barcodes
     barcode_columns = {dst for dst, src in column_map if src.get("barcode")}

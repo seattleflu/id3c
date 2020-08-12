@@ -3,7 +3,7 @@ Process sample manifest records into the relational warehouse.
 
 Manifest records are JSON documents in the ``receiving.manifest`` table which
 have a sample barcode, an optional collection barcode, and other metadata.
-These records are parsed out of Excel workbooks into JSON documents using
+These records are parsed out of spreadsheets into JSON documents using
 ``id3c manifest parse`` and received via ``id3c manifest upload``.  This ETL
 command is the final step in creating/updating the samples in our data
 warehouse.
@@ -16,6 +16,7 @@ or updated records.
 import click
 import logging
 from datetime import datetime, timezone
+from psycopg2 import sql
 from typing import Any, Tuple, Optional
 from id3c.cli.command import with_database_session
 from id3c.db import find_identifier
@@ -98,55 +99,75 @@ def etl_manifest(*, db: DatabaseSession):
         with db.savepoint(f"manifest record {manifest_record.id}"):
             LOG.info(f"Processing record {manifest_record.id}")
 
-            # Convert sample barcode to full identifier, ensuring it's
-            # known and from the correct identifier set.
-            sample_barcode = manifest_record.document.pop("sample")
-            sample_identifier = find_identifier(db, sample_barcode)
+            # When updating an existing row, update the identifiers
+            # only if the record has both the 'sample' and
+            # 'collection' keys.
+            should_update_identifiers = "sample" in manifest_record.document \
+                and "collection" in manifest_record.document
 
-            if not sample_identifier:
+             # Sample collection date
+             # Don't pop this entry off the document. For backwards
+             # compatibility reasons, keep it in the document so that 'date'
+             # also gets written to the 'details' column in warehouse.sample.
+            collected_date = manifest_record.document.get("date", None)
+
+            # Attempt to find barcodes and their related identifiers
+            sample_barcode = manifest_record.document.pop("sample", None)
+            sample_identifier = find_identifier(db, sample_barcode) if sample_barcode else None
+            collection_barcode = manifest_record.document.pop("collection", None)
+            collection_identifier = find_identifier(db, collection_barcode) if collection_barcode else None
+
+            # Skip a record if it has no sample_identifier and no collection_identifier
+            if not sample_identifier and not collection_identifier:
+                LOG.warning(f"Skipping record «{manifest_record.id}» because it has neither a known sample "
+                + "identifier nor a collection identifier")
+                mark_skipped(db, manifest_record.id)
+                continue
+
+            # Skip a record if it has a sample barcode but the barcode doesn't match an identifier
+            if sample_barcode and not sample_identifier:
                 LOG.warning(f"Skipping sample with unknown sample barcode «{sample_barcode}»")
                 mark_skipped(db, manifest_record.id)
                 continue
 
-            if (manifest_record.document.get("sample_type") and
-                manifest_record.document["sample_type"] == "rdt"):
-                assert sample_identifier.set_name in expected_identifier_sets["rdt"], \
-                    (f"Sample identifier found in set «{sample_identifier.set_name}», " +
-                    f"not {expected_identifier_sets['rdt']}")
-            else:
-                assert sample_identifier.set_name in expected_identifier_sets["samples"], \
-                    (f"Sample identifier found in set «{sample_identifier.set_name}», " +
-                    f"not {expected_identifier_sets['samples']}")
-
-            # Optionally, convert the collection barcode to full
-            # identifier, ensuring it's known and from the correct
-            # identifier set.
-            collection_barcode = manifest_record.document.pop("collection", None)
-            collection_identifier = find_identifier(db, collection_barcode) if collection_barcode else None
-
+            # Skip a record if it has a collection barcode but the barcode doesn't match an identifier
             if collection_barcode and not collection_identifier:
                 LOG.warning(f"Skipping sample with unknown collection barcode «{collection_barcode}»")
                 mark_skipped(db, manifest_record.id)
                 continue
 
-            assert not collection_identifier \
-                or collection_identifier.set_name in expected_identifier_sets["collections"], \
-                    f"Collection identifier found in set «{collection_identifier.set_name}», not {expected_identifier_sets['collections']}" # type: ignore
+             # Skip a record if the collection identifier is from an unexpected set
+            if collection_identifier and collection_identifier.set_name not in expected_identifier_sets["collections"]:
+                LOG.warning(f"Skipping sample because collection identifier found in set «{collection_identifier.set_name}», not \
+                    {expected_identifier_sets['collections']}")
+                mark_skipped(db, manifest_record.id)
+                continue
 
-            # Sample collection date
-            collection_date = manifest_record.document.get("date")
+            # Validate the sample identifer and assert if a record fails
+            if sample_identifier:
+                if (manifest_record.document.get("sample_type") and
+                    manifest_record.document["sample_type"] == "rdt"):
+                    assert sample_identifier.set_name in expected_identifier_sets["rdt"], \
+                        (f"Sample identifier found in set «{sample_identifier.set_name}»," +
+                        f"not {expected_identifier_sets['rdt']}")
+                else:
+                    assert sample_identifier.set_name in expected_identifier_sets["samples"], \
+                        (f"Sample identifier found in set «{sample_identifier.set_name}», " +
+                        f"not {expected_identifier_sets['samples']}")
+
 
             # Upsert sample cooperatively with enrollments ETL routine
             #
             # The details document was intentionally modified by two pop()s
-            # earlier to remove barcodes that were looked up.  The
-            # rationale is that we want just one clear place in the
+            # earlier to remove barcodes that were looked up.
+            # The rationale is that we want just one clear place in the
             # warehouse for each piece of information.
             sample, status = upsert_sample(db,
-                identifier            = sample_identifier.uuid,
-                collection_identifier = collection_identifier.uuid if collection_identifier else None,
-                collection_date       = collection_date,
-                additional_details    = manifest_record.document)
+                update_identifiers          = should_update_identifiers,
+                identifier                  = sample_identifier.uuid if sample_identifier else None,
+                collection_identifier       = collection_identifier.uuid if collection_identifier else None,
+                collection_date             =  collected_date,
+                additional_details          = manifest_record.document)
 
             mark_loaded(db, manifest_record.id,
                 status = status,
@@ -156,6 +177,7 @@ def etl_manifest(*, db: DatabaseSession):
 
 
 def upsert_sample(db: DatabaseSession,
+                  update_identifiers: bool,
                   identifier: str,
                   collection_identifier: Optional[str],
                   collection_date: Optional[str],
@@ -207,18 +229,25 @@ def upsert_sample(db: DatabaseSession,
         sample = samples[0]
 
         LOG.info(f"Updating existing sample {sample.id}")
-        sample = db.fetch_row("""
+
+        # Update identifier and collection_identifier if update_identifiers is True
+        identifiers_update_composable = sql.SQL("""
+             identifier = %(identifier)s,
+                collection_identifier = %(collection_identifier)s, """)  \
+                    if update_identifiers else sql.SQL("")
+
+        sample = db.fetch_row(sql.SQL("""
             update warehouse.sample
-               set identifier = %(identifier)s,
-                   collection_identifier = %(collection_identifier)s,
-                   collected = coalesce(date_or_null(%(collection_date)s), collected),
-                   details = coalesce(details, '{}') || %(additional_details)s
+                set {}
+                    collected = coalesce(date_or_null(%(collection_date)s), collected),
+                    details = coalesce(details, {}) || %(additional_details)s
 
              where sample_id = %(sample_id)s
 
             returning sample_id as id, identifier, collection_identifier, encounter_id
-            """,
-            { **data, "sample_id": sample.id })
+            """).format(identifiers_update_composable,
+                sql.Literal(Json({}))),
+                { **data, "sample_id": sample.id })
 
         assert sample.id, "Update affected no rows!"
 
