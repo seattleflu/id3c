@@ -208,7 +208,7 @@ def upsert_sample(db: DatabaseSession,
             update warehouse.sample
                set identifier = %(identifier)s,
                    collection_identifier = %(collection_identifier)s,
-                   collected = date_or_null(%(collection_date)s),
+                   collected = coalesce(date_or_null(%(collection_date)s), collected),
                    details = coalesce(details, '{}') || %(additional_details)s
 
              where sample_id = %(sample_id)s
