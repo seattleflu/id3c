@@ -65,6 +65,10 @@ def command_for_project(name: str,
     ``receiving.redcap_det``.  They will also be used to make requests to the
     appropriate REDCap web API.
 
+    *include_incomplete* is a boolean specifying if the ETL should pull records
+    for DETs where the instrument is marked incomplete. When false (default),
+    the ETL skips DETs where the instrument is marked incomplete.
+
     *required_instruments* is an optional list of REDCap instrument names which
     are required for the decorated routine to run.
 
