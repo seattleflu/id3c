@@ -226,6 +226,12 @@ class SamplesHaarviLayout(LabelLayout):
     copies_per_barcode = 1
     reference = "HAARVI"
 
+class CollectionsHouseholdGeneralLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = "HH GENERAL"
+    copies_per_barcode = 1
+    reference = "seattleflu.org"
+
 
 LAYOUTS = {
     "samples": SamplesLayout,
@@ -240,6 +246,7 @@ LAYOUTS = {
     "collections-household-observation-asymptomatic": CollectionsHouseholdObservationAsymptomaticLayout,
     "collections-household-intervention": CollectionsHouseholdInterventionLayout,
     "collections-household-intervention-asymptomatic": CollectionsHouseholdInterventionAsymptomaticLayout,
+    "collections-household-general": CollectionsHouseholdGeneralLayout,
     "collections-self-test": CollectionsSelfTestLayout,
     "collections-fluathome.org": CollectionsFluAtHomeLayout,
     "collections-clia-compliance": CollectionsCliaComplianceLayout,
