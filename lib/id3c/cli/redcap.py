@@ -143,6 +143,7 @@ class Project:
                 ids: List[str] = None,
                 fields: List[str] = None,
                 events: List[str] = None,
+                filter: str = None,
                 raw: bool = False) -> List['Record']:
         """
         Fetch records for this REDCap project.
@@ -164,8 +165,12 @@ class Project:
         The optional *fields* parameter can be used to limit the fields
         returned for each record.
 
-        The optional *events* parameters can be used to limit the events (i.e.
-        arms) returned for each record.
+        The optional *events* parameter can be used to limit the events/arms
+        returned for each record.
+
+        The optional *filter* parameter can be used provide a REDCap
+        conditional logic string determining which records are returned.
+        Records for which *filter* evaluates to true are returned.
 
         The optional *raw* parameter controls if numeric/coded values are
         returned for multiple choice fields.  When false (the default), string
@@ -194,6 +199,9 @@ class Project:
 
         if events is not None:
             parameters['events'] = ",".join(map(str, events))
+
+        if filter is not None:
+            parameters['filterLogic'] = str(filter)
 
         return [Record(self, r) for r in self._fetch("record", parameters)]
 
