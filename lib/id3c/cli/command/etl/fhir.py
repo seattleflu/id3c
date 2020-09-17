@@ -20,6 +20,7 @@ from fhir.resources.observation import Observation
 from fhir.resources.patient import Patient
 from fhir.resources.questionnaireresponse import QuestionnaireResponse
 from fhir.resources.specimen import Specimen
+from fhir.resources.extension import Extension
 from id3c.cli.command import with_database_session
 from id3c.db import find_identifier
 from id3c.db.session import DatabaseSession
@@ -935,6 +936,35 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
             target_id = target.id,
             present = result_value,
             details = details)
+
+
+def matching_extension_value(extensions: List[Extension], url: str, value_type: str) -> Optional[str]:
+    """
+    Returns a value from a specified *url* and *value_type* contained within
+    given *extensions*.
+
+    If no value is found for the given *url*, returns None.
+
+    Raises an :class:`AssertionError` if more than one value for a *url*
+    is found within the given FHIR *extensions*.
+    """
+    def matching_url(extension: Extension, url: str):
+        return extension.url == url
+
+    matched_extensions: List[Extension] = []
+
+    if not extensions:
+        return None
+
+    matched_extensions += list(filter(lambda e: matching_url(e, url), extensions))
+
+    assert len(matched_extensions) <= 1, "Multiple extensions found in FHIR extensions " + \
+        f"«{extensions}» for url «{url}»."
+
+    if not matched_extensions:
+        return None
+
+    return getattr(matched_extensions[0], value_type)
 
 
 def mark_skipped(db, fhir_id: int) -> None:
