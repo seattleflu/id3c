@@ -191,6 +191,7 @@ def process_diagnostic_report_bundle_entry(db: DatabaseSession, bundle: Bundle, 
 
     for reference in resource.specimen:
         barcode = None
+        specimen = None
 
         if not reference.identifier:
             specimen = reference.resolved(Specimen)
@@ -225,6 +226,11 @@ def process_diagnostic_report_bundle_entry(db: DatabaseSession, bundle: Bundle, 
         sample = find_sample(db, specimen_identifier.uuid)
         if not is_collection_identifier and not sample:
             raise SampleNotFoundError("No sample with identifier «{specimen_identifier.uuid}» found.")
+
+        if specimen:
+            # If there is a Specimen Resource, check for potential updates
+            # that need to be handled by FHIR ETL customizations.
+            sample = INTERNAL_CUSTOMIZATIONS.check_specimen_for_update(db, sample, specimen)
 
         # Sometimes the Ellume samples come in faster than the specimen manifest
         # is updated. In this case, create a new collection identifier that will
@@ -874,38 +880,16 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
     Given a *report* containing presence-absence test results, upserts them to
     ID3C, attaching a sample and target ID.
     """
-    def observation_value(observation: Observation) -> bool:
-        """
-        Return the boolean value of a presence/absence result observation.
-
-        Expects the observation value to be within valueBoolean or
-        valueCodeableConcept. Raises Exception if both are None.
-
-        Also raises Exception if valueCodeableConcept contains an unknown code.
-        """
-        if observation.valueBoolean is not None:
-            return observation.valueBoolean
-
-        elif observation.valueCodeableConcept is not None:
-            code_map = {
-                "10828004": True,
-                "260385009": False,
-                "82334004": None,
-            }
-            code = matching_system_code(observation.valueCodeableConcept, SNOMED_SYSTEM)
-
-            if code not in code_map:
-                raise Exception(f"Unknown SNOMED code «{code}»")
-
-            return code_map[code]
-
-        raise Exception("Could not find presence/absence observation value in valueBoolean or valueCodeableConcept")
-
     if not report.result:
         raise Exception("An empty value for `result` violates the FHIR docs.")
 
     for result in report.result:
         observation = result.resolved(Observation)
+
+        # Use FHIR ETL customizations to process internal results
+        if matching_system_code(observation.code, f"{INTERNAL_SYSTEM}/target/identifier"):
+            INTERNAL_CUSTOMIZATIONS.process_result(db, sample_id, observation, report.effectiveDateTime)
+            continue
 
         snomed_code = matching_system_code(observation.code, SNOMED_SYSTEM)
         assert snomed_code, "No SNOMED code found"
@@ -938,6 +922,34 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
             target_id = target.id,
             present = result_value,
             details = details)
+
+
+def observation_value(observation: Observation) -> Optional[bool]:
+    """
+    Return the boolean value of a presence/absence result observation.
+    Expects the observation value to be within valueBoolean or
+    valueCodeableConcept. Raises Exception if both are None.
+    Also raises Exception if valueCodeableConcept contains an unknown code.
+    """
+    if observation.valueBoolean is not None:
+        return observation.valueBoolean
+
+    elif observation.valueCodeableConcept is not None:
+
+        code_map = {
+            "10828004": True,
+            "260385009": False,
+            "82334004": None,
+        }
+
+        code = matching_system_code(observation.valueCodeableConcept, SNOMED_SYSTEM)
+
+        if code not in code_map:
+            raise Exception(f"Unknown SNOMED code «{code}»")
+
+        return code_map[code]
+
+    raise Exception("Could not find presence/absence observation value in valueBoolean or valueCodeableConcept")
 
 
 def matching_extension_value(extensions: List[Extension], url: str, value_type: str) -> Optional[str]:
