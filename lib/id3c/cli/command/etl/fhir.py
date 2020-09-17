@@ -5,6 +5,7 @@ import re
 import json
 import click
 import logging
+import pkg_resources
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any, List, Dict, Optional, Tuple
@@ -57,6 +58,7 @@ LOG = logging.getLogger(__name__)
 REVISION = 5
 ETL_NAME = 'fhir'
 INTERNAL_SYSTEM = 'https://seattleflu.org'
+INTERNAL_CUSTOMIZATIONS = None
 LOCATION_RELATION_SYSTEM = 'http://terminology.hl7.org/CodeSystem/v3-RoleCode'
 SNOMED_SYSTEM = 'http://snomed.info/sct'
 SNOMED_TERM = 'http://snomed.info/id'
@@ -995,3 +997,22 @@ def mark_processed(db, fhir_id: int, entry = {}) -> None:
 
 class SkipBundleError(Exception):
     pass
+
+
+# Load all extra customizations for the INTERNAL_SYSTEM.
+# Needs to be at the end to avoid dependency errors.
+extensions = list(pkg_resources.iter_entry_points("id3c.cli.command.etl.fhir", INTERNAL_SYSTEM))
+
+# Only expects one module for the INTERNAL_SYSTEM.
+assert len(extensions) <= 1, \
+    f"The FHIR ETL only expects one extension from the internal system «{INTERNAL_SYSTEM}»"
+
+extension = extensions[0]
+
+if extension.dist:
+    dist = f"{extension.dist.project_name} in {extension.dist.location}"
+else:
+    dist = "unknown"
+
+LOG.debug(f"Loading customizations from extension {extension!s} (distribution {dist})")
+INTERNAL_CUSTOMIZATIONS = extension.load()
