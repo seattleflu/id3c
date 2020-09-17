@@ -2,8 +2,12 @@
 Commands for the database CLI.
 """
 import click
+import pickle
 import logging
 from functools import wraps
+from typing import Optional
+from cachetools import TTLCache
+from contextlib import contextmanager
 from id3c.db.session import DatabaseSession
 
 
@@ -24,6 +28,9 @@ __all__ = [
 
 
 LOG = logging.getLogger(__name__)
+
+CACHE_TTL = 60 * 60 * 24 * 365  # 1 year
+CACHE_SIZE = float("inf")       # Unlimited
 
 
 def with_database_session(command):
@@ -89,3 +96,49 @@ def with_database_session(command):
                 db.rollback()
 
     return decorated
+
+
+@contextmanager
+def pickled_cache(filename: str = None) -> TTLCache:
+    """
+    Context manager for reading/writing a :class:`TTLCache` from/to the given
+    *filename*.
+
+    If *filename* exists, it is unpickled and the :class:`TTLCache` object is
+    returned.  If *filename* does not exist, an empty cache will be returned.
+    In either case, the cache object will be written back to the given
+    *filename* upon exiting the ``with`` block.
+
+    If no *filename* is provided, a transient, in-memory cache is returned
+    instead.
+
+    >>> with pickled_cache("/tmp/id3c-geocoding.cache") as cache:
+    ...     cache["key1"] = "value1"
+
+    >>> with pickled_cache("/tmp/id3c-geocoding.cache") as cache:
+    ...     print(cache["key1"])
+    value1
+    """
+    empty_cache = TTLCache(maxsize = CACHE_SIZE, ttl = CACHE_TTL)
+
+    if filename:
+        LOG.info(f"Loading cache from «{filename}»")
+        try:
+            with open(filename, "rb") as file:
+                cache = pickle.load(file)
+        except FileNotFoundError:
+            LOG.warning(f"Cache file «{filename}» does not exist; starting with empty cache.")
+            cache = empty_cache
+        else:
+            assert isinstance(cache, TTLCache), \
+                f"Cache file contains a {cache!r}, not a TTLCache"
+    else:
+        LOG.warning("No cache file provided; using transient, in-memory cache.")
+        cache = empty_cache
+
+    try:
+        yield cache
+    finally:
+        if filename:
+            with open(filename, "wb") as file:
+                pickle.dump(cache, file)

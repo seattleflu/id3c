@@ -19,7 +19,7 @@ from id3c.cli.command import with_database_session
 from id3c.cli.redcap import is_complete, Project
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json, Json
-from id3c.cli.command.geocode import pickled_cache
+from id3c.cli.command import pickled_cache
 from . import etl
 
 

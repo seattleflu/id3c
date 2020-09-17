@@ -18,17 +18,15 @@ the geocoding result.
 """
 import click
 import logging
-import pickle
 import pandas as pd
 import sys
 import json
 import yaml
-from contextlib import contextmanager
 from os import environ, chdir
 from os.path import dirname
 from textwrap import dedent
 from cachetools import TTLCache
-from typing import Optional, Tuple, Dict, Any
+from typing import Tuple, Dict, Any
 from smartystreets_python_sdk import StaticCredentials, ClientBuilder
 from smartystreets_python_sdk.us_street import Lookup
 from smartystreets_python_sdk.us_extract import Lookup as ExtractLookup
@@ -36,12 +34,11 @@ from id3c.cli import cli
 from id3c.cli.io.pandas import (
     load_file_as_dataframe
 )
+from id3c.cli.command import pickled_cache
 
 
 LOG = logging.getLogger(__name__)
 
-CACHE_TTL = 60 * 60 * 24 * 365  # 1 year
-CACHE_SIZE = float("inf")       # Unlimited
 
 # Shared SmartyStreets client, initialized when first needed.
 STREET_CLIENT = None
@@ -247,51 +244,6 @@ def standardize_address(address_series: pd.Series,
 
     return std_address
 
-
-@contextmanager
-def pickled_cache(filename: str = None) -> TTLCache:
-    """
-    Context manager for reading/writing a :class:`TTLCache` from/to the given
-    *filename*.
-
-    If *filename* exists, it is unpickled and the :class:`TTLCache` object is
-    returned.  If *filename* does not exist, an empty cache will be returned.
-    In either case, the cache object will be written back to the given
-    *filename* upon exiting the ``with`` block.
-
-    If no *filename* is provided, a transient, in-memory cache is returned
-    instead.
-
-    >>> with pickled_cache("/tmp/id3c-geocoding.cache") as cache:
-    ...     cache["key1"] = "value1"
-
-    >>> with pickled_cache("/tmp/id3c-geocoding.cache") as cache:
-    ...     print(cache["key1"])
-    value1
-    """
-    empty_cache = TTLCache(maxsize = CACHE_SIZE, ttl = CACHE_TTL)
-
-    if filename:
-        LOG.info(f"Loading cache from «{filename}»")
-        try:
-            with open(filename, "rb") as file:
-                cache = pickle.load(file)
-        except FileNotFoundError:
-            LOG.warning(f"Cache file «{filename}» does not exist; starting with empty cache.")
-            cache = empty_cache
-        else:
-            assert isinstance(cache, TTLCache), \
-                f"Cache file contains a {cache!r}, not a TTLCache"
-    else:
-        LOG.warning(f"No cache file provided; using transient, in-memory cache.")
-        cache = empty_cache
-
-    try:
-        yield cache
-    finally:
-        if filename:
-            with open(filename, "wb") as file:
-                pickle.dump(cache, file)
 
 
 def get_response_from_cache_or_geocoding(address: dict,
