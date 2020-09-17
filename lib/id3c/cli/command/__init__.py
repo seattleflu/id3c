@@ -5,9 +5,10 @@ import click
 import pickle
 import logging
 from functools import wraps
-from typing import Optional
+from typing import IO, Any
 from cachetools import TTLCache
 from contextlib import contextmanager
+from fcntl import flock, LOCK_EX, LOCK_UN, LOCK_NB
 from id3c.db.session import DatabaseSession
 
 
@@ -125,7 +126,9 @@ def pickled_cache(filename: str = None) -> TTLCache:
         LOG.info(f"Loading cache from «{filename}»")
         try:
             with open(filename, "rb") as file:
+                lock_file(file)
                 cache = pickle.load(file)
+
         except FileNotFoundError:
             LOG.warning(f"Cache file «{filename}» does not exist; starting with empty cache.")
             cache = empty_cache
@@ -142,3 +145,17 @@ def pickled_cache(filename: str = None) -> TTLCache:
         if filename:
             with open(filename, "wb") as file:
                 pickle.dump(cache, file)
+
+
+@contextmanager
+def lock_file(file_object: IO[Any]):
+    """
+    Context manager for locking/unlocking a given :class:`IOBase` *file_object*.
+    """
+    # Apply POSIX-style, exclusive lock
+    flock(file_object, LOCK_EX)
+
+    yield
+
+    # Remove the lock
+    flock(file_object, LOCK_UN)
