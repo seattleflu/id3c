@@ -236,7 +236,7 @@ def find_sample(db: DatabaseSession, identifier: str, for_update = True) -> Any:
         query_ending = "for update"
 
     sample = db.fetch_row("""
-        select sample_id as id, identifier, encounter_id
+        select sample_id as id, identifier, encounter_id, details
           from warehouse.sample
          where identifier = %s or
                collection_identifier = %s
