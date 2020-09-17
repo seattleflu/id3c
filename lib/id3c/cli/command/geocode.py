@@ -214,7 +214,7 @@ def get_geocoded_addresses(*,
          addresses_df['lng'],
          addresses_df['canonicalized_address']) = zip(
              *addresses_df['std_address'].apply(
-                 lambda row: get_response_from_cache_or_geocoding(row, cache)))
+                 lambda row: get_geocoded_address(row, cache)))
 
     return addresses_df
 
@@ -246,7 +246,7 @@ def standardize_address(address_series: pd.Series,
 
 
 
-def get_response_from_cache_or_geocoding(address: dict,
+def get_geocoded_address(address: dict,
                                          cache: TTLCache) -> Tuple[Any, Any, Any]:
     """
     Provided an *address* dict in a format that SmartyStreets US Address API
