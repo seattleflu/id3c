@@ -239,14 +239,14 @@ class CollectionsUWObservedLayout(LabelLayout):
     sku = "LCRY-1100"
     barcode_type = 'UW OBSERVED'
     copies_per_barcode = 1
-    reference = "washington.edu"
+    reference = "seattleflu.org"
 
 
 class CollectionsUWMailLayout(LabelLayout):
     sku = "LCRY-1100"
     barcode_type = 'UW MAIL'
     copies_per_barcode = 2
-    reference = "washington.edu"
+    reference = "seattleflu.org"
 
 
 LAYOUTS = {
