@@ -569,9 +569,10 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
             LOG.warning(f"Skipping collected specimen with unknown barcode «{barcode}»")
             continue
 
-        assert (specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS or
-                specimen_identifier.set_name in EXPECTED_SAMPLE_IDENTIFIER_SETS), \
-            f"Specimen with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»"
+        if not (specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS or
+                specimen_identifier.set_name in EXPECTED_SAMPLE_IDENTIFIER_SETS):
+            LOG.warning(f"Skipping specimen with unexpected «{specimen_identifier.set_name}» barcode «{barcode}»")
+            continue
 
         sample_identifier: str = None
         collection_identifier: str = None
