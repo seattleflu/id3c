@@ -220,16 +220,32 @@ class CollectionsHaarviLayout(LabelLayout):
     copies_per_barcode = 1
     reference = "HAARVI"
 
+
 class SamplesHaarviLayout(LabelLayout):
     sku = "LCRY-2380"
     barcode_type = "SAMPLE"
     copies_per_barcode = 1
     reference = "HAARVI"
 
+
 class CollectionsHouseholdGeneralLayout(LabelLayout):
     sku = "LCRY-1100"
     barcode_type = "HH GENERAL"
     copies_per_barcode = 1
+    reference = "seattleflu.org"
+
+
+class CollectionsUWObservedLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'UW OBSERVED'
+    copies_per_barcode = 1
+    reference = "seattleflu.org"
+
+
+class CollectionsUWMailLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'UW MAIL'
+    copies_per_barcode = 2
     reference = "seattleflu.org"
 
 
@@ -254,6 +270,8 @@ LAYOUTS = {
     "test-strips-fluathome.org": _TestStripsFluAtHomeLayout,
     "samples-haarvi": SamplesHaarviLayout,
     "collections-haarvi": CollectionsHaarviLayout,
+    'collections-uw-observed': CollectionsUWObservedLayout,
+    'collections-uw-mail': CollectionsUWMailLayout,
 }
 
 
