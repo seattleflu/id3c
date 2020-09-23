@@ -242,9 +242,9 @@ class CollectionsUWObservedLayout(LabelLayout):
     reference = "seattleflu.org"
 
 
-class CollectionsUWMailLayout(LabelLayout):
+class CollectionsUWHomeLayout(LabelLayout):
     sku = "LCRY-1100"
-    barcode_type = 'UW MAIL'
+    barcode_type = 'UW HOME'
     copies_per_barcode = 2
     reference = "seattleflu.org"
 
@@ -271,7 +271,7 @@ LAYOUTS = {
     "samples-haarvi": SamplesHaarviLayout,
     "collections-haarvi": CollectionsHaarviLayout,
     'collections-uw-observed': CollectionsUWObservedLayout,
-    'collections-uw-mail': CollectionsUWMailLayout,
+    'collections-uw-home': CollectionsUWHomeLayout,
 }
 
 
