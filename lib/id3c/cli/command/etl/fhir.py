@@ -71,6 +71,9 @@ EXPECTED_COLLECTION_IDENTIFIER_SETS = [
     'collections-swab&send-asymptomatic',
     'collections-scan',
     'collections-scan-kiosks',
+    'collections-uw-home',
+    'collections-uw-observed',
+    'collections-household-general',
 ]
 EXPECTED_SAMPLE_IDENTIFIER_SETS = ['samples']
 
