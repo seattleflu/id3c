@@ -72,6 +72,9 @@ def etl_manifest(*, db: DatabaseSession):
             "collections-haarvi",
             "samples-haarvi",
             "collections-validation",
+            "collections-uw-home",
+            "collections-uw-observed",
+            "collections-household-general",
         },
         "rdt": {"collections-fluathome.org"}
     }
