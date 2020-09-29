@@ -8,6 +8,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any, List, Dict, Optional, Tuple
+from urllib.parse import unquote
 from fhir.resources.bundle import Bundle, BundleEntry
 from fhir.resources.codeableconcept import CodeableConcept
 from fhir.resources.coding import Coding
@@ -442,6 +443,7 @@ def process_encounter(db: DatabaseSession, encounter: Encounter,
 
     contained_resources = extract_contained_resources(encounter)
 
+    encounter_source = process_encounter_source(encounter)
     encounter_reason = process_encounter_reason(encounter)
 
     part_of_identifier = None
@@ -455,6 +457,8 @@ def process_encounter(db: DatabaseSession, encounter: Encounter,
     details: Dict[str, Any] = encounter_details({ **related_resources, **contained_resources })
     if patient_language:
         details['language'] = patient_language
+    if encounter_source:
+        details['_provenance'] = encounter_source
     if encounter_reason:
         details['reason'] = encounter_reason
     if part_of_identifier:
@@ -467,6 +471,31 @@ def process_encounter(db: DatabaseSession, encounter: Encounter,
         site_id         = site.id,
         age             = age,
         details         = details)
+
+
+def process_encounter_source(encounter: Encounter) -> Any:
+    """
+    Returns the source of the given *encounter*.
+
+    Expects the source to be a data URI with media type application/json and
+    returns the deserialized JSON data.
+
+    If the source is any other kind of URI, it will be returned as-is (as a string).
+    """
+    if not encounter.meta:
+        return None
+
+    encounter_source = encounter.meta.source
+
+    if not encounter_source:
+        return None
+
+    scheme, data = encounter_source.split(',', 1)
+
+    if scheme == 'data:application/json':
+        return json.loads(unquote(data))
+
+    return encounter_source
 
 
 def process_patient_language(patient: Patient) -> Optional[str]:
