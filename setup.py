@@ -67,6 +67,8 @@ setup(
         "fiona",
         "flask",
         "fsspec",
+        "google-api-python-client",
+        "oauth2client >2.0.0,<4.0.0",
         "pandas >=1.0.1,<2",
         "psycopg2 >=2.8,<3",
         "pyyaml",

@@ -11,6 +11,7 @@ sqlparse = "*"
 
 [packages]
 id3c = {editable = true,path = "."}
+fsspec = "*"
 
 [requires]
 python_version = "3.6"

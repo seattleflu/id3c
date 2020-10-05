@@ -25,9 +25,10 @@ from deepdiff import DeepHash
 from hashlib import sha1
 from os import chdir
 from os.path import dirname
-from typing import Iterable, List, Tuple, Union
+from typing import Iterable, List, Optional, Tuple, Union
 from id3c.cli import cli
 from id3c.cli.io import LocalOrRemoteFile, urlopen
+from id3c.cli.io.google import export_file_from_google_drive, extract_document_id_from_google_url, GoogleDriveExportFormat
 from id3c.cli.io.pandas import read_excel
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json, Json
@@ -38,6 +39,8 @@ LOG = logging.getLogger(__name__)
 
 PROVENANCE_KEY = "_provenance"
 
+RESERVED_COLUMNS = {"sample", "collection", "date"}
+
 
 @cli.group("manifest", help = __doc__)
 def manifest():
@@ -45,7 +48,7 @@ def manifest():
 
 
 @manifest.command("parse")
-@click.argument("workbook", metavar = "<manifest.xlsx>")
+@click.argument("workbook", metavar = "<filepath>")
 
 @click.option("--sheet",
     metavar = "<name>",
@@ -56,7 +59,18 @@ def manifest():
     metavar = "<column>",
     help = "Name of the single column containing sample barcodes.  "
            "Must match exactly; shell-style glob patterns are supported.",
-    required = True)
+    required = False)
+
+@click.option("--collection-column",
+    metavar = "<column>",
+    help = "Name of the single column containing collection barcodes.  "
+           "Must match exactly; shell-style glob patterns are supported.",
+    required = False)
+
+@click.option("--date-column",
+    metavar = "<column>",
+    help = "Name of the single column containing the sample collected date.",
+    required = False)
 
 @click.option("--sample-type",
     metavar = "<type>",
@@ -73,17 +87,35 @@ def manifest():
            "Option value is parsed as a YAML fragment, so additional options supported by the sibling command \"parse-with-config\" may be inlined for testing, but you're likely better off using a config file at that point.",
     multiple = True)
 
+@click.option("--row-filter",
+    metavar = "<query>",
+    help = "The pandas query to filter rows (using the python engine) in the manifest.  "
+           "Column names refer to columns in the manifest itself.  "
+           "Example: `corrective action`.notnull() and `corrective action`.str.lower().str.startswith(\"discard\") ",
+    required = False)
+
 def parse(**kwargs):
     """
     Parse a single manifest workbook sheet.
 
-    <manifest.xlsx> must be a path or URL to an Excel workbook with at least
-    one sheet in it, identified by name using the required option --sheet.
+    <filepath> must be a path or URL to an Excel workbook or Google Sheets
+    spreadsheet with at least one sheet in it, identified by name using the required option --sheet.
     Supported URL schemes include http[s]:// and s3://, as well as others.
 
-    The required --sample-column option specifies the name of the column
-    containing the sample barcode.  Other columns may be extracted into the
-    manifest records as desired using the --extra-column option.
+    The --sample-column option specifies the name of the column
+    containing the sample barcode. The --collection-column option specifies
+    the name of the column containing the collection barcode. You must supply one
+    or both of those options.
+
+    The --date-column specifies the name of the column containing the sample collected date.
+
+    Other columns may be extracted into the manifest records as desired using the
+    --extra-column option.
+
+    The row-filter entry specifies a pandas query to filter
+    (using the python engine) rows in the manifest. Column names refer to columns
+    in the manifest itself.
+    Example: `corrective action`.notnull() and `corrective action`.str.lower().str.startswith("discard")
 
     Manifest records are output to stdout as newline-delimited JSON records.
     You will likely want to redirect stdout to a file.
@@ -92,7 +124,8 @@ def parse(**kwargs):
         (dst, yaml.safe_load(src))
             for dst, src
             in [arg.split(":", 1) for arg in kwargs["extra_columns"]]
-    ]
+
+       ]
 
     manifest = _parse(**kwargs)
     dump_ndjson(manifest)
@@ -117,6 +150,7 @@ def parse_using_config(config_file):
         workbook: OneDrive/SFS Prospective Samples 2018-2019.xlsx
         sheet: HMC
         sample_column: "Barcode ID*"
+        date_column: "Coll_date"
         extra_columns:
           collection:
             name: "Collection ID*"
@@ -146,6 +180,18 @@ def parse_using_config(config_file):
             multiple: true
           test_results: "Test ResulTS"
         ...
+
+    The sample_column entry specifies the name of the column
+    containing the sample barcode. The collection_column entry specifies
+    the name of the column containing the collection barcode. You must supply one
+    or both of those entries.
+
+    The date_column specifies the name of the column containing the sample collected date.
+
+    The row_filter entry specifies a pandas query to filter
+    (using the python engine) rows in the manifest. Column names refer to columns
+    in the manifest itself.
+    Example: `corrective action`.notnull() and `corrective action`.str.lower().str.startswith("discard")
 
     The key: value pairs in "extra_columns" name destination record fields (as
     the key) and source columns (as the value).  For most source columns, a
@@ -192,9 +238,12 @@ def parse_using_config(config_file):
             kwargs = {
                 "workbook": config["workbook"],
                 "sheet": config["sheet"],
-                "sample_column": config["sample_column"],
+                "sample_column": config.get("sample_column"),
+                "collection_column": config.get("collection_column"),
+                "date_column": config.get("date_column"),
                 "extra_columns": list(config.get("extra_columns", {}).items()),
-                "sample_type": config.get("sample_type")
+                "sample_type": config.get("sample_type"),
+                "row_filter" : config.get("row_filter")
             }
         except KeyError as key:
             LOG.error(f"Required key «{key}» missing from config {config}")
@@ -206,16 +255,36 @@ def parse_using_config(config_file):
 def _parse(*,
            workbook,
            sheet,
-           sample_column,
+           sample_column = None,
+           collection_column = None,
+           date_column = None,
            extra_columns: List[Tuple[str, Union[str, dict]]] = [],
-           sample_type = None):
+           sample_type = None,
+           row_filter: Optional[str] = None):
     """
     Internal function powering :func:`parse` and :func:`parse_using_config`.
     """
-    LOG.debug(f"Reading Excel workbook «{workbook}»")
+    if not sample_column and not collection_column:
+        raise ValueError("You must specify the sample_column, the collection_column, or both.")
 
-    with urlopen(workbook, "rb") as file:
-        workbook_bytes = file.read()
+    disallowed_extra_columns = {dst for dst, src in extra_columns} & RESERVED_COLUMNS
+    assert len(disallowed_extra_columns) == 0, \
+        f"A reserved column name has been configured in extra_columns: {disallowed_extra_columns}"
+
+    # Determine if the workbook URL is for a Google Document and if so
+    # retrieve the Google Sheets file as an Excel spreadsheet. Otherwise,
+    # retrieve it using urlopen.
+    google_docs_document_id = extract_document_id_from_google_url(workbook)
+
+    if google_docs_document_id:
+        LOG.debug(f"Reading Google Sheets document «{workbook}»")
+        with export_file_from_google_drive(google_docs_document_id, GoogleDriveExportFormat.EXCEL) as file:
+            workbook_bytes = file.read()
+
+    else:
+        LOG.debug(f"Reading Excel workbook «{workbook}»")
+        with urlopen(workbook, "rb") as file:
+            workbook_bytes = file.read()
 
     LOG.debug(f"Parsing sheet «{sheet}» in workbook «{workbook}»")
 
@@ -237,13 +306,26 @@ def _parse(*,
                 .replace({pandas.NA: ""})
                 .replace({"": None, "na": None})))
 
+    # If a filter query was provided filter the manifest rows
+    # using the python engine.
+    if row_filter:
+        manifest = manifest.query(row_filter, engine="python")
+
     # Construct parsed manifest by copying columns from source to destination.
     # This approach is used to allow the same source column to end up as
     # multiple destination columns.
     parsed_manifest = pandas.DataFrame()
 
-    column_map: List[Tuple[str, dict]] = [
-        ("sample", {"name": sample_column, "barcode": True})]
+    column_map: List[Tuple[str, dict]] = []
+
+    if sample_column:
+        column_map += [("sample", {"name": sample_column, "barcode": True})]
+
+    if collection_column:
+        column_map += [("collection", {"name": collection_column, "barcode": True})]
+
+    if date_column:
+        column_map += [("date", {"name": date_column})]
 
     column_map += [
         (dst, src) if isinstance(src, dict) else (dst, {"name":src})
@@ -257,9 +339,15 @@ def _parse(*,
         else:
             parsed_manifest[dst] = select_column(manifest, src["name"])
 
-    # Drop rows with null sample values, which may be introduced by space
-    # stripping.
-    parsed_manifest = parsed_manifest.dropna(subset = ["sample"])
+    # Drop rows that have no data for the sample_column and/or the collection_column, depending
+    # on which columns are configured. If both sample_column and collection_column are configured,
+    # drop rows if both columns don't have data.
+    if sample_column and collection_column:
+        parsed_manifest = parsed_manifest.dropna(subset = ["sample", "collection"], how='all')
+    elif sample_column:
+        parsed_manifest = parsed_manifest.dropna(subset = ["sample"])
+    elif collection_column:
+        parsed_manifest = parsed_manifest.dropna(subset = ["collection"])
 
     # Set of columns names for barcodes
     barcode_columns = {dst for dst, src in column_map if src.get("barcode")}
@@ -390,7 +478,7 @@ def select_columns(table: pandas.DataFrame, name: str) -> pandas.DataFrame:
     *table*.
     """
     pattern = re.compile(fnmatch.translate(name), re.IGNORECASE)
-    matches = list(filter(pattern.match, table.columns))
+    matches = list(filter(pattern.match, table.columns.astype(str)))
 
     assert matches, f"No column name matching «{name}» found; column names are: {list(table.columns)}"
     return table[matches]
