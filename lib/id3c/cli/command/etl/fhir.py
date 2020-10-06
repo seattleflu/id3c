@@ -8,8 +8,8 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any, List, Dict, Optional, Tuple
-from urllib.parse import unquote
 from urllib.parse import urlparse
+from urllib.request import urlopen
 from fhir.resources.bundle import Bundle, BundleEntry
 from fhir.resources.codeableconcept import CodeableConcept
 from fhir.resources.coding import Coding
@@ -511,10 +511,21 @@ def process_encounter_source(encounter: Encounter) -> Any:
     if not encounter_source:
         return None
 
-    scheme, data = encounter_source.split(',', 1)
+    try:
+        url = urlparse(encounter_source)
 
-    if scheme == 'data:application/json':
-        return json.loads(unquote(data))
+        if url.scheme == "data":
+            with urlopen(encounter_source) as source:
+                content_type = source.headers.get_content_type()
+
+                if content_type == "application/json":
+                    return json.load(source)
+
+    except Exception as e:
+        LOG.debug(f"Error parsing Encounter.meta.source of «{encounter_source}»", exc_info = e)
+        LOG.warning(
+            f"Tried to handle Encounter.meta.source of «{encounter_source}», but failed.  "
+            f"Returning unparsed string.")
 
     return encounter_source
 
