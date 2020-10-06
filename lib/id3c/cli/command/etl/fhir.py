@@ -9,6 +9,7 @@ from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any, List, Dict, Optional, Tuple
 from urllib.parse import unquote
+from urllib.parse import urlparse
 from fhir.resources.bundle import Bundle, BundleEntry
 from fhir.resources.codeableconcept import CodeableConcept
 from fhir.resources.coding import Coding
@@ -481,6 +482,26 @@ def process_encounter_source(encounter: Encounter) -> Any:
     returns the deserialized JSON data.
 
     If the source is any other kind of URI, it will be returned as-is (as a string).
+
+    >>> _ = lambda source: Encounter({"meta":{"source":source},"status":"finished","class":{}})
+
+    >>> process_encounter_source(_('data:application/json,{"foo":"bar"}'))
+    {'foo': 'bar'}
+
+    >>> process_encounter_source(_("data:application/json,%7B%22foo%22%3A%22bar%22%7D"))
+    {'foo': 'bar'}
+
+    >>> process_encounter_source(_("data:application/json;base64,eyJmb28iOiJiYXIifQo="))
+    {'foo': 'bar'}
+
+    >>> process_encounter_source(_("data:text/plain,someplace somewhere"))
+    'data:text/plain,someplace somewhere'
+
+    >>> process_encounter_source(_("https://example.com"))
+    'https://example.com'
+
+    >>> process_encounter_source(_('data:application/json,bogus'))
+    'data:application/json,bogus'
     """
     if not encounter.meta:
         return None
