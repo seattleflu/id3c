@@ -1,6 +1,7 @@
 """
 Database session creation and management.
 """
+import click
 import logging
 import os
 import psycopg2
@@ -11,6 +12,7 @@ from psycopg2.extras import NamedTupleCursor
 from psycopg2.sql import SQL, Identifier
 from typing import Any, Iterable, Iterator, Mapping, Tuple, Union
 from uuid import uuid4
+from ..utils import shorten
 
 
 LOG = logging.getLogger(__name__)
@@ -41,6 +43,7 @@ class DatabaseSession:
 
         connect_params = {
             "cursor_factory": NamedTupleCursor,
+            "fallback_application_name": fallback_application_name(),
 
             **({"user": username}     if username is not None else {}),
             **({"password": password} if password is not None else {}),
@@ -222,3 +225,31 @@ def pg_environment() -> dict:
         env["PGPASSWORD"] = "***MASKED***"
 
     return env
+
+
+def fallback_application_name() -> str:
+    """
+    Returns the application name to use for the database connection when
+    ``PGAPPNAME`` isn't set.
+
+    Constructed based on the current running CLI command, else ``id3c``.
+    """
+    # "The application_name can be any string of less than NAMEDATALEN
+    # characters (64 characters in a standard build)."¹
+    #
+    # psycopg2 / libpq will truncate for us, but they will issue a NOTICE log
+    # message if they do.  Avoid the cluttery notice by truncating ourselves.
+    #
+    # ¹ https://www.postgresql.org/docs/current/runtime-config-logging.html#GUC-APPLICATION-NAME
+    max_len = 64
+
+    appname = None
+    context = click.get_current_context(silent = True)
+
+    if context:
+        appname = context.command_path
+
+    if not appname:
+        appname = "id3c"
+
+    return shorten(appname, max_len, "...")

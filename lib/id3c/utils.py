@@ -59,3 +59,38 @@ def getattrpath(value: Any, attrpath: Union[str, Sequence[str]]) -> Any:
             return None
 
     return value
+
+
+def shorten(text, length, placeholder):
+    """
+    Truncate *text* to a maximum *length* (if necessary), indicating truncation
+    with the given *placeholder*.
+
+    The maximum *length* must be longer than the length of the *placeholder*.
+
+    The right-hand end of *text* is stripped of whitespace.
+
+    Behaviour is slightly different than :py:func:`textwrap.shorten` which is
+    intended for shortening sentences and works at the word, not character,
+    level.
+
+    >>> shorten("foobar", 6, "...")
+    'foobar'
+    >>> shorten("foobar  ", 6, "...")
+    'foobar'
+    >>> shorten("foobarbaz", 6, "...")
+    'foo...'
+    >>> shorten("foobar", 3, "...")
+    Traceback (most recent call last):
+        ...
+    ValueError: maximum length (3) must be greater than length of placeholder (3)
+    """
+    text = text.rstrip()
+
+    if length <= len(placeholder):
+        raise ValueError(f"maximum length ({length}) must be greater than length of placeholder ({len(placeholder)})")
+
+    if len(text) > length:
+        return text[0:length - len(placeholder)] + placeholder
+    else:
+        return text
