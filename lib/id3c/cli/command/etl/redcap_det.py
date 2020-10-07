@@ -10,6 +10,7 @@ import logging
 from collections import defaultdict
 from datetime import datetime, timezone
 from functools import wraps
+from more_itertools import chunked
 from textwrap import dedent
 from typing import Callable, Iterable, Optional, Tuple, Dict, List, Any, DefaultDict
 from urllib.parse import urljoin
@@ -88,6 +89,13 @@ def command_for_project(name: str,
     }
 
     def decorator(routine: Callable[..., Optional[dict]]) -> click.Command:
+        @click.option("--fetch-batch-size",
+            metavar = "<number>",
+            help    = "Number of records to fetch in one batch from REDCap. "
+                      "Multiple batches will be fetched if there are more than this number of records to fetch. "
+                      "The default (5,000) is somewhat arbitrary and what will or won't strain the REDCap API depends on both the number of repeating instrument/event instances and the REDCap server itself.",
+            default = 5000)
+
         @click.option("--log-output/--no-output",
             help        = "Write the output FHIR documents to stdout. You will likely want to redirect this to a file",
             default     = False)
@@ -96,7 +104,7 @@ def command_for_project(name: str,
         @with_database_session
         @wraps(routine)
 
-        def decorated(*args, db: DatabaseSession, log_output: bool, **kwargs):
+        def decorated(*args, db: DatabaseSession, log_output: bool, fetch_batch_size: int, **kwargs):
             LOG.debug(f"Starting the REDCap DET ETL routine {name}, revision {revision}")
 
             # If the correct environment variables aren't defined, this will
@@ -163,15 +171,21 @@ def command_for_project(name: str,
                 project = Project(api_url, api_token, project_id)
                 record_ids = list(first_complete_dets.keys())
 
-                LOG.info(f"Fetching {len(record_ids)} REDCap records from project {project.id}")
+                LOG.info(f"Fetching {len(record_ids):,} REDCap records from project {project.id}")
 
                 # Convert list of REDCap records to a dict so that
                 # records can be looked up by record id.
                 # Records with repeating instruments or longitudinal
                 # events will have multiple entries in the list.
                 redcap_records: DefaultDict[str, List[dict]] = defaultdict(list)
-                for record in project.records(ids = record_ids, raw = raw_coded_values):
-                    redcap_records[record.id].append(record)
+
+                batches = list(chunked(record_ids, fetch_batch_size))
+
+                for i, batch in enumerate(batches, 1):
+                    LOG.info(f"Fetching REDCap record batch {i:,}/{len(batches):,} of size {len(batch):,}")
+
+                    for record in project.records(ids = batch, raw = raw_coded_values):
+                        redcap_records[record.id].append(record)
 
             # Process all DETs in order of redcap_det_id
             with pickled_cache(CACHE_FILE) as cache:
