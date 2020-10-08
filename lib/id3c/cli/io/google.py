@@ -82,7 +82,7 @@ def extract_document_id_from_google_url(url_str: str) -> Optional[str]:
 
     return google_docs_matches["document_id"] if google_docs_matches else None
 
-def get_document_details(document_id) -> dict:
+def get_document_details(document_id: str) -> dict:
     """
     Returns a set of metadata details about a Google Drive document.
     """
