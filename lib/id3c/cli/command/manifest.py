@@ -28,7 +28,7 @@ from os.path import dirname
 from typing import Iterable, List, Optional, Tuple, Union
 from id3c.cli import cli
 from id3c.cli.io import LocalOrRemoteFile, urlopen
-from id3c.cli.io.google import export_file_from_google_drive, extract_document_id_from_google_url, GoogleDriveExportFormat
+from id3c.cli.io.google import *
 from id3c.cli.io.pandas import read_excel
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json, Json
@@ -271,6 +271,9 @@ def _parse(*,
     assert len(disallowed_extra_columns) == 0, \
         f"A reserved column name has been configured in extra_columns: {disallowed_extra_columns}"
 
+    # Used to capture internal provenance metadata for data tracing
+    digest = None
+
     # Determine if the workbook URL is for a Google Document and if so
     # retrieve the Google Sheets file as an Excel spreadsheet. Otherwise,
     # retrieve it using urlopen.
@@ -280,11 +283,14 @@ def _parse(*,
         LOG.debug(f"Reading Google Sheets document «{workbook}»")
         with export_file_from_google_drive(google_docs_document_id, GoogleDriveExportFormat.EXCEL) as file:
             workbook_bytes = file.read()
+        document_details = get_document_details(google_docs_document_id)
+        digest = sha1(document_details['etag'].encode()).hexdigest()
 
     else:
         LOG.debug(f"Reading Excel workbook «{workbook}»")
         with urlopen(workbook, "rb") as file:
             workbook_bytes = file.read()
+        digest = sha1(workbook_bytes).hexdigest()
 
     LOG.debug(f"Parsing sheet «{sheet}» in workbook «{workbook}»")
 
@@ -358,9 +364,6 @@ def _parse(*,
     # Add sample type for kit related samples
     if sample_type:
         parsed_manifest["sample_type"] = sample_type
-
-    # Add internal provenance metadata for data tracing
-    digest = sha1(workbook_bytes).hexdigest()
 
     parsed_manifest[PROVENANCE_KEY] = list(
         map(lambda index: {

@@ -81,3 +81,15 @@ def extract_document_id_from_google_url(url_str: str) -> Optional[str]:
     google_docs_matches = re.match(google_docs_pattern, url.path)
 
     return google_docs_matches["document_id"] if google_docs_matches else None
+
+def get_document_details(document_id: str) -> dict:
+    """
+    Returns a set of metadata details about a Google Drive document.
+    """
+    drive_service = discovery.build("drive", "v2")
+    metadata = drive_service.files().get(fileId=document_id).execute()
+
+    details = {'version': metadata['version'], 'etag': metadata['etag'], 'modified_date': metadata['modifiedDate'],
+        'modifiying_user': metadata['lastModifyingUserName']}
+
+    return details
