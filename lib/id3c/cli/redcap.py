@@ -255,28 +255,43 @@ class Record(dict):
     the ``project`` attribute and used to set the ``id`` attribute storing the
     record's primary id.
 
-    Note that the ``event_name`` and ``repeat_instance`` attributes might not
-    be populated because their corresponding fields (``redcap_event_name`` and
-    ``redcap_repeat_instance``) won't be returned by the API if the request
+    Note that the ``event_name``, ``repeat_instance``, and ``repeat_instrument``
+    attributes might not be populated because their corresponding fields
+    (``redcap_event_name``, ``redcap_repeat_instance``, and
+    ``redcap_repeat_instrument``) won't be returned by the API if the request
     includes the ``fields`` parameter but not the primary record id field.
     """
     project: Project
-    id: str
     event_name: Optional[str]
     repeat_instance: Optional[int]
+    repeat_instrument: Optional[str]
 
     def __init__(self, project: Project, data: Any = {}) -> None:
         super().__init__(data)
         self.project = project
-        self.id = self[self.project.record_id_field]
 
         # These field names are not variable across REDCap projects
         self.event_name = self.get("redcap_event_name")
+        self.repeat_instrument = self.get("redcap_repeat_instrument")
 
         if self.get("redcap_repeat_instance"):
             self.repeat_instance = int(self["redcap_repeat_instance"])
         else:
             self.repeat_instance = None
+
+
+    @property
+    def id(self) -> str:
+        """
+        Returns the record's primary id.
+
+        Raises a :py:class:`RuntimeError` if the primary id field is not available,
+        usually because it was not requested from the API.
+        """
+        try:
+            return self[self.project.record_id_field]
+        except KeyError as e:
+            raise RuntimeError(f"Primary record id field «{self.project.record_id_field}» not available on fetched record") from e
 
 
 class InstrumentStatus(Enum):
