@@ -248,6 +248,12 @@ class CollectionsUWHomeLayout(LabelLayout):
     copies_per_barcode = 2
     reference = "seattleflu.org"
 
+class CollectionsChildcareLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'CHILDCARE'
+    copies_per_barcode = 1
+    reference = "seattleflu.org"
+
 
 LAYOUTS = {
     "samples": SamplesLayout,
@@ -272,6 +278,7 @@ LAYOUTS = {
     "collections-haarvi": CollectionsHaarviLayout,
     'collections-uw-observed': CollectionsUWObservedLayout,
     'collections-uw-home': CollectionsUWHomeLayout,
+    'collections-childcare': CollectionsChildcareLayout,
 }
 
 
