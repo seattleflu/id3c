@@ -7,7 +7,7 @@ import requests
 from enum import Enum
 from functools import lru_cache
 from operator import itemgetter
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 LOG = logging.getLogger(__name__)
@@ -257,11 +257,21 @@ class Record(dict):
     """
     project: Project
     id: str
+    event_name: Optional[str]
+    repeat_instance: Optional[int]
 
     def __init__(self, project: Project, data: Any = {}) -> None:
         super().__init__(data)
         self.project = project
         self.id = self[self.project.record_id_field]
+
+        # These field names are not variable across REDCap projects
+        self.event_name = self.get("redcap_event_name")
+
+        if self.get("redcap_repeat_instance"):
+            self.repeat_instance = int(self["redcap_repeat_instance"])
+        else:
+            self.repeat_instance = None
 
 
 class InstrumentStatus(Enum):
