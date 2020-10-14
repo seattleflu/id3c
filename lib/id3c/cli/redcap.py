@@ -254,6 +254,11 @@ class Record(dict):
     Must be constructed with a REDCap :py:class:``Project``, which is stored as
     the ``project`` attribute and used to set the ``id`` attribute storing the
     record's primary id.
+
+    Note that event_name and repeat_instance might not be populated because their
+    corresponding fields (redcap_event_name and redcap_repeat_instance)
+    won't be returned by the API if the request includes the 'fields' parameter
+    but not the record_id field.
     """
     project: Project
     id: str
