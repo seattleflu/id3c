@@ -359,7 +359,7 @@ def _parse(*,
     barcode_columns = {dst for dst, src in column_map if src.get("barcode")}
 
     # Drop any rows that have duplicated barcodes
-    parsed_manifest = qc_barcodes(parsed_manifest, barcode_columns)
+    parsed_manifest = deduplicate_barcodes(parsed_manifest, barcode_columns)
 
     # Add sample type for kit related samples
     if sample_type:
@@ -487,10 +487,28 @@ def select_columns(table: pandas.DataFrame, name: str) -> pandas.DataFrame:
     return table[matches]
 
 
-def qc_barcodes(df: pandas.DataFrame, columns: Iterable) -> pandas.DataFrame:
+def deduplicate_barcodes(df: pandas.DataFrame, columns: Iterable) -> pandas.DataFrame:
     """
     Check all barcode columns for duplicates and drops records that have
     duplicated barcodes.
+
+    >>> deduplicate_barcodes(pandas.DataFrame([['aa', 'bb', 'foo'], ['aa', 'cc', 'bar']], \
+        columns=['sample', 'collection', 'other']), columns=['sample', 'collection'])
+    Empty DataFrame
+    Columns: [sample, collection, other]
+    Index: []
+
+    >>> deduplicate_barcodes(pandas.DataFrame([['aa', 'bb', 'foo'], ['aa', 'cc', 'bar']], \
+        columns=['sample', 'collection', 'other']), columns=['collection'])
+      sample collection other
+    0     aa         bb   foo
+    1     aa         cc   bar
+
+    >>> deduplicate_barcodes(pandas.DataFrame([['aa', 'bb', 'foo'], ['aa', 'cc', 'bar'], \
+        ['bb', 'aa', 'baz']], columns=['sample', 'collection', 'other']), \
+        columns=['sample', 'collection'])
+      sample collection other
+    2     bb         aa   baz
     """
     deduplicated = df
 
