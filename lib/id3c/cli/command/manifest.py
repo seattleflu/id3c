@@ -484,6 +484,8 @@ def perform_qc(sample_column: str, collection_column: str, barcode_columns: Set[
     """
     parsed_manifest = drop_missing_barcodes(sample_column, collection_column, parsed_manifest)
 
+    parsed_manifest = drop_missing_racks(parsed_manifest)
+
     # Drop any rows that have duplicated barcodes
     parsed_manifest = deduplicate_barcodes(parsed_manifest, barcode_columns)
     return parsed_manifest
@@ -575,6 +577,21 @@ def deduplicate_barcodes(df: pandas.DataFrame, columns: Iterable) -> pandas.Data
             deduplicated = deduplicated.loc[common_idx]
 
     return deduplicated
+
+
+def drop_missing_racks(parsed_manifest: pandas.DataFrame) -> pandas.DataFrame:
+    """
+    Drop rows with no rack information in a given *parsed_manifest*.
+    Rows without rack information are typically incomplete rows that will break
+    our ingest.
+
+    >>> drop_missing_racks(pandas.DataFrame([['aa', 'bb', [1, 2, None]], \
+        ['cc', 'dd', [None, None, None]]], columns=['sample', 'collection', 'racks']))
+      sample collection         racks
+    0     aa         bb  [1, 2, None]
+    """
+    racks_complete = parsed_manifest['racks'].apply(lambda cols: any(cols))
+    return parsed_manifest[racks_complete]
 
 
 def deephash(record):
