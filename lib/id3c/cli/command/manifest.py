@@ -25,7 +25,7 @@ from deepdiff import DeepHash
 from hashlib import sha1
 from os import chdir
 from os.path import dirname
-from typing import Iterable, List, Optional, Tuple, Union
+from typing import Iterable, List, Optional, Set, Tuple, Union
 from id3c.cli import cli
 from id3c.cli.io import LocalOrRemoteFile, urlopen
 from id3c.cli.io.google import *
@@ -345,13 +345,10 @@ def _parse(*,
         else:
             parsed_manifest[dst] = select_column(manifest, src["name"])
 
-    parsed_manifest = drop_missing_barcodes(sample_column, collection_column, parsed_manifest)
-
     # Set of columns names for barcodes
     barcode_columns = {dst for dst, src in column_map if src.get("barcode")}
 
-    # Drop any rows that have duplicated barcodes
-    parsed_manifest = deduplicate_barcodes(parsed_manifest, barcode_columns)
+    parsed_manifest = perform_qc(sample_column, collection_column, barcode_columns, parsed_manifest)
 
     # Add sample type for kit related samples
     if sample_type:
@@ -477,6 +474,19 @@ def select_columns(table: pandas.DataFrame, name: str) -> pandas.DataFrame:
 
     assert matches, f"No column name matching «{name}» found; column names are: {list(table.columns)}"
     return table[matches]
+
+
+def perform_qc(sample_column: str, collection_column: str, barcode_columns: Set[str],
+    parsed_manifest: pandas.DataFrame) -> pandas.DataFrame:
+    """
+    Perform quality control on the manifest data, dropping rows which violate
+    our standards for complete and accurate data.
+    """
+    parsed_manifest = drop_missing_barcodes(sample_column, collection_column, parsed_manifest)
+
+    # Drop any rows that have duplicated barcodes
+    parsed_manifest = deduplicate_barcodes(parsed_manifest, barcode_columns)
+    return parsed_manifest
 
 
 def drop_missing_barcodes(sample_column: str, collection_column: str,
