@@ -345,15 +345,7 @@ def _parse(*,
         else:
             parsed_manifest[dst] = select_column(manifest, src["name"])
 
-    # Drop rows that have no data for the sample_column and/or the collection_column, depending
-    # on which columns are configured. If both sample_column and collection_column are configured,
-    # drop rows if both columns don't have data.
-    if sample_column and collection_column:
-        parsed_manifest = parsed_manifest.dropna(subset = ["sample", "collection"], how='all')
-    elif sample_column:
-        parsed_manifest = parsed_manifest.dropna(subset = ["sample"])
-    elif collection_column:
-        parsed_manifest = parsed_manifest.dropna(subset = ["collection"])
+    parsed_manifest = drop_missing_barcodes(sample_column, collection_column, parsed_manifest)
 
     # Set of columns names for barcodes
     barcode_columns = {dst for dst, src in column_map if src.get("barcode")}
@@ -485,6 +477,48 @@ def select_columns(table: pandas.DataFrame, name: str) -> pandas.DataFrame:
 
     assert matches, f"No column name matching «{name}» found; column names are: {list(table.columns)}"
     return table[matches]
+
+
+def drop_missing_barcodes(sample_column: str, collection_column: str,
+    parsed_manifest: pandas.DataFrame) -> pandas.DataFrame:
+    """
+    Drop rows that have no data for the *sample_column* and/or the *collection_column*, depending
+    on which columns are configured. If both *sample_column* and *collection_column* are configured,
+    drop rows if both columns don't have data.
+
+    >>> drop_missing_barcodes(sample_column='sample', collection_column='collection', \
+        parsed_manifest=pandas.DataFrame([['aa', 'bb', 'foo'], [None, 'dd', 'bar'], \
+            ['ee', None, 'baz'], [None, None, 'fizz']], \
+        columns=['sample', 'collection', 'other']))
+      sample collection other
+    0     aa         bb   foo
+    1   None         dd   bar
+    2     ee       None   baz
+
+    >>> drop_missing_barcodes(sample_column='sample', collection_column=None, \
+        parsed_manifest=pandas.DataFrame([['aa', 'bb', 'foo'], [None, 'dd', 'bar'], \
+            ['ee', None, 'baz'], [None, None, 'fizz']], \
+        columns=['sample', 'collection', 'other']))
+      sample collection other
+    0     aa         bb   foo
+    2     ee       None   baz
+
+    >>> drop_missing_barcodes(sample_column=None, collection_column='collection', \
+        parsed_manifest=pandas.DataFrame([['aa', 'bb', 'foo'], [None, 'dd', 'bar'], \
+            ['ee', None, 'baz'], [None, None, 'fizz']], \
+        columns=['sample', 'collection', 'other']))
+      sample collection other
+    0     aa         bb   foo
+    1   None         dd   bar
+    """
+    if sample_column and collection_column:
+        parsed_manifest = parsed_manifest.dropna(subset = ["sample", "collection"], how='all')
+    elif sample_column:
+        parsed_manifest = parsed_manifest.dropna(subset = ["sample"])
+    elif collection_column:
+        parsed_manifest = parsed_manifest.dropna(subset = ["collection"])
+
+    return parsed_manifest
 
 
 def deduplicate_barcodes(df: pandas.DataFrame, columns: Iterable) -> pandas.DataFrame:
