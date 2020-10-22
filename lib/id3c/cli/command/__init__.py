@@ -40,14 +40,15 @@ class DatabaseSessionAction(enum.Enum):
     Enum representing the database session transaction action selected for a
     command decorated by :py:func:`.with_database_session`.
 
-    You will not need to use this class yourself.
+    You will not need to use this class unless you provide ``pass_action =
+    True`` to :py:func:`.with_database_session`.
     """
     DRY_RUN = "rollback"
     PROMPT  = "prompt"
     COMMIT  = "commit"
 
 
-def with_database_session(command):
+def with_database_session(command = None, *, pass_action: bool = False):
     """
     Decorator to provide database session and error handling for a *command*.
 
@@ -59,6 +60,23 @@ def with_database_session(command):
     transaction, possibly interactively.  Three new options are added to the
     *command* (``--dry-run``, ``--prompt``, and ``--commit``) to control this
     behaviour.
+
+    >>> @click.command
+    ... @with_database_session
+    ... def cmd(db: DatabaseSession):
+    ...     pass
+
+    If the optional, keyword-only argument *pass_action* is ``True``, then the
+    :py:class:`.DatabaseSessionAction` selected by the CLI options above is
+    passed as an additional ``action`` argument to the decorated *command*.
+
+    >>> @click.command
+    ... @with_database_session(pass_action = True)
+    ... def cmd(db: DatabaseSession, action: DatabaseSessionAction):
+    ...     pass
+
+    One example where this is useful is when the *command* accesses
+    non-database resources and wants to extend dry run mode to them as well.
     """
     def decorator(command):
         @click.option("--dry-run", "action",
@@ -78,10 +96,15 @@ def with_database_session(command):
         def decorated(*args, action, **kwargs):
             db = DatabaseSession()
 
+            kwargs["db"] = db
+
+            if pass_action:
+                kwargs["action"] = action
+
             processed_without_error = None
 
             try:
-                command(*args, **kwargs, db = db)
+                command(*args, **kwargs)
 
             except Exception as error:
                 processed_without_error = False
@@ -114,7 +137,7 @@ def with_database_session(command):
 
         return decorated
 
-    return decorator(command)
+    return decorator(command) if command else decorator
 
 
 @contextmanager
