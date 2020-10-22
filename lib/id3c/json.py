@@ -3,6 +3,7 @@ Standardized JSON conventions.
 """
 import json
 from datetime import datetime
+from typing import Iterable
 
 
 def as_json(value):
@@ -10,6 +11,21 @@ def as_json(value):
     Converts *value* to a JSON string using our custom :class:`JsonEncoder`.
     """
     return json.dumps(value, allow_nan = False, cls = JsonEncoder)
+
+
+def dump_ndjson(iterable: Iterable) -> None:
+    """
+    :func:`print` *iterable* as a set of newline-delimited JSON records.
+    """
+    for item in iterable:
+        print(as_json(item))
+
+
+def load_ndjson(file: Iterable[str]) -> Iterable:
+    """
+    Load newline-delimited JSON records from *file*.
+    """
+    yield from (json.loads(line) for line in file)
 
 
 class JsonEncoder(json.JSONEncoder):
