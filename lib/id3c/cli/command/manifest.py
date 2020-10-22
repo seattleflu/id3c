@@ -484,10 +484,11 @@ def perform_qc(sample_column: str, collection_column: str, barcode_columns: Set[
     """
     parsed_manifest = drop_missing_barcodes(sample_column, collection_column, parsed_manifest)
 
-    parsed_manifest = drop_missing_racks(parsed_manifest)
-
     # Drop any rows that have duplicated barcodes
     parsed_manifest = deduplicate_barcodes(parsed_manifest, barcode_columns)
+
+    parsed_manifest = drop_missing_racks(parsed_manifest)
+
     return parsed_manifest
 
 
