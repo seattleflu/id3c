@@ -117,10 +117,10 @@ def etl_manifest(*, db: DatabaseSession):
             collection_barcode = manifest_record.document.pop("collection", None)
             collection_identifier = find_identifier(db, collection_barcode) if collection_barcode else None
 
-            # Skip a record if it has no sample_identifier and no collection_identifier
-            if not sample_identifier and not collection_identifier:
-                LOG.warning(f"Skipping record «{manifest_record.id}» because it has neither a known sample "
-                + "identifier nor a collection identifier")
+            # Skip a record if it has no associated barcodes
+            if not sample_barcode and not collection_barcode:
+                LOG.warning(f"Skipping record «{manifest_record.id}» because it has neither a sample "
+                    "barcode nor a collection barcode")
                 mark_skipped(db, manifest_record.id)
                 continue
 
