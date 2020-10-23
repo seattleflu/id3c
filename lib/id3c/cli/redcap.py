@@ -30,17 +30,23 @@ class Project:
     *project_id* must match the project id returned in the metadata.  This is a
     safety check that the API token is for the intended project, since tokens
     determine the project accessed.
+
+    If the *dry_run* keyword-only argument is set to ``True``, then methods
+    which could modify data in REDCap will pretend to succeed but not actually
+    make API requests.  Read-only methods are unaffected and will return real
+    data.  Defaults to ``False``.
     """
     api_url: str
     api_token: str
     base_url: str
+    dry_run: bool
     _details: dict
     _instruments: List[str] = None
     _events: List[str] = None
     _fields: List[dict] = None
     _redcap_version: str = None
 
-    def __init__(self, url: str, project_id: int, arg3 = None, *, token: str = None) -> None:
+    def __init__(self, url: str, project_id: int, arg3 = None, *, token: str = None, dry_run: bool = False) -> None:
         # XXX TODO: Remove this and the associated "arg3" once we update all
         # existing callers to use the signature that takes only 2 positional
         # args + token as a keyword-only arg.
@@ -51,6 +57,7 @@ class Project:
         self.api_url, self.base_url = url_endpoints(url)
 
         self.api_token = token or api_token(url, project_id)
+        self.dry_run = bool(dry_run)
 
         # Check if project details match our expectations
         self._details = self._fetch("project")
@@ -250,10 +257,16 @@ class Project:
             'returnContent': 'count',
         }
 
-        result = self._fetch("record", parameters)
-
         expected_count = len(records)
-        updated_count  = int(result["count"])
+
+        if not self.dry_run:
+            LOG.debug(f"Updating {expected_count:,} REDCap records for {self}")
+            result = self._fetch("record", parameters)
+
+            updated_count = int(result["count"])
+        else:
+            LOG.debug(f"Pretending to update {expected_count:,} REDCap records for {self} (dry run)")
+            updated_count = expected_count
 
         assert expected_count == updated_count, \
             "Expected vs. actual records updated do not match: {expected_count:,} != {updated_count:,}"
