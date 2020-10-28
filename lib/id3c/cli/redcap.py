@@ -42,7 +42,7 @@ class Project:
         # Check if project details match our expectations
         self._details = self._fetch("project")
 
-        assert self.id == project_id, \
+        assert int(self.id) == int(project_id), \
             f"REDCap API token provided for project {project_id} is actually for project {self.id} ({self.title!r})!"
 
 
