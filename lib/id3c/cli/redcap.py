@@ -7,7 +7,8 @@ import requests
 from enum import Enum
 from functools import lru_cache
 from operator import itemgetter
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+from ..url import Url
 
 
 LOG = logging.getLogger(__name__)
@@ -17,10 +18,11 @@ class Project:
     """
     Interact with a REDCap project via the REDCap web API.
 
-    The constructor requires an *api_url* and *api_token* which must point to
-    REDCap's web API endpoint.  The third required parameter *project_id* must
-    match the project id returned by the API.  This is a sanity check that the
-    API token is for the intended project, since tokens are project-specific.
+    The constructor requires a *url*, which must point to REDCap's web API
+    endpoint or base URL, and *api_token*.  The third required parameter
+    *project_id* must match the project id returned by the API.  This is a
+    sanity check that the API token is for the intended project, since tokens
+    are project-specific.
     """
     api_url: str
     api_token: str
@@ -31,13 +33,10 @@ class Project:
     _fields: List[dict] = None
     _redcap_version: str = None
 
-    def __init__(self, api_url: str, api_token: str, project_id: int) -> None:
-        self.api_url = api_url
-        self.api_token = api_token
+    def __init__(self, url: str, api_token: str, project_id: int) -> None:
+        self.api_url, self.base_url = url_endpoints(url)
 
-        # Assuming that the base url for a REDCap instance is just removing the
-        # trailing 'api' from the API URL
-        self.base_url = re.sub(r'api/?$', '', api_url)
+        self.api_token = api_token
 
         # Check if project details match our expectations
         self._details = self._fetch("project")
@@ -337,3 +336,40 @@ def is_complete(instrument: str, data: dict) -> bool:
         InstrumentStatus.Complete.value,
         str(InstrumentStatus.Complete.value)
     }
+
+
+def url_endpoints(url) -> Tuple[str, str]:
+    """
+    Returns a tuple of ``(api_url, base_url)`` based on the given REDCap
+    instance *url*.
+
+    *url* may be either the API endpoint or the base path of the REDCap
+    instance.
+
+    >>> url_endpoints("https://redcap.iths.org/")
+    ('https://redcap.iths.org/api/', 'https://redcap.iths.org/')
+
+    >>> url_endpoints("https://redcap.iths.org/api/")
+    ('https://redcap.iths.org/api/', 'https://redcap.iths.org/')
+
+    >>> url_endpoints("https://example.org/redcap/")
+    ('https://example.org/redcap/api/', 'https://example.org/redcap/')
+
+    >>> url_endpoints(url_endpoints("https://redcap.iths.org/api/")[1])
+    ('https://redcap.iths.org/api/', 'https://redcap.iths.org/')
+
+    Assumes that the API endpoint is always at ``…/api/`` under the REDCap
+    instance's base URL and vice versa.  This appears to be true for all the
+    instances inspected (redcap.iths.org, redcap.fhcrc.org,
+    redcapdemo.vanderbilt.edu).
+    """
+    url = Url(url)
+
+    if re.search(r'(?<=/)api/?$', url.path):
+        api_url  = str(url)
+        base_url = str(url.parent)
+    else:
+        api_url  = str(url / "api/")
+        base_url = str(url)
+
+    return api_url, base_url
