@@ -2,6 +2,7 @@
 Minimal library for interacting with REDCap's web API.
 """
 import logging
+import os
 import re
 import requests
 from enum import Enum
@@ -19,10 +20,15 @@ class Project:
     Interact with a REDCap project via the REDCap web API.
 
     The constructor requires a *url*, which must point to REDCap's web API
-    endpoint or base URL, and *api_token*.  The third required parameter
-    *project_id* must match the project id returned by the API.  This is a
-    sanity check that the API token is for the intended project, since tokens
-    are project-specific.
+    endpoint or base URL, and *project_id*.  These will be used to find an API
+    token in the environment via :py:func:`.api_token`.  Alternatively, provide
+    the keyword-only argument, *token*, to explicitly specify an API token to
+    use.
+
+    During initialization, project metadata is fetched via the API.  The given
+    *project_id* must match the project id returned in the metadata.  This is a
+    safety check that the API token is for the intended project, since tokens
+    determine the project accessed.
     """
     api_url: str
     api_token: str
@@ -33,10 +39,17 @@ class Project:
     _fields: List[dict] = None
     _redcap_version: str = None
 
-    def __init__(self, url: str, api_token: str, project_id: int) -> None:
+    def __init__(self, url: str, project_id: int, arg3 = None, *, token: str = None) -> None:
+        # XXX TODO: Remove this and the associated "arg3" once we update all
+        # existing callers to use the signature that takes only 2 positional
+        # args + token as a keyword-only arg.
+        #   -trs, 28 Oct 2020
+        if arg3:
+            token, project_id = project_id, arg3 # type: ignore
+
         self.api_url, self.base_url = url_endpoints(url)
 
-        self.api_token = api_token
+        self.api_token = token or api_token(url, project_id)
 
         # Check if project details match our expectations
         self._details = self._fetch("project")
@@ -237,14 +250,14 @@ class Project:
 
 
 @lru_cache()
-def CachedProject(api_url: str, api_token: str, project_id: int) -> Project:
+def CachedProject(api_url: str, project_id: int, *, token: str = None) -> Project:
     """
     Memoized constructor for a :class:`Project`.
 
     Useful when loading projects dynamically, e.g. from REDCap DET
     notifications, to avoid the initial fetch of project details every time.
     """
-    return Project(api_url, api_token, project_id)
+    return Project(api_url, project_id, token = token)
 
 
 class Record(dict):
@@ -336,6 +349,77 @@ def is_complete(instrument: str, data: dict) -> bool:
         InstrumentStatus.Complete.value,
         str(InstrumentStatus.Complete.value)
     }
+
+
+def api_token(url: str, project_id: int) -> str:
+    """
+    Obtain an API token from the environment for the given REDCap *url* and
+    *project_id*.
+
+    The environment variable name is constructed using the *url* and
+    *project_id*; see the examples below.
+
+    Raises a :py:exc:`ValueError` if the environment variable is missing or has
+    no value.
+
+    >>> os.environ.update({
+    ...     "REDCAP_API_TOKEN_redcap.iths.org_12345": "secret 1",
+    ...     "REDCAP_API_TOKEN_example.com-redcap_67890": "secret 2",
+    ...     "REDCAP_API_TOKEN_example.com:8080-redcap_67890": "secret 3",
+    ...     "REDCAP_API_TOKEN_example.com_67890": "",
+    ... })
+
+    >>> api_token("https://redcap.iths.org/api/", 12345)
+    'secret 1'
+    >>> api_token("https://redcap.iths.org", 12345)
+    'secret 1'
+
+    >>> api_token("https://example.com/redcap/", 67890)
+    'secret 2'
+
+    >>> api_token("https://example.com:8080/redcap/", 67890)
+    'secret 3'
+
+    >>> api_token("https://example.com", 12345)
+    Traceback (most recent call last):
+        ...
+    ValueError: No REDCap API token available for https://example.com project 12345: environment variable «REDCAP_API_TOKEN_example.com_12345» is missing
+
+    >>> api_token("https://example.com", 67890)
+    Traceback (most recent call last):
+        ...
+    ValueError: No REDCap API token available for https://example.com project 67890: environment variable «REDCAP_API_TOKEN_example.com_67890» has no value
+
+    There is a slight risk of collision where two distinct URLs will map to the
+    same token name, e.g.::
+
+        a-b.com/c/d → a-b.com-c-d
+        a/b.com/c/d → a-b.com-c-d
+
+    But the risk of this manifesting in practice seems very low.  It could be
+    mitigated in the future with a more aggressive (but less human-readable)
+    encoding scheme like URI escaping or even Base64.
+    """
+    base_url = Url(url_endpoints(url)[1])
+
+    if base_url.port:
+        origin = f"{base_url.hostname}:{base_url.port}"
+    else:
+        origin = base_url.hostname
+
+    hyphenated_path = base_url.path.rstrip("/").replace("/", "-")
+
+    token_name = f"REDCAP_API_TOKEN_{origin}{hyphenated_path}_{project_id}"
+
+    try:
+        token = os.environ[token_name]
+    except KeyError as e:
+        raise ValueError(f"No REDCap API token available for {base_url} project {project_id}: environment variable «{token_name}» is missing") from e
+
+    if not token:
+        raise ValueError(f"No REDCap API token available for {base_url} project {project_id}: environment variable «{token_name}» has no value")
+
+    return token
 
 
 def url_endpoints(url) -> Tuple[str, str]:

@@ -183,7 +183,7 @@ def command_for_project(name: str,
             else:
                 # Batch request records from REDCap
                 LOG.info(f"Fetching REDCap project {project_id}")
-                project = Project(api_url, api_token, project_id)
+                project = Project(api_url, project_id, token = api_token)
                 record_ids = list(first_complete_dets.keys())
 
                 LOG.info(f"Fetching {len(record_ids):,} REDCap records from project {project.id}")

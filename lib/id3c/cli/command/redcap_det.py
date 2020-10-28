@@ -94,7 +94,7 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
     api_token = os.environ[token]
     api_url = os.environ['REDCAP_API_URL']
 
-    project = Project(api_url, api_token, project_id)
+    project = Project(api_url, project_id, token = api_token)
 
     LOG.info(f"REDCap project #{project.id}: {project.title}")
 
