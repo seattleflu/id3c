@@ -1,6 +1,7 @@
 """
 Minimal library for interacting with REDCap's web API.
 """
+import json
 import logging
 import os
 import re
@@ -218,6 +219,50 @@ class Project:
         return [Record(self, r) for r in self._fetch("record", parameters)]
 
 
+    def update_records(self, records: List[Dict[str, str]]) -> int:
+        """
+        Update existing *records* in this REDCap project.
+
+        *records* must be an iterable of :py:class:``dict``s mapping REDCap
+        field names to values.  The primary record id field, at a minimum, must
+        be included.  Other pseudo-fields like ``redcap_event_name`` or
+        ``redcap_repeat_instance`` may be necessary.  All keys and values must
+        be strings.
+
+        Dates must be formatted as ``YYYY-MM-DD``.  Times are assumed to be in
+        the REDCap server's timezone.
+
+        Any value provided for a field, including the empty string, will
+        overwrite any existing value.
+
+        This method is not suitable for creating new records in projects that
+        use auto-numbered record ids.
+
+        Returns a count of the number of records updated, as reported by
+        REDCap.
+        """
+        parameters = {
+            'data': json.dumps(records),
+            'type': 'flat',
+            'overwriteBehavior': 'overwrite',
+            'forceAutoNumber': 'false',
+            'dateFormat': 'YMD',
+            'returnContent': 'count',
+        }
+
+        result = self._fetch("record", parameters)
+
+        expected_count = len(records)
+        updated_count  = int(result["count"])
+
+        assert expected_count == updated_count, \
+            "Expected vs. actual records updated do not match: {expected_count:,} != {updated_count:,}"
+
+        LOG.debug(f"Updated {updated_count:,} REDCap records for {self}")
+
+        return updated_count
+
+
     def _fetch(self, content: str, parameters: Dict[str, str] = {}, *, format: str = "json") -> Any:
         """
         Fetch REDCap *content* with a POST request to the REDCap API.
@@ -225,7 +270,7 @@ class Project:
         Consult REDCap API documentation for required and optional parameters
         to include in API request.
         """
-        LOG.debug(f"Fetching content={content} from REDCap with params {parameters}")
+        LOG.debug(f"Requesting content={content} from REDCap with params {parameters}")
 
         headers = {
             'Content-type': 'application/x-www-form-urlencoded',
