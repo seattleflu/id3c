@@ -233,6 +233,10 @@ class Project:
         return response.json() if format == "json" else response.text
 
 
+    def __repr__(self) -> str:
+        return f"<{self.__module__}.{type(self).__name__} object: api_url={self.api_url!r} project_id={self.id!r}>"
+
+
 @lru_cache()
 def CachedProject(api_url: str, api_token: str, project_id: int) -> Project:
     """
