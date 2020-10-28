@@ -60,58 +60,61 @@ def with_database_session(command):
     *command* (``--dry-run``, ``--prompt``, and ``--commit``) to control this
     behaviour.
     """
-    @click.option("--dry-run", "action",
-        help        = "Only go through the motions of changing the database (default)",
-        flag_value  = DatabaseSessionAction("rollback"),
-        default     = True)
+    def decorator(command):
+        @click.option("--dry-run", "action",
+            help        = "Only go through the motions of changing the database (default)",
+            flag_value  = DatabaseSessionAction("rollback"),
+            default     = True)
 
-    @click.option("--prompt", "action",
-        help        = "Ask if changes to the database should be saved",
-        flag_value  = DatabaseSessionAction("prompt"))
+        @click.option("--prompt", "action",
+            help        = "Ask if changes to the database should be saved",
+            flag_value  = DatabaseSessionAction("prompt"))
 
-    @click.option("--commit", "action",
-        help        = "Save changes to the database",
-        flag_value  = DatabaseSessionAction("commit"))
+        @click.option("--commit", "action",
+            help        = "Save changes to the database",
+            flag_value  = DatabaseSessionAction("commit"))
 
-    @wraps(command)
-    def decorated(*args, action, **kwargs):
-        db = DatabaseSession()
+        @wraps(command)
+        def decorated(*args, action, **kwargs):
+            db = DatabaseSession()
 
-        processed_without_error = None
+            processed_without_error = None
 
-        try:
-            command(*args, **kwargs, db = db)
+            try:
+                command(*args, **kwargs, db = db)
 
-        except Exception as error:
-            processed_without_error = False
+            except Exception as error:
+                processed_without_error = False
 
-            LOG.error(f"Aborting with error: {error}")
-            raise error from None
-
-        else:
-            processed_without_error = True
-
-        finally:
-            if action is DatabaseSessionAction.PROMPT:
-                ask_to_commit = \
-                    "Commit all changes?" if processed_without_error else \
-                    "Commit successfully processed records up to this point?"
-
-                commit = click.confirm(ask_to_commit)
-            else:
-                commit = action is DatabaseSessionAction.COMMIT
-
-            if commit:
-                LOG.info(
-                    "Committing all changes" if processed_without_error else \
-                    "Committing successfully processed records up to this point")
-                db.commit()
+                LOG.error(f"Aborting with error: {error}")
+                raise error from None
 
             else:
-                LOG.info("Rolling back all changes; the database will not be modified")
-                db.rollback()
+                processed_without_error = True
 
-    return decorated
+            finally:
+                if action is DatabaseSessionAction.PROMPT:
+                    ask_to_commit = \
+                        "Commit all changes?" if processed_without_error else \
+                        "Commit successfully processed records up to this point?"
+
+                    commit = click.confirm(ask_to_commit)
+                else:
+                    commit = action is DatabaseSessionAction.COMMIT
+
+                if commit:
+                    LOG.info(
+                        "Committing all changes" if processed_without_error else \
+                        "Committing successfully processed records up to this point")
+                    db.commit()
+
+                else:
+                    LOG.info("Rolling back all changes; the database will not be modified")
+                    db.rollback()
+
+        return decorated
+
+    return decorator(command)
 
 
 @contextmanager
