@@ -2,8 +2,9 @@
 Commands for the database CLI.
 """
 import click
-import pickle
+import enum
 import logging
+import pickle
 from functools import wraps
 from typing import Optional
 from cachetools import TTLCache
@@ -33,6 +34,19 @@ CACHE_TTL = 60 * 60 * 24 * 365  # 1 year
 CACHE_SIZE = float("inf")       # Unlimited
 
 
+@enum.unique
+class DatabaseSessionAction(enum.Enum):
+    """
+    Enum representing the database session transaction action selected for a
+    command decorated by :py:func:`.with_database_session`.
+
+    You will not need to use this class yourself.
+    """
+    DRY_RUN = "rollback"
+    PROMPT  = "prompt"
+    COMMIT  = "commit"
+
+
 def with_database_session(command):
     """
     Decorator to provide database session and error handling for a *command*.
@@ -48,16 +62,16 @@ def with_database_session(command):
     """
     @click.option("--dry-run", "action",
         help        = "Only go through the motions of changing the database (default)",
-        flag_value  = "rollback",
+        flag_value  = DatabaseSessionAction("rollback"),
         default     = True)
 
     @click.option("--prompt", "action",
         help        = "Ask if changes to the database should be saved",
-        flag_value  = "prompt")
+        flag_value  = DatabaseSessionAction("prompt"))
 
     @click.option("--commit", "action",
         help        = "Save changes to the database",
-        flag_value  = "commit")
+        flag_value  = DatabaseSessionAction("commit"))
 
     @wraps(command)
     def decorated(*args, action, **kwargs):
@@ -78,14 +92,14 @@ def with_database_session(command):
             processed_without_error = True
 
         finally:
-            if action == "prompt":
+            if action is DatabaseSessionAction.PROMPT:
                 ask_to_commit = \
                     "Commit all changes?" if processed_without_error else \
                     "Commit successfully processed records up to this point?"
 
                 commit = click.confirm(ask_to_commit)
             else:
-                commit = action == "commit"
+                commit = action is DatabaseSessionAction.COMMIT
 
             if commit:
                 LOG.info(
