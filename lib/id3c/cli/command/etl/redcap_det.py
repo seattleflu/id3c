@@ -89,9 +89,9 @@ def command_for_project(name: str,
     }
 
     def decorator(routine: Callable[..., Optional[dict]]) -> click.Command:
-        @click.option("--fetch-batch-size",
+        @click.option("--redcap-api-batch-size",
             metavar = "<number>",
-            help    = "Number of records to fetch in one batch from REDCap. "
+            help    = "Maximum number of records to fetch in one batch from REDCap. "
                       "Multiple batches will be fetched if there are more than this number of records to fetch. "
                       "The default (5,000) is somewhat arbitrary and what will or won't strain the REDCap API depends on both the number of repeating instrument/event instances and the REDCap server itself.",
             default = 5000)
@@ -104,7 +104,7 @@ def command_for_project(name: str,
         @with_database_session
         @wraps(routine)
 
-        def decorated(*args, db: DatabaseSession, log_output: bool, fetch_batch_size: int, **kwargs):
+        def decorated(*args, db: DatabaseSession, log_output: bool, redcap_api_batch_size: int, **kwargs):
             LOG.debug(f"Starting the REDCap DET ETL routine {name}, revision {revision}")
 
             # If the correct environment variables aren't defined, this will
@@ -179,7 +179,7 @@ def command_for_project(name: str,
                 # events will have multiple entries in the list.
                 redcap_records: DefaultDict[str, List[dict]] = defaultdict(list)
 
-                batches = list(chunked(record_ids, fetch_batch_size))
+                batches = list(chunked(record_ids, redcap_api_batch_size))
 
                 for i, batch in enumerate(batches, 1):
                     LOG.info(f"Fetching REDCap record batch {i:,}/{len(batches):,} of size {len(batch):,}")
