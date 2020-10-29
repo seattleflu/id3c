@@ -7,6 +7,7 @@ REDCap.
 import os
 import click
 import logging
+import psycopg2.sql as sql
 from collections import defaultdict
 from datetime import datetime, timezone
 from functools import wraps
@@ -89,9 +90,16 @@ def command_for_project(name: str,
     }
 
     def decorator(routine: Callable[..., Optional[dict]]) -> click.Command:
-        @click.option("--fetch-batch-size",
+        @click.option("--det-limit",
             metavar = "<number>",
-            help    = "Number of records to fetch in one batch from REDCap. "
+            help    = "Maximum number of received DETs to process in this invocation. "
+                      "If more unprocessed DETs exist, they will be processed on the next invocation of this ETL. "
+                      "Not limited by default.",
+            type    = int)
+
+        @click.option("--redcap-api-batch-size",
+            metavar = "<number>",
+            help    = "Maximum number of records to fetch in one batch from REDCap. "
                       "Multiple batches will be fetched if there are more than this number of records to fetch. "
                       "The default (5,000) is somewhat arbitrary and what will or won't strain the REDCap API depends on both the number of repeating instrument/event instances and the REDCap server itself.",
             default = 5000)
@@ -104,7 +112,7 @@ def command_for_project(name: str,
         @with_database_session
         @wraps(routine)
 
-        def decorated(*args, db: DatabaseSession, log_output: bool, fetch_batch_size: int, **kwargs):
+        def decorated(*args, db: DatabaseSession, log_output: bool, det_limit: int = None, redcap_api_batch_size: int, **kwargs):
             LOG.debug(f"Starting the REDCap DET ETL routine {name}, revision {revision}")
 
             # If the correct environment variables aren't defined, this will
@@ -113,15 +121,23 @@ def command_for_project(name: str,
             api_url = urljoin(redcap_url, "api/")
             api_token = get_redcap_api_token(api_url)
 
+            if det_limit:
+                LOG.debug(f"Processing up to {det_limit:,} pending DETs")
+                limit = sql.Literal(det_limit)
+            else:
+                LOG.debug(f"Processing all pending DETs")
+                limit = sql.SQL("all")
+
             redcap_det = db.cursor(f"redcap-det {name}")
-            redcap_det.execute("""
+            redcap_det.execute(sql.SQL("""
                 select redcap_det_id as id, document
                   from receiving.redcap_det
                  where not processing_log @> %s
                    and document::jsonb @> %s
                  order by id
+                 limit {}
                    for update
-                """, (Json([etl_id]), Json(det_contains)))
+                """).format(limit), (Json([etl_id]), Json(det_contains)))
 
             # First loop of the DETs to determine how to process each one.
             # Uses `first_complete_dets` to keep track of which DET to
@@ -179,7 +195,7 @@ def command_for_project(name: str,
                 # events will have multiple entries in the list.
                 redcap_records: DefaultDict[str, List[dict]] = defaultdict(list)
 
-                batches = list(chunked(record_ids, fetch_batch_size))
+                batches = list(chunked(record_ids, redcap_api_batch_size))
 
                 for i, batch in enumerate(batches, 1):
                     LOG.info(f"Fetching REDCap record batch {i:,}/{len(batches):,} of size {len(batch):,}")
