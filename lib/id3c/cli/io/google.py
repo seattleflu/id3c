@@ -89,7 +89,7 @@ def get_document_details(document_id: str) -> dict:
     drive_service = discovery.build("drive", "v2")
     metadata = drive_service.files().get(fileId=document_id).execute()
 
-    details = {'version': metadata['version'], 'etag': metadata['etag'], 'modified_date': metadata['modifiedDate'],
-        'modifiying_user': metadata['lastModifyingUserName']}
+    details = {'version': metadata.get('version'), 'etag': metadata.get('etag'), 'modified_date': metadata.get('modifiedDate'),
+        'modifiying_user': metadata.get('lastModifyingUserName')}
 
     return details
