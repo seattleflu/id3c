@@ -82,14 +82,11 @@ def extract_document_id_from_google_url(url_str: str) -> Optional[str]:
 
     return google_docs_matches["document_id"] if google_docs_matches else None
 
-def get_document_details(document_id: str) -> dict:
+def get_document_etag(document_id: str) -> str:
     """
-    Returns a set of metadata details about a Google Drive document.
+    Returns the etag of a Google Drive document.
     """
     drive_service = discovery.build("drive", "v2")
     metadata = drive_service.files().get(fileId=document_id).execute()
 
-    details = {'version': metadata.get('version'), 'etag': metadata.get('etag'), 'modified_date': metadata.get('modifiedDate'),
-        'modifiying_user': metadata.get('lastModifyingUserName')}
-
-    return details
+    return metadata["etag"]
