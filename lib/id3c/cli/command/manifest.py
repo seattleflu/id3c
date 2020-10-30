@@ -283,8 +283,8 @@ def _parse(*,
         LOG.debug(f"Reading Google Sheets document «{workbook}»")
         with export_file_from_google_drive(google_docs_document_id, GoogleDriveExportFormat.EXCEL) as file:
             workbook_bytes = file.read()
-        document_details = get_document_details(google_docs_document_id)
-        digest = sha1(document_details['etag'].encode()).hexdigest()
+        etag = get_document_etag(google_docs_document_id)
+        digest = sha1(etag.encode()).hexdigest()
 
     else:
         LOG.debug(f"Reading Excel workbook «{workbook}»")
