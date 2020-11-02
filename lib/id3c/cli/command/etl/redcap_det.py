@@ -102,6 +102,7 @@ def command_for_project(name: str,
         #   -trs, 19 Dec 2019
         @click.option("--geocoding-cache",
             metavar = "<cache.pickle>",
+            envvar = "GEOCODING_CACHE",
             help = "Local file for caching the results of address geocoding. Geocoding lookups will not be cached otherwise.",
             required = False,
             type = click.Path(dir_okay=False, writable=True))
