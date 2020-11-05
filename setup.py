@@ -75,7 +75,7 @@ setup(
         "pyyaml",
         "requests",
         "s3fs",
-        "smartystreets-python-sdk >= 4.0.1, != 4.7.0, < 4.8.0",
+        "smartystreets-python-sdk >= 4.0.1, != 4.7.0, != 4.8.0",
         "xlrd <=1.2.0",
 
         # We use pkg_resources, which (confusingly) is provided by setuptools.
