@@ -1,7 +1,6 @@
 """
 Database session creation and management.
 """
-import click
 import logging
 import os
 import psycopg2
@@ -12,6 +11,7 @@ from psycopg2.extras import NamedTupleCursor
 from psycopg2.sql import SQL, Identifier
 from typing import Any, Iterable, Iterator, Mapping, Tuple, Union
 from uuid import uuid4
+from ..cli.utils import running_command_name
 from ..utils import shorten
 
 
@@ -242,14 +242,6 @@ def fallback_application_name() -> str:
     #
     # ¹ https://www.postgresql.org/docs/current/runtime-config-logging.html#GUC-APPLICATION-NAME
     max_len = 64
-
-    appname = None
-    context = click.get_current_context(silent = True)
-
-    if context:
-        appname = context.command_path
-
-    if not appname:
-        appname = "id3c"
+    appname = running_command_name()
 
     return shorten(appname, max_len, "...")
