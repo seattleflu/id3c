@@ -539,6 +539,18 @@ def det(project: Project, record: dict, instrument: str, generated_by: str = Non
     if not generated_by:
         generated_by = running_command_name()
 
+    # Intentionally access only dictionary keys on *record*, not Record
+    # attributes, so that *record* is not required to be a Record.  For
+    # example, this why the code below still uses
+    #
+    #     record[project.record_id_field]
+    #
+    # instead of
+    #
+    #     record.id
+    #
+    # -trs, 5 Nov 2020
+
     det_record = {
        'redcap_url': project.base_url,
        'project_id': str(project.id),                   # REDCap DETs send project_id as a string
