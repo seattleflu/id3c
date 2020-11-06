@@ -16,7 +16,7 @@ import click
 import logging
 from typing import List
 from id3c.cli import cli
-from id3c.cli.redcap import Project, is_complete
+from id3c.cli.redcap import Project, is_complete, det
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json
 
@@ -137,7 +137,7 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
     for record in records:
         for instrument in instruments:
             if include_incomplete or is_complete(instrument, record):
-                print(as_json(create_det_records(project, record, instrument)))
+                print(as_json(det(project, record, instrument)))
 
 
 def assert_known_attribute_value(project: Project, attribute: str, values: List[str], option: str=None):
@@ -163,41 +163,6 @@ def assert_known_attribute_value(project: Project, attribute: str, values: List[
 
     assert not unknown_values, \
         f"The following --{option} names aren't in the REDCap project: {unknown_values}"
-
-
-def create_det_records(project: Project, record: dict, instrument: str) -> dict:
-    """
-    Create a "fake" DET notification that mimics the format of REDCap DETs:
-
-    \b
-    {
-        'redcap_url',
-        'project_id',
-        'record',
-        'instrument',
-        '<instrument>_complete',
-        'redcap_event_name',      // for longitudinal projects only
-        'redcap_repeat_instance',
-        'redcap_repeat_instrument',
-    }
-    """
-    instrument_complete = instrument + '_complete'
-
-    det_record = {
-       'redcap_url': project.base_url,
-       'project_id': str(project.id),                   # REDCap DETs send project_id as a string
-       'record': str(record[project.record_id_field]),  # ...and record as well.
-       'instrument': instrument,
-       instrument_complete: record[instrument_complete],
-       'redcap_repeat_instance': record.get('redcap_repeat_instance'),
-       'redcap_repeat_instrument': record.get('redcap_repeat_instrument'),
-       '__generated_by__': 'id3c',
-    }
-
-    if 'redcap_event_name' in record:
-        det_record['redcap_event_name'] = record['redcap_event_name']
-
-    return det_record
 
 
 @redcap_det.command("upload")

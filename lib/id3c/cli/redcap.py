@@ -515,3 +515,38 @@ def url_endpoints(url) -> Tuple[str, str]:
         base_url = str(url)
 
     return api_url, base_url
+
+
+def det(project: Project, record: dict, instrument: str) -> dict:
+    """
+    Create a "fake" DET notification that mimics the format of REDCap DETs:
+
+    \b
+    {
+        'redcap_url',
+        'project_id',
+        'record',
+        'instrument',
+        '<instrument>_complete',
+        'redcap_event_name',      // for longitudinal projects only
+        'redcap_repeat_instance',
+        'redcap_repeat_instrument',
+    }
+    """
+    instrument_complete = instrument + '_complete'
+
+    det_record = {
+       'redcap_url': project.base_url,
+       'project_id': str(project.id),                   # REDCap DETs send project_id as a string
+       'record': str(record[project.record_id_field]),  # ...and record as well.
+       'instrument': instrument,
+       instrument_complete: record[instrument_complete],
+       'redcap_repeat_instance': record.get('redcap_repeat_instance'),
+       'redcap_repeat_instrument': record.get('redcap_repeat_instrument'),
+       '__generated_by__': 'id3c',
+    }
+
+    if 'redcap_event_name' in record:
+        det_record['redcap_event_name'] = record['redcap_event_name']
+
+    return det_record
