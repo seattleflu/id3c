@@ -10,6 +10,7 @@ from enum import Enum
 from functools import lru_cache
 from operator import itemgetter
 from typing import Any, Dict, List, Optional, Tuple
+from .utils import running_command_name
 from ..url import Url
 
 
@@ -517,7 +518,7 @@ def url_endpoints(url) -> Tuple[str, str]:
     return api_url, base_url
 
 
-def det(project: Project, record: dict, instrument: str) -> dict:
+def det(project: Project, record: dict, instrument: str, generated_by: str = None) -> dict:
     """
     Create a "fake" DET notification that mimics the format of REDCap DETs:
 
@@ -535,6 +536,9 @@ def det(project: Project, record: dict, instrument: str) -> dict:
     """
     instrument_complete = instrument + '_complete'
 
+    if not generated_by:
+        generated_by = running_command_name()
+
     det_record = {
        'redcap_url': project.base_url,
        'project_id': str(project.id),                   # REDCap DETs send project_id as a string
@@ -543,7 +547,7 @@ def det(project: Project, record: dict, instrument: str) -> dict:
        instrument_complete: record[instrument_complete],
        'redcap_repeat_instance': record.get('redcap_repeat_instance'),
        'redcap_repeat_instrument': record.get('redcap_repeat_instrument'),
-       '__generated_by__': 'id3c',
+       '__generated_by__': generated_by,
     }
 
     if 'redcap_event_name' in record:
