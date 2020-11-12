@@ -3,6 +3,7 @@ Database interfaces
 """
 import logging
 import secrets
+from datetime import datetime
 from psycopg2 import IntegrityError
 from psycopg2.errors import ExclusionViolation
 from psycopg2.sql import SQL, Identifier
@@ -71,6 +72,8 @@ def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
         LOG.error(f"Identifier set «{name}» does not exist")
         raise IdentifierSetNotFoundError(name)
 
+    started = datetime.now()
+
     while len(minted) < n:
         m = len(minted) + 1
 
@@ -99,9 +102,13 @@ def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
             else:
                 LOG.debug("Retrying")
 
+    duration = datetime.now() - started
+    per_second = n / duration.total_seconds()
+    per_identifier = duration.total_seconds() / n
+
     failure_counts = list(failures.values())
 
-    LOG.info(f"Minted {n} identifiers in {n + sum(failure_counts)} tries ({sum(failure_counts)} retries)")
+    LOG.info(f"Minted {n} identifiers in {n + sum(failure_counts)} tries ({sum(failure_counts)} retries) over {duration} ({per_identifier:.2f} s/identifier = {per_second:.2f} identifiers/s)")
 
     if failure_counts:
         LOG.info(f"Failure distribution: max={max(failure_counts)} mode={mode(failure_counts)} median={median(failure_counts)}")
