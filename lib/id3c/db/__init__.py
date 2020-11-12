@@ -3,11 +3,12 @@ Database interfaces
 """
 import logging
 import secrets
+import statistics
 from datetime import datetime
 from psycopg2 import IntegrityError
 from psycopg2.errors import ExclusionViolation
 from psycopg2.sql import SQL, Identifier
-from statistics import median, mode
+from statistics import median, StatisticsError
 from typing import Any, Dict, Iterable, List, NamedTuple, Optional
 from .types import IdentifierRecord
 from .session import DatabaseSession
@@ -201,3 +202,19 @@ def sqlf(sql, *args, **kwargs):
     supported by using placeholders in the call to ``execute()``.
     """
     return SQL(sql).format(*args, **kwargs)
+
+
+def mode(values):
+    """
+    Wraps :py:func:`statistics.mode` or :py:func:`statistics.multimode`, if
+    available, to do the right thing regardless of the Python version.
+
+    Returns ``None`` if the underlying functions raise a
+    :py:exc:`~statistics.StatisticsError`.
+    """
+    mode_ = getattr(statistics, "multimode", statistics.mode)
+
+    try:
+        return mode_(values)
+    except StatisticsError:
+        return None
