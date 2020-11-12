@@ -32,7 +32,7 @@ create or replace function warehouse.identifier_barcode_distance_check() returns
         select barcode into conflicting_barcode from (
             select barcode
               from warehouse.identifier
-             where hamming_distance(lower(barcode), new_barcode) < minimum_distance
+             where hamming_distance_lte(lower(barcode), new_barcode, minimum_distance-1) < minimum_distance
             except
             select old_barcode
              limit 1
