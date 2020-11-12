@@ -60,45 +60,44 @@ def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
     # stochastically.
     max_consecutive_failures = 15
 
-    with session:
-        # Lookup identifier set by name
-        identifier_set = session.fetch_row("""
-            select identifier_set_id as id
-              from warehouse.identifier_set
-             where name = %s
-            """, (name,))
+    # Lookup identifier set by name
+    identifier_set = session.fetch_row("""
+        select identifier_set_id as id
+          from warehouse.identifier_set
+         where name = %s
+        """, (name,))
 
-        if not identifier_set:
-            LOG.error(f"Identifier set «{name}» does not exist")
-            raise IdentifierSetNotFoundError(name)
+    if not identifier_set:
+        LOG.error(f"Identifier set «{name}» does not exist")
+        raise IdentifierSetNotFoundError(name)
 
-        while len(minted) < n:
-            m = len(minted) + 1
+    while len(minted) < n:
+        m = len(minted) + 1
 
-            LOG.debug(f"Minting identifier {m}/{n}")
+        LOG.debug(f"Minting identifier {m}/{n}")
 
-            try:
-                with session.savepoint(f"identifier {m}"):
-                    new_identifier = session.fetch_row("""
-                        insert into warehouse.identifier (identifier_set_id, generated)
-                            values (%s, now())
-                            returning uuid, barcode, generated
-                        """,
-                        (identifier_set.id,))
+        try:
+            with session.savepoint(f"identifier {m}"):
+                new_identifier = session.fetch_row("""
+                    insert into warehouse.identifier (identifier_set_id, generated)
+                        values (%s, now())
+                        returning uuid, barcode, generated
+                    """,
+                    (identifier_set.id,))
 
-                    minted.append(new_identifier)
+                minted.append(new_identifier)
 
-            except ExclusionViolation:
-                LOG.debug("Barcode excluded")
+        except ExclusionViolation:
+            LOG.debug("Barcode excluded")
 
-                failures.setdefault(m, 0)
-                failures[m] += 1
+            failures.setdefault(m, 0)
+            failures[m] += 1
 
-                if failures[m] > max_consecutive_failures:
-                    LOG.error("Too many consecutive failures, aborting")
-                    raise TooManyFailuresError(failures[m])
-                else:
-                    LOG.debug("Retrying")
+            if failures[m] > max_consecutive_failures:
+                LOG.error("Too many consecutive failures, aborting")
+                raise TooManyFailuresError(failures[m])
+            else:
+                LOG.debug("Retrying")
 
     failure_counts = list(failures.values())
 
