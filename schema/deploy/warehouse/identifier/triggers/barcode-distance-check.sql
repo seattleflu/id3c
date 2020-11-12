@@ -15,8 +15,10 @@ create or replace function warehouse.identifier_barcode_distance_check() returns
         minimum_distance integer := 3;
         conflicting_barcode citext;
         old_barcode citext;
+        new_barcode text;
     begin
         old_barcode := case TG_OP when 'UPDATE' then OLD.barcode end;
+        new_barcode := lower(NEW.barcode);
 
         raise debug 'Checking new barcode "%" is at least % substitutions away from existing barcodes (except old barcode "%")',
             NEW.barcode, minimum_distance, old_barcode;
@@ -30,7 +32,7 @@ create or replace function warehouse.identifier_barcode_distance_check() returns
         select barcode into conflicting_barcode from (
             select barcode
               from warehouse.identifier
-             where hamming_distance_ci(barcode, NEW.barcode) < minimum_distance
+             where hamming_distance(lower(barcode), new_barcode) < minimum_distance
             except
             select old_barcode
              limit 1
