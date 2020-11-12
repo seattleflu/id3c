@@ -6,24 +6,22 @@ create temporary table tests (
     a text,
     b text,
     hamming_distance integer,
-    hamming_distance_ci integer,
-    threshold integer,
-    hamming_distance_lte integer
+    hamming_distance_ci integer
 );
 
 copy tests from stdin;
-abc	\N	\N	\N	\N	\N
-\N	abc	\N	\N	\N	\N
-\N	\N	\N	\N	\N	\N
-abc	abc	0	0	2	0
-abc	Abc	1	0	2	1
-abc	aBc	1	0	2	1
-abc	abC	1	0	2	1
-abc	ABc	2	0	0	1
-abc	aBC	2	0	2	2
-abc	ABC	3	0	1	2
-abc	xyz	3	3	2	3
-abc	XYZ	3	3	4	3
+abc	\N	\N	\N
+\N	abc	\N	\N
+\N	\N	\N	\N
+abc	abc	0	0
+abc	Abc	1	0
+abc	aBc	1	0
+abc	abC	1	0
+abc	ABc	2	0
+abc	aBC	2	0
+abc	ABC	3	0
+abc	xyz	3	3
+abc	XYZ	3	3
 \.
 
 do $$
@@ -40,11 +38,6 @@ do $$
                 raise exception 'hamming_distance_ci(%, %) returned %, expected %',
                     test.a, test.b, hamming_distance_ci(test.a, test.b), test.hamming_distance_ci;
             end if;
-
-            if test.hamming_distance_lte is distinct from hamming_distance_lte(test.a, test.b, test.threshold) then
-                raise exception 'hamming_distance_lte(%, %, %) returned %, expected %',
-                    test.a, test.b, test.threshold, hamming_distance_lte(test.a, test.b, test.threshold), test.hamming_distance_lte;
-            end if;
         end loop;
 
         begin
@@ -58,14 +51,6 @@ do $$
         begin
             perform hamming_distance_ci('looooooong', 'short');
             raise exception 'hamming_distance_ci() did not raise an error on mismatched string lengths';
-        exception
-            when data_exception then
-                null; -- expected!
-        end;
-
-        begin
-            perform hamming_distance_lte('looooooong', 'short', 100);
-            raise exception 'hamming_distance_lte() did not raise an error on mismatched string lengths';
         exception
             when data_exception then
                 null; -- expected!
