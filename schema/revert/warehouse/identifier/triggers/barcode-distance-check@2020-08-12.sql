@@ -8,17 +8,13 @@ begin;
 --
 --    cual-id create ids --existing-ids ...
 --
--- CAUTION ADVISED when changing implementation of this this function, as it
--- will run as the owner, not the current user.
 create or replace function warehouse.identifier_barcode_distance_check() returns trigger as $$
     declare
         minimum_distance integer := 3;
-        conflicting_barcode citext;
+        conflicting_barcodes citext[];
         old_barcode citext;
-        new_barcode text;
     begin
         old_barcode := case TG_OP when 'UPDATE' then OLD.barcode end;
-        new_barcode := lower(NEW.barcode);
 
         raise debug 'Checking new barcode "%" is at least % substitutions away from existing barcodes (except old barcode "%")',
             NEW.barcode, minimum_distance, old_barcode;
@@ -29,16 +25,15 @@ create or replace function warehouse.identifier_barcode_distance_check() returns
         -- identifier table but serializes other invocations of this function.
         lock table warehouse.identifier in exclusive mode;
 
-        select barcode into conflicting_barcode from (
+        select array_agg(barcode) into strict conflicting_barcodes from (
             select barcode
               from warehouse.identifier
-             where hamming_distance_lte(lower(barcode), new_barcode, minimum_distance-1) < minimum_distance
+             where hamming_distance_ci(barcode, NEW.barcode) < minimum_distance
             except
             select old_barcode
-             limit 1
         ) x;
 
-        if conflicting_barcode is not null then
+        if array_length(conflicting_barcodes, 1) > 0 then
             -- A detailed exception is much nicer for handling in identifer
             -- minting routines.
             raise exclusion_violation using
@@ -47,8 +42,8 @@ create or replace function warehouse.identifier_barcode_distance_check() returns
                         TG_OP, NEW.barcode),
 
                 detail = format(
-                    'Barcode %L is closer than %s substitutions away from at least one existing barcode (e.g. %L)',
-                        NEW.barcode, minimum_distance, conflicting_barcode),
+                    'Barcode %L is closer than %s substitutions away from existing barcodes %s',
+                        NEW.barcode, minimum_distance, conflicting_barcodes),
 
                 hint = format(
                     'If the %s relied on default values, retrying it will use a new value and possibly succeed',
@@ -62,11 +57,7 @@ create or replace function warehouse.identifier_barcode_distance_check() returns
             return NEW;
         end if;
     end
-$$ language plpgsql
-   security definer
-   -- Explicitly restrict which schemas the code inside the function can find
-   -- other tables, functions, etc. without qualification
-   SET search_path = pg_catalog, public, pg_temp; -- tests/search-path: ignore
+$$ language plpgsql;
 
 drop trigger identifier_barcode_distance_check_before_insert on warehouse.identifier;
 drop trigger identifier_barcode_distance_check_before_update on warehouse.identifier;

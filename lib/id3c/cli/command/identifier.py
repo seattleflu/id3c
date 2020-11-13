@@ -51,7 +51,12 @@ def identifier():
     is_flag = True,
     flag_value = True)
 
-def mint(set_name, count, *, labels, quiet):
+@click.option("--dry-run",
+    help = "Only go through the motions of changing the database; useful for benchmarking minting rates",
+    is_flag = True,
+    flag_value = True)
+
+def mint(set_name, count, *, labels, quiet, dry_run):
     """
     Mint new identifiers and make barcode labels.
 
@@ -68,7 +73,13 @@ def mint(set_name, count, *, labels, quiet):
     ¹ https://github.com/MullinsLab/Lab-Labels
     """
     session = DatabaseSession()
-    minted = db.mint_identifiers(session, set_name, count)
+
+    with session:
+        minted = db.mint_identifiers(session, set_name, count)
+
+        if dry_run:
+            LOG.info("Rolling back all changes; the database will not be modified")
+            session.rollback()
 
     if not quiet:
         for identifier in minted:

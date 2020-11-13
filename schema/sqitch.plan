@@ -199,3 +199,6 @@ roles/materialized-view-refresher/grants [roles/materialized-view-refresher/crea
 
 shipping/age-bin-decade [shipping/schema types/intervalrange] 2020-08-12T22:33:55Z Jover Lee <joverlee@fredhutch.org> # Add table representation of decade age bins
 @2020-08-12 2020-08-12T22:50:50Z Jover Lee <joverlee@fredhutch.org> # Schema as of 12 August 2020
+
+functions/hamming_distance [functions/hamming_distance@2020-08-12] 2020-11-12T00:44:39Z Thomas Sibley <tsibley@fredhutch.org> # Rework to add short-circuiting versions
+warehouse/identifier/triggers/barcode-distance-check [warehouse/identifier/triggers/barcode-distance-check@2020-08-12 functions/hamming_distance] 2020-11-12T00:12:11Z Thomas Sibley <tsibley@fredhutch.org> # Rework to make optimizations

@@ -3,10 +3,12 @@ Database interfaces
 """
 import logging
 import secrets
+import statistics
+from datetime import datetime
 from psycopg2 import IntegrityError
 from psycopg2.errors import ExclusionViolation
 from psycopg2.sql import SQL, Identifier
-from statistics import median, mode
+from statistics import median, StatisticsError
 from typing import Any, Dict, Iterable, List, NamedTuple, Optional
 from .types import IdentifierRecord
 from .session import DatabaseSession
@@ -60,49 +62,54 @@ def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
     # stochastically.
     max_consecutive_failures = 15
 
-    with session:
-        # Lookup identifier set by name
-        identifier_set = session.fetch_row("""
-            select identifier_set_id as id
-              from warehouse.identifier_set
-             where name = %s
-            """, (name,))
+    # Lookup identifier set by name
+    identifier_set = session.fetch_row("""
+        select identifier_set_id as id
+          from warehouse.identifier_set
+         where name = %s
+        """, (name,))
 
-        if not identifier_set:
-            LOG.error(f"Identifier set «{name}» does not exist")
-            raise IdentifierSetNotFoundError(name)
+    if not identifier_set:
+        LOG.error(f"Identifier set «{name}» does not exist")
+        raise IdentifierSetNotFoundError(name)
 
-        while len(minted) < n:
-            m = len(minted) + 1
+    started = datetime.now()
 
-            LOG.debug(f"Minting identifier {m}/{n}")
+    while len(minted) < n:
+        m = len(minted) + 1
 
-            try:
-                with session.savepoint(f"identifier {m}"):
-                    new_identifier = session.fetch_row("""
-                        insert into warehouse.identifier (identifier_set_id, generated)
-                            values (%s, now())
-                            returning uuid, barcode, generated
-                        """,
-                        (identifier_set.id,))
+        LOG.debug(f"Minting identifier {m}/{n}")
 
-                    minted.append(new_identifier)
+        try:
+            with session.savepoint(f"identifier {m}"):
+                new_identifier = session.fetch_row("""
+                    insert into warehouse.identifier (identifier_set_id, generated)
+                        values (%s, now())
+                        returning uuid, barcode, generated
+                    """,
+                    (identifier_set.id,))
 
-            except ExclusionViolation:
-                LOG.debug("Barcode excluded")
+                minted.append(new_identifier)
 
-                failures.setdefault(m, 0)
-                failures[m] += 1
+        except ExclusionViolation:
+            LOG.debug("Barcode excluded")
 
-                if failures[m] > max_consecutive_failures:
-                    LOG.error("Too many consecutive failures, aborting")
-                    raise TooManyFailuresError(failures[m])
-                else:
-                    LOG.debug("Retrying")
+            failures.setdefault(m, 0)
+            failures[m] += 1
+
+            if failures[m] > max_consecutive_failures:
+                LOG.error("Too many consecutive failures, aborting")
+                raise TooManyFailuresError(failures[m])
+            else:
+                LOG.debug("Retrying")
+
+    duration = datetime.now() - started
+    per_second = n / duration.total_seconds()
+    per_identifier = duration.total_seconds() / n
 
     failure_counts = list(failures.values())
 
-    LOG.info(f"Minted {n} identifiers in {n + sum(failure_counts)} tries ({sum(failure_counts)} retries)")
+    LOG.info(f"Minted {n} identifiers in {n + sum(failure_counts)} tries ({sum(failure_counts)} retries) over {duration} ({per_identifier:.2f} s/identifier = {per_second:.2f} identifiers/s)")
 
     if failure_counts:
         LOG.info(f"Failure distribution: max={max(failure_counts)} mode={mode(failure_counts)} median={median(failure_counts)}")
@@ -195,3 +202,19 @@ def sqlf(sql, *args, **kwargs):
     supported by using placeholders in the call to ``execute()``.
     """
     return SQL(sql).format(*args, **kwargs)
+
+
+def mode(values):
+    """
+    Wraps :py:func:`statistics.mode` or :py:func:`statistics.multimode`, if
+    available, to do the right thing regardless of the Python version.
+
+    Returns ``None`` if the underlying functions raise a
+    :py:exc:`~statistics.StatisticsError`.
+    """
+    mode_ = getattr(statistics, "multimode", statistics.mode)
+
+    try:
+        return mode_(values)
+    except StatisticsError:
+        return None
