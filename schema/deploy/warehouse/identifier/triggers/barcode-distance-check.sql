@@ -1,6 +1,7 @@
 -- Deploy seattleflu/schema:warehouse/identifier/triggers/barcode-distance-check to pg
 -- requires: warehouse/identifier
 -- requires: functions/hamming_distance
+-- requires: functions/barcode_slices
 
 begin;
 
@@ -23,6 +24,11 @@ create or replace function warehouse.identifier_barcode_distance_check() returns
         raise debug 'Checking new barcode "%" is at least % substitutions away from existing barcodes (except old barcode "%")',
             NEW.barcode, minimum_distance, old_barcode;
 
+        -- Populate the row's array of barcode slices to compare with existing rows.
+        -- This greatly reduces the number of barcodes against which the
+        -- `hamming_distance_ci` function is applied.
+        NEW.slices = public.barcode_slices(NEW.barcode);
+
         -- Lock the table, ensuring that the set of existing identifiers is
         -- stable, in order to avoid race conditions that allow distance
         -- violations.  An exclusive lock lets normal SELECT queries read the
@@ -32,7 +38,8 @@ create or replace function warehouse.identifier_barcode_distance_check() returns
         select barcode into conflicting_barcode from (
             select barcode
               from warehouse.identifier
-             where hamming_distance_lte(lower(barcode), new_barcode, minimum_distance-1) < minimum_distance
+             where slices && NEW.slices
+             and hamming_distance_lte(lower(barcode), new_barcode, minimum_distance-1) < minimum_distance
             except
             select old_barcode
              limit 1
