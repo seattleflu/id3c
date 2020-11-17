@@ -214,3 +214,8 @@ receiving/presence-absence/indexes/processing-log [receiving/presence-absence] 2
 receiving/redcap-det/indexes/processing-log [receiving/redcap-det] 2020-11-16T20:54:38Z Thomas Sibley <tsibley@fredhutch.org> # Index receiving.redcap_det.processing_log column
 receiving/sequence-read-set/indexes/processing-log [receiving/sequence-read-set] 2020-11-16T20:54:41Z Thomas Sibley <tsibley@fredhutch.org> # Index receiving.sequence_read_set.processing_log column
 @2020-11-17 2020-11-17T18:24:24Z Thomas Sibley <tsibley@fredhutch.org> # Schema as of 17 Nov 2020
+
+functions/barcode_slices 2020-11-17T18:31:45Z Chris Craft <jccraft@uw.edu> # Add function to create slices out of input text
+warehouse/identifier/triggers/barcode-distance-check [warehouse/identifier/triggers/barcode-distance-check@2020-11-17 functions/barcode_slices] 2020-11-17T18:36:26Z Chris Craft <jccraft@uw.edu> # Add slices check to barcode-distance-check
+warehouse/identifier/indexes/identifier_barcode_slices [functions/barcode_slices] 2020-11-18T19:38:09Z Chris Craft <jccraft@uw.edu> # Add barcode_slices index to warehouse.identifier table
+warehouse/identifier/indexes/identifier_barcode_slices_null [functions/barcode_slices] 2020-12-14T23:30:16Z Chris Craft <jccraft@uw.edu> # Create an index to make null barcode slices check faster

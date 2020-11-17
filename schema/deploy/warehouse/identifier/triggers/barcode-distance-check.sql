@@ -1,6 +1,7 @@
 -- Deploy seattleflu/schema:warehouse/identifier/triggers/barcode-distance-check to pg
 -- requires: warehouse/identifier
 -- requires: functions/hamming_distance
+-- requires: functions/barcode_slices
 
 begin;
 
@@ -13,12 +14,14 @@ begin;
 create or replace function warehouse.identifier_barcode_distance_check() returns trigger as $$
     declare
         minimum_distance integer := 3;
-        conflicting_barcode citext;
+        conflicting_barcodes citext[];
         old_barcode citext;
         new_barcode text;
+        new_slices citext[];
     begin
         old_barcode := case TG_OP when 'UPDATE' then OLD.barcode end;
         new_barcode := lower(NEW.barcode);
+        new_slices = barcode_slices(NEW.barcode::citext);
 
         raise debug 'Checking new barcode "%" is at least % substitutions away from existing barcodes (except old barcode "%")',
             NEW.barcode, minimum_distance, old_barcode;
@@ -29,16 +32,20 @@ create or replace function warehouse.identifier_barcode_distance_check() returns
         -- identifier table but serializes other invocations of this function.
         lock table warehouse.identifier in exclusive mode;
 
-        select barcode into conflicting_barcode from (
+        -- Use barcode slices to reduce the comparison set for pairwise
+        -- distance calculations.  If slices can't be computed/are missing for
+        -- either side, then always check the distance out of an abundance of
+        -- precaution.
+        select array_agg(barcode) into strict conflicting_barcodes from (
             select barcode
-              from warehouse.identifier
-             where hamming_distance_lte(lower(barcode), new_barcode, minimum_distance-1) < minimum_distance
+                from warehouse.identifier
+                where (barcode_slices(barcode) && new_slices or barcode_slices(barcode) is null or new_slices is null)
+                and hamming_distance_lte(lower(barcode), new_barcode, minimum_distance-1) < minimum_distance
             except
             select old_barcode
-             limit 1
         ) x;
 
-        if conflicting_barcode is not null then
+       if array_length(conflicting_barcodes, 1) > 0 then
             -- A detailed exception is much nicer for handling in identifer
             -- minting routines.
             raise exclusion_violation using
@@ -47,8 +54,8 @@ create or replace function warehouse.identifier_barcode_distance_check() returns
                         TG_OP, NEW.barcode),
 
                 detail = format(
-                    'Barcode %L is closer than %s substitutions away from at least one existing barcode (e.g. %L)',
-                        NEW.barcode, minimum_distance, conflicting_barcode),
+                    'Barcode %L is closer than %s substitutions away from existing barcodes %s',
+                        NEW.barcode, minimum_distance, conflicting_barcodes),
 
                 hint = format(
                     'If the %s relied on default values, retrying it will use a new value and possibly succeed',
