@@ -203,3 +203,13 @@ shipping/age-bin-decade [shipping/schema types/intervalrange] 2020-08-12T22:33:5
 functions/hamming_distance [functions/hamming_distance@2020-08-12] 2020-11-12T00:44:39Z Thomas Sibley <tsibley@fredhutch.org> # Rework to add short-circuiting versions
 warehouse/identifier/triggers/barcode-distance-check [warehouse/identifier/triggers/barcode-distance-check@2020-08-12 functions/hamming_distance] 2020-11-12T00:12:11Z Thomas Sibley <tsibley@fredhutch.org> # Rework to make optimizations
 @2020-11-13 2020-11-13T21:21:55Z Thomas Sibley <tsibley@fredhutch.org> # Schema as of 13 Nov 2020
+
+receiving/redcap-det/indexes/document-as-jsonb [receiving/redcap-det] 2020-11-16T20:20:49Z Thomas Sibley <tsibley@fredhutch.org> # Index receiving.redcap_det.document::jsonb for REDCap DET ETL
+receiving/clinical/indexes/processing-log [receiving/clinical] 2020-11-16T20:54:23Z Thomas Sibley <tsibley@fredhutch.org> # Index receiving.clinical.processing_log column
+receiving/consensus-genome/indexes/processing-log [receiving/consensus-genome] 2020-11-16T20:54:26Z Thomas Sibley <tsibley@fredhutch.org> # Index receiving.consensus_genome.processing_log column
+receiving/fhir/indexes/processing-log [receiving/fhir] 2020-11-16T20:54:28Z Thomas Sibley <tsibley@fredhutch.org> # Index receiving.fhir.processing_log column
+receiving/longitudinal/indexes/processing-log [receiving/longitudinal] 2020-11-16T20:54:31Z Thomas Sibley <tsibley@fredhutch.org> # Index receiving.longitudinal.processing_log column
+receiving/manifest/indexes/processing-log [receiving/manifest] 2020-11-16T20:54:33Z Thomas Sibley <tsibley@fredhutch.org> # Index receiving.manifest.processing_log column
+receiving/presence-absence/indexes/processing-log [receiving/presence-absence] 2020-11-16T20:54:36Z Thomas Sibley <tsibley@fredhutch.org> # Index receiving.presence_absence.processing_log column
+receiving/redcap-det/indexes/processing-log [receiving/redcap-det] 2020-11-16T20:54:38Z Thomas Sibley <tsibley@fredhutch.org> # Index receiving.redcap_det.processing_log column
+receiving/sequence-read-set/indexes/processing-log [receiving/sequence-read-set] 2020-11-16T20:54:41Z Thomas Sibley <tsibley@fredhutch.org> # Index receiving.sequence_read_set.processing_log column
