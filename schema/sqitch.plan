@@ -213,3 +213,4 @@ receiving/manifest/indexes/processing-log [receiving/manifest] 2020-11-16T20:54:
 receiving/presence-absence/indexes/processing-log [receiving/presence-absence] 2020-11-16T20:54:36Z Thomas Sibley <tsibley@fredhutch.org> # Index receiving.presence_absence.processing_log column
 receiving/redcap-det/indexes/processing-log [receiving/redcap-det] 2020-11-16T20:54:38Z Thomas Sibley <tsibley@fredhutch.org> # Index receiving.redcap_det.processing_log column
 receiving/sequence-read-set/indexes/processing-log [receiving/sequence-read-set] 2020-11-16T20:54:41Z Thomas Sibley <tsibley@fredhutch.org> # Index receiving.sequence_read_set.processing_log column
+@2020-11-17 2020-11-17T18:24:24Z Thomas Sibley <tsibley@fredhutch.org> # Schema as of 17 Nov 2020
