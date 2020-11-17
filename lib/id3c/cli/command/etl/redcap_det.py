@@ -19,23 +19,11 @@ from id3c.cli.command import with_database_session
 from id3c.cli.redcap import is_complete, Project
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json, Json
-from id3c.cli.command.geocode import pickled_cache
+from id3c.cli.command import pickled_cache
 from . import etl
 
 
 LOG = logging.getLogger(__name__)
-
-
-# XXX FIXME: I don't think we should hardcode a cache name like this,
-# particularly with a name that doesn't give any hint as to what uses it or
-# what it contains. The `id3c geocode` command, for instance, explicitly
-# parameterizes the cache file as an option.
-#
-# Going a step further, I don't think @command_for_project should even be
-# providing the "cache" parameter.  What is cached and where it is stored is
-# something specific to each REDCap DET routine, not a global invariant.
-#   -trs, 19 Dec 2019
-CACHE_FILE = 'cache.pickle'
 
 
 @etl.group("redcap-det", help = __doc__)
@@ -108,11 +96,22 @@ def command_for_project(name: str,
             help        = "Write the output FHIR documents to stdout. You will likely want to redirect this to a file",
             default     = False)
 
+        # XXX FIXME: I don't think @command_for_project should even be
+        # providing the "cache" parameter.  What is cached and where it is stored is
+        # something specific to each REDCap DET routine, not a global invariant.
+        #   -trs, 19 Dec 2019
+        @click.option("--geocoding-cache",
+            metavar = "<cache.pickle>",
+            envvar = "GEOCODING_CACHE",
+            help = "Local file for caching the results of address geocoding. Geocoding lookups will not be cached otherwise.",
+            required = False,
+            type = click.Path(dir_okay=False, writable=True))
+
         @redcap_det.command(name, **kwargs)
         @with_database_session
         @wraps(routine)
 
-        def decorated(*args, db: DatabaseSession, log_output: bool, det_limit: int = None, redcap_api_batch_size: int, **kwargs):
+        def decorated(*args, db: DatabaseSession, log_output: bool, det_limit: int = None, redcap_api_batch_size: int, geocoding_cache: str = None, **kwargs):
             LOG.debug(f"Starting the REDCap DET ETL routine {name}, revision {revision}")
 
             # If the correct environment variables aren't defined, this will
@@ -204,7 +203,7 @@ def command_for_project(name: str,
                         redcap_records[record.id].append(record)
 
             # Process all DETs in order of redcap_det_id
-            with pickled_cache(CACHE_FILE) as cache:
+            with pickled_cache(geocoding_cache) as cache:
                 for det in all_dets:
                     with db.savepoint(f"redcap_det {det['id']}"):
                         LOG.info(f"Processing REDCap DET {det['id']}")
