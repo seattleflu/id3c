@@ -1015,16 +1015,19 @@ class SkipBundleError(Exception):
 # Needs to be at the end to avoid dependency errors.
 extensions = list(pkg_resources.iter_entry_points("id3c.cli.command.etl.fhir", INTERNAL_SYSTEM))
 
-# Only expects one module for the INTERNAL_SYSTEM.
-assert len(extensions) <= 1, \
-    f"The FHIR ETL only expects one extension from the internal system «{INTERNAL_SYSTEM}»"
-
-extension = extensions[0]
-
-if extension.dist:
-    dist = f"{extension.dist.project_name} in {extension.dist.location}"
+if not extensions:
+    LOG.debug(f"No extensions found for the FHIR ETL from the internal system «{INTERNAL_SYSTEM}»")
 else:
-    dist = "unknown"
+    # Only expects one module for the INTERNAL_SYSTEM.
+    assert len(extensions) == 1, \
+        f"The FHIR ETL only expects one extension from the internal system «{INTERNAL_SYSTEM}»"
 
-LOG.debug(f"Loading customizations from extension {extension!s} (distribution {dist})")
-INTERNAL_CUSTOMIZATIONS = extension.load()
+    extension = extensions[0]
+
+    if extension.dist:
+        dist = f"{extension.dist.project_name} in {extension.dist.location}"
+    else:
+        dist = "unknown"
+
+    LOG.debug(f"Loading customizations from extension {extension!s} (distribution {dist})")
+    INTERNAL_CUSTOMIZATIONS = extension.load()
