@@ -15,7 +15,6 @@ subcommand of the "etl" command.
 """
 import click
 import fnmatch
-import json
 import logging
 import pandas
 import re
@@ -31,7 +30,7 @@ from id3c.cli.io import LocalOrRemoteFile, urlopen
 from id3c.cli.io.google import *
 from id3c.cli.io.pandas import read_excel
 from id3c.db.session import DatabaseSession
-from id3c.db.datatypes import as_json, Json
+from id3c.json import dump_ndjson, load_ndjson
 from id3c.utils import format_doc
 
 
@@ -583,18 +582,3 @@ def deephash(record):
     the provenance information.
     """
     return DeepHash(record, exclude_paths = {f"root['{PROVENANCE_KEY}']"})[record]
-
-
-def dump_ndjson(iterable: Iterable) -> None:
-    """
-    :func:`print` *iterable* as a set of newline-delimited JSON records.
-    """
-    for item in iterable:
-        print(as_json(item))
-
-
-def load_ndjson(file: Iterable[str]) -> Iterable:
-    """
-    Load newline-delimited JSON records from *file*.
-    """
-    yield from (json.loads(line) for line in file)

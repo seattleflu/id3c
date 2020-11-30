@@ -2,8 +2,9 @@
 Commands for the database CLI.
 """
 import click
-import pickle
+import enum
 import logging
+import pickle
 from functools import wraps
 from typing import Optional
 from cachetools import TTLCache
@@ -33,69 +34,110 @@ CACHE_TTL = 60 * 60 * 24 * 365  # 1 year
 CACHE_SIZE = float("inf")       # Unlimited
 
 
-def with_database_session(command):
+@enum.unique
+class DatabaseSessionAction(enum.Enum):
     """
-    Decorator to provide database session and error handling for a command.
+    Enum representing the database session transaction action selected for a
+    command decorated by :py:func:`.with_database_session`.
 
-    The decorated function is called with a ``db`` keyword argument to provide
+    You will not need to use this class unless you provide ``pass_action =
+    True`` to :py:func:`.with_database_session`.
+    """
+    DRY_RUN = "rollback"
+    PROMPT  = "prompt"
+    COMMIT  = "commit"
+
+
+def with_database_session(command = None, *, pass_action: bool = False):
+    """
+    Decorator to provide database session and error handling for a *command*.
+
+    The *command* callable must be a :py:class:`click.Command` instance.
+
+    The decorated *command* is called with a ``db`` keyword argument to provide
     a :class:`~id3c.db.session.DatabaseSession` object.  The call happens
     within an exception handler that commits or rollsback the database
     transaction, possibly interactively.  Three new options are added to the
-    command (``--dry-run``, ``--prompt``, and ``--commit``) to control this
+    *command* (``--dry-run``, ``--prompt``, and ``--commit``) to control this
     behaviour.
+
+    >>> @click.command
+    ... @with_database_session
+    ... def cmd(db: DatabaseSession):
+    ...     pass
+
+    If the optional, keyword-only argument *pass_action* is ``True``, then the
+    :py:class:`.DatabaseSessionAction` selected by the CLI options above is
+    passed as an additional ``action`` argument to the decorated *command*.
+
+    >>> @click.command
+    ... @with_database_session(pass_action = True)
+    ... def cmd(db: DatabaseSession, action: DatabaseSessionAction):
+    ...     pass
+
+    One example where this is useful is when the *command* accesses
+    non-database resources and wants to extend dry run mode to them as well.
     """
-    @click.option("--dry-run", "action",
-        help        = "Only go through the motions of changing the database (default)",
-        flag_value  = "rollback",
-        default     = True)
+    def decorator(command):
+        @click.option("--dry-run", "action",
+            help        = "Only go through the motions of changing the database (default)",
+            flag_value  = DatabaseSessionAction("rollback"),
+            default     = True)
 
-    @click.option("--prompt", "action",
-        help        = "Ask if changes to the database should be saved",
-        flag_value  = "prompt")
+        @click.option("--prompt", "action",
+            help        = "Ask if changes to the database should be saved",
+            flag_value  = DatabaseSessionAction("prompt"))
 
-    @click.option("--commit", "action",
-        help        = "Save changes to the database",
-        flag_value  = "commit")
+        @click.option("--commit", "action",
+            help        = "Save changes to the database",
+            flag_value  = DatabaseSessionAction("commit"))
 
-    @wraps(command)
-    def decorated(*args, action, **kwargs):
-        db = DatabaseSession()
+        @wraps(command)
+        def decorated(*args, action, **kwargs):
+            db = DatabaseSession()
 
-        processed_without_error = None
+            kwargs["db"] = db
 
-        try:
-            command(*args, **kwargs, db = db)
+            if pass_action:
+                kwargs["action"] = action
 
-        except Exception as error:
-            processed_without_error = False
+            processed_without_error = None
 
-            LOG.error(f"Aborting with error: {error}")
-            raise error from None
+            try:
+                command(*args, **kwargs)
 
-        else:
-            processed_without_error = True
+            except Exception as error:
+                processed_without_error = False
 
-        finally:
-            if action == "prompt":
-                ask_to_commit = \
-                    "Commit all changes?" if processed_without_error else \
-                    "Commit successfully processed records up to this point?"
-
-                commit = click.confirm(ask_to_commit)
-            else:
-                commit = action == "commit"
-
-            if commit:
-                LOG.info(
-                    "Committing all changes" if processed_without_error else \
-                    "Committing successfully processed records up to this point")
-                db.commit()
+                LOG.error(f"Aborting with error: {error}")
+                raise error from None
 
             else:
-                LOG.info("Rolling back all changes; the database will not be modified")
-                db.rollback()
+                processed_without_error = True
 
-    return decorated
+            finally:
+                if action is DatabaseSessionAction.PROMPT:
+                    ask_to_commit = \
+                        "Commit all changes?" if processed_without_error else \
+                        "Commit successfully processed records up to this point?"
+
+                    commit = click.confirm(ask_to_commit)
+                else:
+                    commit = action is DatabaseSessionAction.COMMIT
+
+                if commit:
+                    LOG.info(
+                        "Committing all changes" if processed_without_error else \
+                        "Committing successfully processed records up to this point")
+                    db.commit()
+
+                else:
+                    LOG.info("Rolling back all changes; the database will not be modified")
+                    db.rollback()
+
+        return decorated
+
+    return decorator(command) if command else decorator
 
 
 @contextmanager

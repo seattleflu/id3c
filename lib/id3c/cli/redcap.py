@@ -1,13 +1,17 @@
 """
 Minimal library for interacting with REDCap's web API.
 """
+import json
 import logging
+import os
 import re
 import requests
 from enum import Enum
 from functools import lru_cache
 from operator import itemgetter
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
+from .utils import running_command_name
+from ..url import Url
 
 
 LOG = logging.getLogger(__name__)
@@ -17,32 +21,49 @@ class Project:
     """
     Interact with a REDCap project via the REDCap web API.
 
-    The constructor requires an *api_url* and *api_token* which must point to
-    REDCap's web API endpoint.  The third required parameter *project_id* must
-    match the project id returned by the API.  This is a sanity check that the
-    API token is for the intended project, since tokens are project-specific.
+    The constructor requires a *url*, which must point to REDCap's web API
+    endpoint or base URL, and *project_id*.  These will be used to find an API
+    token in the environment via :py:func:`.api_token`.  Alternatively, provide
+    the keyword-only argument, *token*, to explicitly specify an API token to
+    use.
+
+    During initialization, project metadata is fetched via the API.  The given
+    *project_id* must match the project id returned in the metadata.  This is a
+    safety check that the API token is for the intended project, since tokens
+    determine the project accessed.
+
+    If the *dry_run* keyword-only argument is set to ``True``, then methods
+    which could modify data in REDCap will pretend to succeed but not actually
+    make API requests.  Read-only methods are unaffected and will return real
+    data.  Defaults to ``False``.
     """
     api_url: str
     api_token: str
     base_url: str
+    dry_run: bool
     _details: dict
     _instruments: List[str] = None
     _events: List[str] = None
     _fields: List[dict] = None
     _redcap_version: str = None
 
-    def __init__(self, api_url: str, api_token: str, project_id: int) -> None:
-        self.api_url = api_url
-        self.api_token = api_token
+    def __init__(self, url: str, project_id: int, arg3 = None, *, token: str = None, dry_run: bool = False) -> None:
+        # XXX TODO: Remove this and the associated "arg3" once we update all
+        # existing callers to use the signature that takes only 2 positional
+        # args + token as a keyword-only arg.
+        #   -trs, 28 Oct 2020
+        if arg3:
+            token, project_id = project_id, arg3 # type: ignore
 
-        # Assuming that the base url for a REDCap instance is just removing the
-        # trailing 'api' from the API URL
-        self.base_url = re.sub(r'api/?$', '', api_url)
+        self.api_url, self.base_url = url_endpoints(url)
+
+        self.api_token = token or api_token(url, project_id)
+        self.dry_run = bool(dry_run)
 
         # Check if project details match our expectations
         self._details = self._fetch("project")
 
-        assert self.id == project_id, \
+        assert int(self.id) == int(project_id), \
             f"REDCap API token provided for project {project_id} is actually for project {self.id} ({self.title!r})!"
 
 
@@ -206,6 +227,56 @@ class Project:
         return [Record(self, r) for r in self._fetch("record", parameters)]
 
 
+    def update_records(self, records: List[Dict[str, str]]) -> int:
+        """
+        Update existing *records* in this REDCap project.
+
+        *records* must be an iterable of :py:class:``dict``s mapping REDCap
+        field names to values.  The primary record id field, at a minimum, must
+        be included.  Other pseudo-fields like ``redcap_event_name`` or
+        ``redcap_repeat_instance`` may be necessary.  All keys and values must
+        be strings.
+
+        Dates must be formatted as ``YYYY-MM-DD``.  Times are assumed to be in
+        the REDCap server's timezone.
+
+        Any value provided for a field, including the empty string, will
+        overwrite any existing value.
+
+        This method is not suitable for creating new records in projects that
+        use auto-numbered record ids.
+
+        Returns a count of the number of records updated, as reported by
+        REDCap.
+        """
+        parameters = {
+            'data': json.dumps(records),
+            'type': 'flat',
+            'overwriteBehavior': 'overwrite',
+            'forceAutoNumber': 'false',
+            'dateFormat': 'YMD',
+            'returnContent': 'count',
+        }
+
+        expected_count = len(records)
+
+        if not self.dry_run:
+            LOG.debug(f"Updating {expected_count:,} REDCap records for {self}")
+            result = self._fetch("record", parameters)
+
+            updated_count = int(result["count"])
+        else:
+            LOG.debug(f"Pretending to update {expected_count:,} REDCap records for {self} (dry run)")
+            updated_count = expected_count
+
+        assert expected_count == updated_count, \
+            "Expected vs. actual records updated do not match: {expected_count:,} != {updated_count:,}"
+
+        LOG.debug(f"Updated {updated_count:,} REDCap records for {self}")
+
+        return updated_count
+
+
     def _fetch(self, content: str, parameters: Dict[str, str] = {}, *, format: str = "json") -> Any:
         """
         Fetch REDCap *content* with a POST request to the REDCap API.
@@ -213,7 +284,7 @@ class Project:
         Consult REDCap API documentation for required and optional parameters
         to include in API request.
         """
-        LOG.debug(f"Fetching content={content} from REDCap with params {parameters}")
+        LOG.debug(f"Requesting content={content} from REDCap with params {parameters}")
 
         headers = {
             'Content-type': 'application/x-www-form-urlencoded',
@@ -233,15 +304,19 @@ class Project:
         return response.json() if format == "json" else response.text
 
 
+    def __repr__(self) -> str:
+        return f"<{self.__module__}.{type(self).__name__} object: api_url={self.api_url!r} project_id={self.id!r}>"
+
+
 @lru_cache()
-def CachedProject(api_url: str, api_token: str, project_id: int) -> Project:
+def CachedProject(api_url: str, project_id: int, *, token: str = None) -> Project:
     """
     Memoized constructor for a :class:`Project`.
 
     Useful when loading projects dynamically, e.g. from REDCap DET
     notifications, to avoid the initial fetch of project details every time.
     """
-    return Project(api_url, api_token, project_id)
+    return Project(api_url, project_id, token = token)
 
 
 class Record(dict):
@@ -333,3 +408,161 @@ def is_complete(instrument: str, data: dict) -> bool:
         InstrumentStatus.Complete.value,
         str(InstrumentStatus.Complete.value)
     }
+
+
+def api_token(url: str, project_id: int) -> str:
+    """
+    Obtain an API token from the environment for the given REDCap *url* and
+    *project_id*.
+
+    The environment variable name is constructed using the *url* and
+    *project_id*; see the examples below.
+
+    Raises a :py:exc:`ValueError` if the environment variable is missing or has
+    no value.
+
+    >>> os.environ.update({
+    ...     "REDCAP_API_TOKEN_redcap.iths.org_12345": "secret 1",
+    ...     "REDCAP_API_TOKEN_example.com-redcap_67890": "secret 2",
+    ...     "REDCAP_API_TOKEN_example.com:8080-redcap_67890": "secret 3",
+    ...     "REDCAP_API_TOKEN_example.com_67890": "",
+    ... })
+
+    >>> api_token("https://redcap.iths.org/api/", 12345)
+    'secret 1'
+    >>> api_token("https://redcap.iths.org", 12345)
+    'secret 1'
+
+    >>> api_token("https://example.com/redcap/", 67890)
+    'secret 2'
+
+    >>> api_token("https://example.com:8080/redcap/", 67890)
+    'secret 3'
+
+    >>> api_token("https://example.com", 12345)
+    Traceback (most recent call last):
+        ...
+    ValueError: No REDCap API token available for https://example.com project 12345: environment variable «REDCAP_API_TOKEN_example.com_12345» is missing
+
+    >>> api_token("https://example.com", 67890)
+    Traceback (most recent call last):
+        ...
+    ValueError: No REDCap API token available for https://example.com project 67890: environment variable «REDCAP_API_TOKEN_example.com_67890» has no value
+
+    There is a slight risk of collision where two distinct URLs will map to the
+    same token name, e.g.::
+
+        a-b.com/c/d → a-b.com-c-d
+        a/b.com/c/d → a-b.com-c-d
+
+    But the risk of this manifesting in practice seems very low.  It could be
+    mitigated in the future with a more aggressive (but less human-readable)
+    encoding scheme like URI escaping or even Base64.
+    """
+    base_url = Url(url_endpoints(url)[1])
+
+    if base_url.port:
+        origin = f"{base_url.hostname}:{base_url.port}"
+    else:
+        origin = base_url.hostname
+
+    hyphenated_path = base_url.path.rstrip("/").replace("/", "-")
+
+    token_name = f"REDCAP_API_TOKEN_{origin}{hyphenated_path}_{project_id}"
+
+    try:
+        token = os.environ[token_name]
+    except KeyError as e:
+        raise ValueError(f"No REDCap API token available for {base_url} project {project_id}: environment variable «{token_name}» is missing") from e
+
+    if not token:
+        raise ValueError(f"No REDCap API token available for {base_url} project {project_id}: environment variable «{token_name}» has no value")
+
+    return token
+
+
+def url_endpoints(url) -> Tuple[str, str]:
+    """
+    Returns a tuple of ``(api_url, base_url)`` based on the given REDCap
+    instance *url*.
+
+    *url* may be either the API endpoint or the base path of the REDCap
+    instance.
+
+    >>> url_endpoints("https://redcap.iths.org/")
+    ('https://redcap.iths.org/api/', 'https://redcap.iths.org/')
+
+    >>> url_endpoints("https://redcap.iths.org/api/")
+    ('https://redcap.iths.org/api/', 'https://redcap.iths.org/')
+
+    >>> url_endpoints("https://example.org/redcap/")
+    ('https://example.org/redcap/api/', 'https://example.org/redcap/')
+
+    >>> url_endpoints(url_endpoints("https://redcap.iths.org/api/")[1])
+    ('https://redcap.iths.org/api/', 'https://redcap.iths.org/')
+
+    Assumes that the API endpoint is always at ``…/api/`` under the REDCap
+    instance's base URL and vice versa.  This appears to be true for all the
+    instances inspected (redcap.iths.org, redcap.fhcrc.org,
+    redcapdemo.vanderbilt.edu).
+    """
+    url = Url(url)
+
+    if re.search(r'(?<=/)api/?$', url.path):
+        api_url  = str(url)
+        base_url = str(url.parent)
+    else:
+        api_url  = str(url / "api/")
+        base_url = str(url)
+
+    return api_url, base_url
+
+
+def det(project: Project, record: dict, instrument: str, generated_by: str = None) -> dict:
+    """
+    Create a "fake" DET notification that mimics the format of REDCap DETs:
+
+    \b
+    {
+        'redcap_url',
+        'project_id',
+        'record',
+        'instrument',
+        '<instrument>_complete',
+        'redcap_event_name',      // for longitudinal projects only
+        'redcap_repeat_instance',
+        'redcap_repeat_instrument',
+    }
+    """
+    instrument_complete = instrument + '_complete'
+
+    if not generated_by:
+        generated_by = running_command_name()
+
+    # Intentionally access only dictionary keys on *record*, not Record
+    # attributes, so that *record* is not required to be a Record.  For
+    # example, this why the code below still uses
+    #
+    #     record[project.record_id_field]
+    #
+    # instead of
+    #
+    #     record.id
+    #
+    # -trs, 5 Nov 2020
+
+    det_record = {
+       'redcap_url': project.base_url,
+       'project_id': str(project.id),                   # REDCap DETs send project_id as a string
+       'record': str(record[project.record_id_field]),  # ...and record as well.
+       'instrument': instrument,
+       instrument_complete: record[instrument_complete],
+       'redcap_repeat_instance': record.get('redcap_repeat_instance'),
+       'redcap_repeat_instrument': record.get('redcap_repeat_instrument'),
+       '__generated_by__': generated_by,
+    }
+
+    if 'redcap_event_name' in record:
+        det_record['redcap_event_name'] = record['redcap_event_name']
+
+    return det_record
