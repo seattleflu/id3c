@@ -11,7 +11,6 @@ from psycopg2.extras import NamedTupleCursor
 from psycopg2.sql import SQL, Identifier
 from typing import Any, Iterable, Iterator, Mapping, Tuple, Union
 from uuid import uuid4
-from ..cli.utils import running_command_name
 from ..utils import shorten
 
 
@@ -234,6 +233,11 @@ def fallback_application_name() -> str:
 
     Constructed based on the current running CLI command, else ``id3c``.
     """
+    # Import here instead of at the top to avoid an ImportError caused by an
+    # import cycle.  This can be removed once the import graph of id3c.cli is
+    # less tangled.
+    from ..cli.utils import running_command_name
+
     # "The application_name can be any string of less than NAMEDATALEN
     # characters (64 characters in a standard build)."¹
     #
