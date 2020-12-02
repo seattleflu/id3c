@@ -85,6 +85,11 @@ class DatabaseSession:
         """Proxy for the underlying connection's ``rollback`` method."""
         return self.connection.rollback
 
+    @property
+    def close(self):
+        """Proxy for the underlying connection's ``close`` method."""
+        return self.connection.close
+
 
     @contextmanager
     def savepoint(self, name: str = None) -> Iterator:
