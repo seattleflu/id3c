@@ -34,10 +34,7 @@ def authenticated_datastore_session_required(route):
             username = auth.username,
             password = auth.password)
 
-        try:
-            return route(*args, **kwargs, session = session)
-        finally:
-            session.close()
+        return route(*args, **kwargs, session = session)
 
     return wrapped_route
 
