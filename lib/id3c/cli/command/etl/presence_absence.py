@@ -102,6 +102,12 @@ def etl_presence_absence(*, db: DatabaseSession):
                     LOG.info(f"Skipping sample «{received_sample['sampleId']}» without SFS barcode")
                     continue
 
+                # Don't go any further if the sample is marked as Failed
+                sample_failed = received_sample.get("sampleFailed")
+                if sample_failed is True:
+                    LOG.info(f"Skipping sample «{received_sample_barcode}» that has been failed")
+                    continue
+
                 # Don't go any further if there are no results to import.
                 test_results = received_sample["targetResults"]
 
