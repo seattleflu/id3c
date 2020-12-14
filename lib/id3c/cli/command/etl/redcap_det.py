@@ -114,11 +114,7 @@ def command_for_project(name: str,
         def decorated(*args, db: DatabaseSession, log_output: bool, det_limit: int = None, redcap_api_batch_size: int, geocoding_cache: str = None, **kwargs):
             LOG.debug(f"Starting the REDCap DET ETL routine {name}, revision {revision}")
 
-            # If the correct environment variables aren't defined, this will
-            # throw an exception.  Check early to fail fast before we do
-            # anything else.
-            api_url = urljoin(redcap_url, "api/")
-            api_token = get_redcap_api_token(api_url)
+            project = Project(redcap_url, project_id)
 
             if det_limit:
                 LOG.debug(f"Processing up to {det_limit:,} pending DETs")
@@ -183,7 +179,6 @@ def command_for_project(name: str,
             else:
                 # Batch request records from REDCap
                 LOG.info(f"Fetching REDCap project {project_id}")
-                project = Project(api_url, project_id, token = api_token)
                 record_ids = list(first_complete_dets.keys())
 
                 LOG.info(f"Fetching {len(record_ids):,} REDCap records from project {project.id}")
@@ -236,32 +231,6 @@ def command_for_project(name: str,
 
         return decorated
     return decorator
-
-
-def get_redcap_api_token(api_url: str) -> str:
-    """
-    Returns the authentication token configured for use with the REDCap web API
-    endpoint *api_url*.
-
-    Requires the environmental variables ``REDCAP_API_URL`` and
-    ``REDCAP_API_TOKEN``.  ``REDCAP_API_URL`` must match the provided *api_url*
-    as a safety check.
-    """
-    url = os.environ.get("REDCAP_API_URL")
-    token = os.environ.get("REDCAP_API_TOKEN")
-
-    if not url and not token:
-        raise Exception(f"The environment variables REDCAP_API_URL and REDCAP_API_TOKEN are required.")
-    elif not url:
-        raise Exception(f"The environment variable REDCAP_API_URL is required.")
-    elif not token:
-        raise Exception(f"The environment variable REDCAP_API_TOKEN is required.")
-
-    # This comparison may need URL canonicalization in the future.
-    if url != api_url:
-        raise Exception(f"The environment variable REDCAP_API_URL does not match the requested API endpoint «{api_url}»")
-
-    return token
 
 
 def insert_fhir_bundle(db: DatabaseSession, bundle: dict) -> None:
