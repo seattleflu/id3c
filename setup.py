@@ -63,7 +63,7 @@ setup(
         "click >=7.0",
         "colorama",
         "deepdiff",
-        "fhir.resources",
+        "fhir.resources <6.0",
         "fiona",
         "flask",
         "fsspec",
