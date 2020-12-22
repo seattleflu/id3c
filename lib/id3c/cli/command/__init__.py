@@ -6,9 +6,10 @@ import enum
 import logging
 import pickle
 from functools import wraps
-from typing import Optional
+from typing import Iterator, Optional
 from cachetools import TTLCache
 from contextlib import contextmanager
+from sys import maxsize
 from id3c.db.session import DatabaseSession
 
 
@@ -31,7 +32,7 @@ __all__ = [
 LOG = logging.getLogger(__name__)
 
 CACHE_TTL = 60 * 60 * 24 * 365  # 1 year
-CACHE_SIZE = float("inf")       # Unlimited
+CACHE_SIZE = maxsize
 
 
 @enum.unique
@@ -141,7 +142,7 @@ def with_database_session(command = None, *, pass_action: bool = False):
 
 
 @contextmanager
-def pickled_cache(filename: str = None) -> TTLCache:
+def pickled_cache(filename: str = None) -> Iterator[TTLCache]:
     """
     Context manager for reading/writing a :class:`TTLCache` from/to the given
     *filename*.
@@ -161,7 +162,7 @@ def pickled_cache(filename: str = None) -> TTLCache:
     ...     print(cache["key1"])
     value1
     """
-    empty_cache = TTLCache(maxsize = CACHE_SIZE, ttl = CACHE_TTL)
+    empty_cache: TTLCache = TTLCache(maxsize = CACHE_SIZE, ttl = CACHE_TTL)
 
     if filename:
         LOG.info(f"Loading cache from «{filename}»")
