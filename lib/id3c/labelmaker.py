@@ -24,18 +24,22 @@ class LabelLayout:
     barcode_type: str
     copies_per_barcode = 1
     reference: str
+    layouts = {'default'}
 
     blank = {
         "text": "",
         "copies": 1,
     }
 
-    def __init__(self, barcodes):
+    def __init__(self, barcodes, layout: str='default'):
         if not self.sku:
             raise NotImplementedError("sku must be set by a subclass")
 
         if not self.barcode_type:
             raise NotImplementedError("barcode_type must be set by a subclass")
+
+        if layout not in self.layouts:
+            raise NotImplementedError(f"layout must be one of: {self.layouts}")
 
         self.barcodes = barcodes
 
@@ -208,10 +212,29 @@ class CollectionsScanKiosksLayout(LabelLayout):
 
 
 class CollectionsCliaComplianceLayout(LabelLayout):
-    sku = "LCRY-1100"
     barcode_type = "CLIA"
     copies_per_barcode = 1
     reference = "seattleflu.org"
+    layouts = {'default', 'small'}
+
+    def __init__(self, barcodes, layout: str='default'):
+        self.layout = layout
+        self.sku = "LCRY-2380" if layout == 'small' else "LCRY-1100"
+        super().__init__(barcodes)
+
+    def label(self, barcode):
+        """
+        Returns a label spec for the given *barcode*. If the small layout is
+        requested, excludes the barcode type and barcode text.
+        """
+        if self.layout == 'small':
+            return {
+                "text": self.reference,
+                "barcode": barcode,
+                "copies": self.copies_per_barcode,
+            }
+
+        return super().label(barcode)
 
 
 class CollectionsHaarviLayout(LabelLayout):
@@ -282,7 +305,7 @@ LAYOUTS = {
 }
 
 
-def layout_identifiers(set_name: str, identifiers: Iterable) -> LabelLayout:
+def layout_identifiers(set_name: str, identifiers: Iterable, layout: str='default') -> LabelLayout:
     """
     Use the layout associated with the given identifier *set_name* to make
     labels for the given *identifiers*.
@@ -290,7 +313,7 @@ def layout_identifiers(set_name: str, identifiers: Iterable) -> LabelLayout:
     Each item in *identifiers* must have a ``barcode`` attribute.  These are
     passed to the layout.
     """
-    return LAYOUTS[set_name]([id.barcode for id in identifiers])
+    return LAYOUTS[set_name]([id.barcode for id in identifiers], layout)
 
 
 def generate_pdf(layout: LabelLayout, api: str = DEFAULT_LABEL_API) -> bytes:
