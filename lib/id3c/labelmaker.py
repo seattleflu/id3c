@@ -211,7 +211,7 @@ class CollectionsCliaComplianceLayout(LabelLayout):
     sku = "LCRY-1100"
     barcode_type = "CLIA"
     copies_per_barcode = 1
-    reference = "scanpublichealth.org"
+    reference = "seattleflu.org"
 
 
 class CollectionsHaarviLayout(LabelLayout):
