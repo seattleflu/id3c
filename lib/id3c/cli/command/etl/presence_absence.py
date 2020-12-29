@@ -120,6 +120,10 @@ def etl_presence_absence(*, db: DatabaseSession):
                 extraction_date = received_sample.get("extractionDate")
                 assay_name = received_sample.get("assayName")
                 assay_date = received_sample.get("assayDate")
+                # The assayType field will be removed after Samplify starts
+                # sending us OpenArray results with target.clinicalStatus.
+                #
+                # kfay, 28 Dec 2020
                 assay_type = received_sample.get("assayType")
 
                 # Guard against empty chip values
@@ -313,6 +317,12 @@ def presence_absence_details(document: dict,
     Raises `AssertionError` if we find an unknown *assay_name* or unknown
     *assay_type*.
     """
+    # Look for clinical status -- historically, this detail was stored at the
+    # top level, but with the new clinical validation of OpenArray results, we
+    # may have a mix of clinial and research results in one upload. Fall back to
+    # the assayType if clinicalStatus is not available for this target.
+    assay_type = document.get('clinicalStatus') or assay_type
+
     device = None
 
     if assay_name:
@@ -324,9 +334,19 @@ def presence_absence_details(document: dict,
     if assay_type:
         assert assay_type in {'Clia', 'Research'}, f"Found unknown assay type «{assay_type}»"
     else:
-        # Assumes anything with 4 wellResults is "Clia" and everything else
-        # "Research" assays
-        assay_type = 'Clia' if len(document['wellResults']) == 4 else 'Research'
+        # 7 April 2020 was the date we first started ingesting `assay_type`.
+        if extraction_date < '2020-04-07':
+            # Assumes anything with 4 wellResults is "Clia" and everything else
+            # "Research" assays
+            assay_type = 'Clia' if len(document['wellResults']) == 4 else 'Research'
+
+        # The "4 well assumption" used for CLIA results may not apply to
+        # OpenArray results. If no assay type is given, default to 'Research' to
+        # avoid accidentally reporting a non-clinical result to participants.
+        else:
+            LOG.warning("No assay type found for target. Defaulting to «Research».")
+            assay_type = 'Research'
+
 
     return {
         "device": device,
