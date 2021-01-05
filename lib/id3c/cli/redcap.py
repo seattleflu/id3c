@@ -201,6 +201,7 @@ class Project:
             'type': 'flat',
             'rawOrLabel': 'raw' if raw else 'label',
             'exportCheckboxLabel': 'true', # ignored by API if rawOrLabel == raw
+            'exportSurveyFields': 'true', # pulls the _identifier and _timestamp fields from surveys
         }
 
         assert not ((since_date or until_date) and ids), \
