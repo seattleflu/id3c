@@ -46,6 +46,11 @@ def identifier():
     metavar = "<file.pdf>",
     type = click.File("wb"))
 
+@click.option("--layout",
+    metavar = "<layout>",
+    default = 'default',
+    help = "Specify a desired label layout.")
+
 @click.option("--quiet", "-q",
     help = "Suppress printing of new identifiers to stdout",
     is_flag = True,
@@ -56,7 +61,8 @@ def identifier():
     is_flag = True,
     flag_value = True)
 
-def mint(set_name, count, *, labels, quiet, dry_run):
+
+def mint(set_name, count, *, labels, layout, quiet, dry_run):
     """
     Mint new identifiers and make barcode labels.
 
@@ -69,6 +75,9 @@ def mint(set_name, count, *, labels, quiet, dry_run):
     using the Lab Labels¹ instance <https://backoffice.seattleflu.org/labels/>.
     An alternative instance may be used by setting the LABEL_API environment
     variable to the instance URL.
+
+    If --layout is requested, the printable barcode labels will use the given
+    version of the layout, if available.
 
     ¹ https://github.com/MullinsLab/Lab-Labels
     """
@@ -86,8 +95,8 @@ def mint(set_name, count, *, labels, quiet, dry_run):
             print(identifier.barcode, identifier.uuid, sep = "\t")
 
     if labels:
-        layout = labelmaker.layout_identifiers(set_name, minted)
-        pdf = labelmaker.generate_pdf(layout)
+        label_layout = labelmaker.layout_identifiers(set_name, minted, layout)
+        pdf = labelmaker.generate_pdf(label_layout)
         labels.write(pdf)
 
 
@@ -97,7 +106,13 @@ def mint(set_name, count, *, labels, quiet, dry_run):
     metavar = "<file.pdf>",
     type = click.File("wb"))
 
-def labels(filename):
+@click.option("--layout",
+    metavar = "<layout>",
+    default = 'default',
+    help = "Specify a desired label layout.")
+
+
+def labels(filename, layout: str='default'):
     """
     Make barcode labels for an existing batch of identifiers.
 
@@ -108,6 +123,9 @@ def labels(filename):
 
     The batch of identifiers to make labels for is selected interactively based
     on the identifier set and time of original generation.
+
+    If --layout is requested, the printable barcode labels will use the given
+    version of the layout, if available.
 
     ¹ https://github.com/MullinsLab/Lab-Labels
     """
@@ -158,8 +176,8 @@ def labels(filename):
 
     assert len(identifiers) == chosen_batch.count
 
-    layout = labelmaker.layout_identifiers(chosen_batch.set_name, identifiers)
-    pdf = labelmaker.generate_pdf(layout)
+    label_layout = labelmaker.layout_identifiers(chosen_batch.set_name, identifiers, layout)
+    pdf = labelmaker.generate_pdf(label_layout)
     filename.write(pdf)
 
 
