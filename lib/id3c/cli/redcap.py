@@ -162,6 +162,7 @@ class Project:
                 since_date: str = None,
                 until_date: str = None,
                 ids: List[str] = None,
+                instruments: List[str] = None,
                 fields: List[str] = None,
                 events: List[str] = None,
                 filter: str = None,
@@ -182,6 +183,9 @@ class Project:
 
         The optional *ids* parameter can be used to limit results to the given
         record ids.
+
+        The optional *instruments* parameter can be used to limit the
+        instruments ("forms") returned for each record.
 
         The optional *fields* parameter can be used to limit the fields
         returned for each record.
@@ -214,6 +218,9 @@ class Project:
 
         if ids is not None:
             parameters['records'] = ",".join(map(str, ids))
+
+        if instruments is not None:
+            parameters['forms'] = ",".join(map(str, instruments))
 
         if fields is not None:
             parameters['fields'] = ",".join(map(str, fields))
