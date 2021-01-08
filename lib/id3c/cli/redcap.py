@@ -405,7 +405,7 @@ def is_complete(instrument: str, data: dict) -> bool:
     >>> is_complete("test", {}) is None
     True
     """
-    instrument_complete_field = data.get(f"{instrument}_complete")
+    instrument_complete_field = data.get(completion_status_field(instrument))
 
     if instrument_complete_field is None:
         return None
@@ -415,6 +415,28 @@ def is_complete(instrument: str, data: dict) -> bool:
         InstrumentStatus.Complete.value,
         str(InstrumentStatus.Complete.value)
     }
+
+
+def completion_status_field(instrument: str) -> str:
+    """
+    Returns the REDCap automatic field name for the completion status of
+    *instrument*.
+
+    If want to know the completion status itself, use :func:`is_complete`
+    instead.
+    """
+    # XXX TODO: It would be good to normalize *instrument* here, including:
+    #
+    #   - Lowercasing
+    #   - Replacing runs of whitespace and/or non-alphanumerics (?) with a
+    #     single underscore.
+    #   - Maybe: removing leading numbers?
+    #
+    # The full set of transformations REDCap applies aren't entirely clear to
+    # me at the moment, so I'm punting for now.  The caller must provide the
+    # internal names.
+    #   -trs, 8 Jan 2020
+    return f"{instrument}_complete"
 
 
 def api_token(url: str, project_id: int) -> str:
@@ -541,7 +563,7 @@ def det(project: Project, record: dict, instrument: str, generated_by: str = Non
         'redcap_repeat_instrument',
     }
     """
-    instrument_complete = instrument + '_complete'
+    instrument_complete = completion_status_field(instrument)
 
     if not generated_by:
         generated_by = running_command_name()

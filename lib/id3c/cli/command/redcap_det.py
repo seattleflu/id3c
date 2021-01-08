@@ -16,7 +16,7 @@ import click
 import logging
 from typing import List
 from id3c.cli import cli
-from id3c.cli.redcap import Project, is_complete, det
+from id3c.cli.redcap import Project, completion_status_field, is_complete, det
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json
 
@@ -124,13 +124,6 @@ def generate(record_ids: List[str], api_url: str, project_id: int, token: str, s
         LOG.debug(f"Producing DET notifications for all events ({project.events})")
         events = project.events
 
-    records = project.records(
-        since_date = since_date,
-        until_date = until_date,
-        ids = record_ids or None,
-        events = events,
-        raw = True)
-
     if instruments:
         LOG.debug(f"Producing DET notifications for the following {'instruments' if include_incomplete else 'complete instruments'}: {instruments}")
         assert_known_attribute_value(project, 'instruments', instruments, 'instrument')
@@ -138,6 +131,18 @@ def generate(record_ids: List[str], api_url: str, project_id: int, token: str, s
         LOG.debug(f"Producing DET notifications for all {'instruments' if include_incomplete else 'complete instruments'} ({project.instruments})")
         instruments = project.instruments
 
+    fields = [
+        project.record_id_field,
+        *map(completion_status_field, instruments),
+    ]
+
+    records = project.records(
+        since_date = since_date,
+        until_date = until_date,
+        ids = record_ids or None,
+        fields = fields,
+        events = events,
+        raw = True)
 
     for record in records:
         for instrument in instruments:
