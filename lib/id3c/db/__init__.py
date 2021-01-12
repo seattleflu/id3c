@@ -32,35 +32,16 @@ class IdentifierSetNotFoundError(IdentifierMintingError):
         return f"No identifier set named «{self.name}»"
 
 
-class TooManyFailuresError(IdentifierMintingError):
-    """
-    Raised when :func:``mint_identifiers`` is unable to generate an allowable
-    barcode.
-    """
-    def __init__(self, count):
-        self.count = count
-
-    def __str__(self):
-        return f"Too many consecutive failures ({self.count}); trying again may succeed"
-
-
 def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
     """
     Generate *n* new identifiers in the set *name*.
 
     Raises a :class:`~werkzeug.exceptions.NotFound` exception if the set *name*
     doesn't exist and a :class:`Forbidden` exception if the database reports a
-    `permission denied` error.  If too many consecutive minting failures
-    happen, then a :class:`~werkzeug.exceptions.ServiceUnavailable` exception
-    is raised.
+    `permission denied` error.
     """
     minted: List[Any] = []
     failures: Dict[int, int] = {}
-
-    # This is a guess at a threshold that indicates an "unreasonable" level of
-    # effort to mint identifiers, but I don't know the chance of hitting it
-    # stochastically.
-    max_consecutive_failures = 15
 
     # Lookup identifier set by name
     identifier_set = session.fetch_row("""
@@ -92,16 +73,9 @@ def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
                 minted.append(new_identifier)
 
         except ExclusionViolation:
-            LOG.debug("Barcode excluded")
-
+            LOG.debug("Barcode excluded. Retrying.")
             failures.setdefault(m, 0)
             failures[m] += 1
-
-            if failures[m] > max_consecutive_failures:
-                LOG.error("Too many consecutive failures, aborting")
-                raise TooManyFailuresError(failures[m])
-            else:
-                LOG.debug("Retrying")
 
     duration = datetime.now() - started
     per_second = n / duration.total_seconds()
