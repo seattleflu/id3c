@@ -9,7 +9,7 @@ import requests
 from enum import Enum
 from functools import lru_cache
 from operator import itemgetter
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 from .utils import running_command_name
 from ..url import Url
 
@@ -155,7 +155,9 @@ class Project:
         fields ``redcap_event_name``, ``redcap_repeat_instrument``, and
         ``redcap_repeat_instance``.
         """
-        return self.records(ids = [record_id], raw = raw)
+        # This is always a List[Record] because we don't pass page_size, but
+        # mypy (0.790) can't figure that out.
+        return self.records(ids = [record_id], raw = raw) # type: ignore
 
 
     def records(self, *,
@@ -165,7 +167,8 @@ class Project:
                 fields: List[str] = None,
                 events: List[str] = None,
                 filter: str = None,
-                raw: bool = False) -> List['Record']:
+                raw: bool = False,
+                page_size: int = None) -> Union[List['Record'], Iterator['Record']]:
         """
         Fetch records for this REDCap project.
 
@@ -196,6 +199,17 @@ class Project:
         The optional *raw* parameter controls if numeric/coded values are
         returned for multiple choice fields.  When false (the default), string
         labels are returned.
+
+        The optional *page_size* parameter, when set, enables paged fetching of
+        records by their primary record id (i.e. :attr:`.record_id_field`).
+        *page_size* can only be used with REDCap projects that use record
+        auto-numbering.  Each fetch will include a maximum of *page_size*
+        records, although may contain many more result rows for records with
+        repeating instruments/events).  The last fetch may contain results
+        for more than *page_size* records because it uses an unrestricted upper
+        bound in order to catch anything created since the start of the
+        pagination process.  When *page_size* is provided, an iterator, as
+        opposed to a list, is returned.
         """
         parameters = {
             'type': 'flat',
@@ -225,7 +239,47 @@ class Project:
         if filter is not None:
             parameters['filterLogic'] = str(filter)
 
-        return [Record(self, r) for r in self._fetch("record", parameters)]
+        if page_size is not None:
+            return self._fetch_records_paged(parameters, page_size)
+        else:
+            return list(self._fetch_records(parameters))
+
+
+    def _fetch_records_paged(self, parameters: dict, page_size: int) -> Iterator['Record']:
+        assert bool(self._details["record_autonumbering_enabled"]), \
+            "Record auto-numbering must be enabled to use page_size parameter"
+
+        # Query the current maximum record id + 1 for the project.  Due to the
+        # absence of transactions, this is a hideously unsafe API design choice
+        # on REDCap's part, but it's fine for our purposes.
+        next_record_id = self._fetch("generateNextRecordName")
+
+        pages = [
+            (lower, lower + page_size if lower + page_size < next_record_id else None)
+                for lower
+                in range(1, next_record_id, page_size)]
+
+        LOG.debug(f"Computed pages for record fetch: {pages!r}")
+
+        for lower_bound, upper_bound in pages:
+            page_filter = f"[{self.record_id_field}] >= {lower_bound}"
+
+            if upper_bound is not None:
+                page_filter += f" and [{self.record_id_field}] < {upper_bound}"
+
+            page_parameters = parameters.copy()
+            existing_filter = page_parameters.get("filterLogic")
+
+            if existing_filter:
+                page_parameters["filterLogic"] = f"({page_filter}) and ({existing_filter})"
+            else:
+                page_parameters["filterLogic"] = page_filter
+
+            yield from self._fetch_records(page_parameters)
+
+
+    def _fetch_records(self, parameters: dict) -> Iterator['Record']:
+        return (Record(self, r) for r in self._fetch("record", parameters))
 
 
     def update_records(self, records: List[Dict[str, str]]) -> int:
