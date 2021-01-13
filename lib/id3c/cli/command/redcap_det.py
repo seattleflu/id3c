@@ -16,7 +16,7 @@ import click
 import logging
 from typing import List
 from id3c.cli import cli
-from id3c.cli.redcap import Project, is_complete, det
+from id3c.cli.redcap import Project, completion_status_field, is_complete, det
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json
 
@@ -32,17 +32,26 @@ def redcap_det():
 @redcap_det.command("generate")
 @click.argument("record-ids", nargs = -1)
 
+@click.option("--api-url",
+    metavar = "<url>",
+    help = "The API endpoint of the REDCap instance.",
+    required = True,
+    envvar = "REDCAP_API_URL",
+    show_envvar = True)
+
 @click.option("--project-id",
     metavar = "<id>",
     type = int,
     help = "The project id from which to fetch records.  "
-           "Used as a sanity check that the correct API token is provided.",
-    required = True)
+           "Must match the project associated with the provided API token.",
+    required = True,
+    envvar = "REDCAP_PROJECT_ID",
+    show_envvar = True)
 
 @click.option("--token",
     metavar = "<token-name>",
-    help = "The name of the environment variable that holds the API token",
-    default = "REDCAP_API_TOKEN")
+    help = "The name of the environment variable that holds the API token.  "
+           "Defaults to a name based on the --api-url and --project-id values: REDCAP_API_TOKEN_{api_url_origin}_{project_id}.")
 
 @click.option("--since-date",
     metavar = "<since-date>",
@@ -69,7 +78,7 @@ def redcap_det():
     is_flag = True,
     flag_value = True)
 
-def generate(record_ids: List[str], project_id: int, token: str, since_date: str, until_date: str,
+def generate(record_ids: List[str], api_url: str, project_id: int, token: str, since_date: str, until_date: str,
     instruments: List[str], events: List[str], include_incomplete: bool):
     """
     Generate DET notifications for REDCap records.
@@ -78,9 +87,6 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
     record ids are given, then all records (or all records matching the date
     filters) are considered.  The REDCap API does not support combining a list
     of specific record ids with date filters, so this command does not either.
-
-    Requires environmental variables REDCAP_API_URL and REDCAP_API_TOKEN (or
-    whatever you passed to --token).
 
     DET notifications are output for all completed instruments for each record
     by default.  Pass --include-incomplete to output DET notifications for
@@ -91,8 +97,7 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
     All DET notifications are output to stdout as newline-delimited JSON
     records.  You will likely want to redirect stdout to a file.
     """
-    api_token = os.environ[token]
-    api_url = os.environ['REDCAP_API_URL']
+    api_token = os.environ[token] if token else None
 
     project = Project(api_url, project_id, token = api_token)
 
@@ -119,13 +124,6 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
         LOG.debug(f"Producing DET notifications for all events ({project.events})")
         events = project.events
 
-    records = project.records(
-        since_date = since_date,
-        until_date = until_date,
-        ids = record_ids or None,
-        events = events,
-        raw = True)
-
     if instruments:
         LOG.debug(f"Producing DET notifications for the following {'instruments' if include_incomplete else 'complete instruments'}: {instruments}")
         assert_known_attribute_value(project, 'instruments', instruments, 'instrument')
@@ -133,6 +131,18 @@ def generate(record_ids: List[str], project_id: int, token: str, since_date: str
         LOG.debug(f"Producing DET notifications for all {'instruments' if include_incomplete else 'complete instruments'} ({project.instruments})")
         instruments = project.instruments
 
+    fields = [
+        project.record_id_field,
+        *map(completion_status_field, instruments),
+    ]
+
+    records = project.records(
+        since_date = since_date,
+        until_date = until_date,
+        ids = record_ids or None,
+        fields = fields,
+        events = events,
+        raw = True)
 
     for record in records:
         for instrument in instruments:
