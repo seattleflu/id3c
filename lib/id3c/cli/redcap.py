@@ -369,6 +369,50 @@ class Project:
         return self._fetch('metadata', {})
 
 
+    def update_metadata(self, metadata: Dict[str, str]) -> int:
+        """
+        Update existing *metadata* in this REDCap project.
+
+        *metadata* must be an iterable of :py:class:``dict``s mapping REDCap
+        field names, form names, and other instrument metadata to values.  The
+        instrument field name, form name, and field type, and field label, at a
+        minimum, must be included.   All keys and values must be strings.
+
+        Any value provided for a field, including the empty string, will
+        overwrite any existing value. From the REDCap API Documentation:
+
+        > Because of this method's destructive nature, it is only available for
+        > use for projects in Development status.
+
+        Returns a count of the number of records updated, as reported by
+        REDCap.
+        """
+        parameters = {
+            'data': json.dumps(metadata),
+            'type': 'flat',
+            'overwriteBehavior': 'overwrite',
+            'returnContent': 'count',
+        }
+
+        expected_count = len(metadata)
+
+        if not self.dry_run:
+            LOG.debug(f"Updating {expected_count:,} REDCap metadata for {self}")
+            result = self._fetch("metadata", parameters)
+
+            updated_count = result
+        else:
+            LOG.debug(f"Pretending to update {expected_count:,} REDCap metadata for {self} (dry run)")
+            updated_count = expected_count
+
+        assert expected_count == updated_count, \
+            "Expected vs. actual metadata updated do not match: {expected_count:,} != {updated_count:,}"
+
+        LOG.debug(f"Updated {updated_count:,} REDCap metadata for {self}")
+
+        return updated_count
+
+
     def _fetch(self, content: str, parameters: Dict[str, str] = {}, *, format: str = "json") -> Any:
         """
         Fetch REDCap *content* with a POST request to the REDCap API.
