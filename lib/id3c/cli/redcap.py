@@ -362,6 +362,13 @@ class Project:
         return self._fetch('report', parameters)
 
 
+    def metadata(self) -> List[Dict[str, str]]:
+        """
+        Fetch the REDCap project metadata.
+        """
+        return self._fetch('metadata', {})
+
+
     def _fetch(self, content: str, parameters: Dict[str, str] = {}, *, format: str = "json") -> Any:
         """
         Fetch REDCap *content* with a POST request to the REDCap API.
