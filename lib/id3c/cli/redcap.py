@@ -344,6 +344,24 @@ class Project:
         return updated_count
 
 
+    def report(self, report_id: str, raw: bool = False) -> List[Dict[str, Any]]:
+        """
+        Fetch the REDCap report *report_id* with all its fields.
+
+        The optional *raw* parameter controls if numeric/coded values are
+        returned for multiple choice fields.  When false (the default),
+        string labels are returned.
+        """
+        parameters = {
+            'type': 'flat',
+            'report_id': report_id,
+            'rawOrLabel': 'raw' if raw else 'label',
+            'exportCheckboxLabel': 'true', # ignored by API if rawOrLabel == raw
+        }
+
+        return self._fetch('report', parameters)
+
+
     def _fetch(self, content: str, parameters: Dict[str, str] = {}, *, format: str = "json") -> Any:
         """
         Fetch REDCap *content* with a POST request to the REDCap API.
