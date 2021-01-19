@@ -413,6 +413,13 @@ class Project:
         return updated_count
 
 
+    def users(self) -> List[Dict[str, Any]]:
+        """
+        Fetch the REDCap project's users.
+        """
+        return self._fetch('user', {})
+
+
     def _fetch(self, content: str, parameters: Dict[str, str] = {}, *, format: str = "json") -> Any:
         """
         Fetch REDCap *content* with a POST request to the REDCap API.
