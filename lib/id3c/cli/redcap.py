@@ -420,6 +420,52 @@ class Project:
         return self._fetch('user', {})
 
 
+    def update_users(self, users: List[Dict[str, Any]]) -> int:
+        """
+        Update existing *users* in this REDCap project.
+
+        *users* must be an iterable of :py:class:``dict``s mapping REDCap
+        user metadata to values.  The username, at a minimum, must be included.
+        All keys must be strings. From the REDCap API documentation:
+
+        > All values should be numerical with the exception of username,
+        > expiration, data_access_group, and forms.
+
+        Any value provided for a field, including the empty string, will
+        overwrite any existing value. Missing attributes, according to the
+        REDCap API docs, are handled by provisioning a user with:
+
+        > the minimum privileges (typically 0=No Access) for the
+        > attribute/privilege. However, if an existing user's privileges are
+        > being modified in the API request, then any attributes not provided
+        > will not be modified from their current value but only the attributes
+        > provided in the request will be modified.
+
+        Returns a count of the number of users updated, as reported by REDCap.
+        """
+        expected_count = len(users)
+
+        parameters = {
+            'data': json.dumps(users)
+        }
+
+        if not self.dry_run:
+            LOG.debug(f"Updating {expected_count:,} REDCap users for {self}")
+            result = self._fetch("user", parameters)
+
+            updated_count = result
+        else:
+            LOG.debug(f"Pretending to update {expected_count:,} REDCap users for {self} (dry run)")
+            updated_count = expected_count
+
+        assert expected_count == updated_count, \
+            "Expected vs. actual users updated do not match: {expected_count:,} != {updated_count:,}"
+
+        LOG.debug(f"Updated {updated_count:,} REDCap users for {self}")
+
+        return updated_count
+
+
     def _fetch(self, content: str, parameters: Dict[str, str] = {}, *, format: str = "json") -> Any:
         """
         Fetch REDCap *content* with a POST request to the REDCap API.
