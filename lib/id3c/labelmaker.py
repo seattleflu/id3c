@@ -278,6 +278,34 @@ class CollectionsChildcareLayout(LabelLayout):
     reference = "seattleflu.org"
 
 
+class CollectionsSchoolTestingLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'SCHOOL TESTING'
+    copies_per_barcode = 2
+    reference = "seattleflu.org"
+
+
+class CollectionsAppleRespiratoryLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'APPLE'
+    copies_per_barcode = 2
+    reference = "seattleflu.org"
+
+
+class CollectionsAdultFamilyHomeOutbreakLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'AFH OUTBREAK'
+    copies_per_barcode = 1
+    reference = "seattleflu.org"
+
+
+class CollectionsWorkplaceOutbreakLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'WORKPLACE OUTBREAK'
+    copies_per_barcode = 1
+    reference = "seattleflu.org"
+
+
 LAYOUTS = {
     "samples": SamplesLayout,
     "collections-scan": CollectionsScanLayout,
@@ -302,6 +330,10 @@ LAYOUTS = {
     'collections-uw-observed': CollectionsUWObservedLayout,
     'collections-uw-home': CollectionsUWHomeLayout,
     'collections-childcare': CollectionsChildcareLayout,
+    'collections-school-testing': CollectionsSchoolTestingLayout,
+    'collections-apple-respiratory': CollectionsAppleRespiratoryLayout,
+    'collections-adult-family-home-outbreak': CollectionsAdultFamilyHomeOutbreakLayout,
+    'collections-workplace-outbreak': CollectionsWorkplaceOutbreakLayout,
 }
 
 
