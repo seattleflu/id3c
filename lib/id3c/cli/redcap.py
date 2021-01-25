@@ -289,7 +289,7 @@ class Project:
         return (Record(self, r) for r in self._fetch("record", parameters))
 
 
-    def update_records(self, records: List[Dict[str, str]]) -> int:
+    def update_records(self, records: List[Dict[str, str]], date_format: str = "YMD") -> int:
         """
         Update existing *records* in this REDCap project.
 
@@ -299,8 +299,10 @@ class Project:
         ``redcap_repeat_instance`` may be necessary.  All keys and values must
         be strings.
 
-        Dates must be formatted as ``YYYY-MM-DD``.  Times are assumed to be in
-        the REDCap server's timezone.
+        Dates must be formatted as ``YYYY-MM-DD`` with the default
+        *date_format* of ``YMD``, as ``D/M/YYYY`` with ``DMY``, and as
+        ``M/D/YYYY`` with ``MDY``. Times are always assumed to be in the REDCap
+        server's timezone.
 
         Any value provided for a field, including the empty string, will
         overwrite any existing value.
@@ -311,12 +313,14 @@ class Project:
         Returns a count of the number of records updated, as reported by
         REDCap.
         """
+        assert date_format in {'YMD', 'DMY', 'MDY'}
+
         parameters = {
             'data': json.dumps(records),
             'type': 'flat',
             'overwriteBehavior': 'overwrite',
             'forceAutoNumber': 'false',
-            'dateFormat': 'YMD',
+            'dateFormat': date_format,
             'returnContent': 'count',
         }
 
