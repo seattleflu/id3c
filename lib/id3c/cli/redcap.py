@@ -350,7 +350,12 @@ class Project:
         Consult REDCap API documentation for required and optional parameters
         to include in API request.
         """
-        LOG.debug(f"Requesting content={content} from REDCap with params {parameters}")
+        loggable_parameters = parameters.copy()
+
+        if "data" in loggable_parameters:
+            loggable_parameters["data"] = "***MASKED***"
+
+        LOG.debug(f"Requesting content={content} from REDCap with params {loggable_parameters}")
 
         headers = {
             'Content-type': 'application/x-www-form-urlencoded',
