@@ -278,10 +278,17 @@ class CollectionsChildcareLayout(LabelLayout):
     reference = "seattleflu.org"
 
 
-class CollectionsSchoolTestingLayout(LabelLayout):
+class CollectionsSchoolTestingHomeLayout(LabelLayout):
     sku = "LCRY-1100"
-    barcode_type = 'SCHOOL TESTING'
+    barcode_type = 'SCHOOL TESTING HOME'
     copies_per_barcode = 2
+    reference = "seattleflu.org"
+
+
+class CollectionsSchoolTestingObservedLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'SCHOOL TESTING OBSERVED'
+    copies_per_barcode = 1
     reference = "seattleflu.org"
 
 
@@ -330,7 +337,8 @@ LAYOUTS = {
     'collections-uw-observed': CollectionsUWObservedLayout,
     'collections-uw-home': CollectionsUWHomeLayout,
     'collections-childcare': CollectionsChildcareLayout,
-    'collections-school-testing': CollectionsSchoolTestingLayout,
+    'collections-school-testing-home': CollectionsSchoolTestingHomeLayout,
+    'collections-school-testing-observed': CollectionsSchoolTestingObservedLayout,
     'collections-apple-respiratory': CollectionsAppleRespiratoryLayout,
     'collections-adult-family-home-outbreak': CollectionsAdultFamilyHomeOutbreakLayout,
     'collections-workplace-outbreak': CollectionsWorkplaceOutbreakLayout,
