@@ -11,6 +11,7 @@ from functools import lru_cache
 from operator import itemgetter
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 from .utils import running_command_name
+from ..json import as_json
 from ..url import Url
 
 
@@ -316,7 +317,7 @@ class Project:
         assert date_format in {'YMD', 'DMY', 'MDY'}
 
         parameters = {
-            'data': json.dumps(records),
+            'data': as_json(records),
             'type': 'flat',
             'overwriteBehavior': 'overwrite',
             'forceAutoNumber': 'false',
