@@ -289,7 +289,7 @@ class Project:
         return (Record(self, r) for r in self._fetch("record", parameters))
 
 
-    def update_records(self, records: List[Dict[str, str]], date_format: str = "YMD") -> int:
+    def update_records(self, records: List[Dict[str, str]], date_format: str = "YMD", check_count: bool = True) -> int:
         """
         Update existing *records* in this REDCap project.
 
@@ -335,8 +335,9 @@ class Project:
             LOG.debug(f"Pretending to update {expected_count:,} REDCap records for {self} (dry run)")
             updated_count = expected_count
 
-        assert expected_count == updated_count, \
-            f"Expected vs. actual records updated do not match: {expected_count:,} != {updated_count:,}"
+        if check_count:
+            assert expected_count == updated_count, \
+                f"Expected vs. actual records updated do not match: {expected_count:,} != {updated_count:,}"
 
         LOG.debug(f"Updated {updated_count:,} REDCap records for {self}")
 
