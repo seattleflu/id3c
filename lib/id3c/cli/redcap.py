@@ -336,7 +336,7 @@ class Project:
             updated_count = expected_count
 
         assert expected_count == updated_count, \
-            "Expected vs. actual records updated do not match: {expected_count:,} != {updated_count:,}"
+            f"Expected vs. actual records updated do not match: {expected_count:,} != {updated_count:,}"
 
         LOG.debug(f"Updated {updated_count:,} REDCap records for {self}")
 
