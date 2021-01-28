@@ -11,6 +11,7 @@ from functools import lru_cache
 from operator import itemgetter
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 from .utils import running_command_name
+from ..json import as_json
 from ..url import Url
 
 
@@ -316,7 +317,7 @@ class Project:
         assert date_format in {'YMD', 'DMY', 'MDY'}
 
         parameters = {
-            'data': json.dumps(records),
+            'data': as_json(records),
             'type': 'flat',
             'overwriteBehavior': 'overwrite',
             'forceAutoNumber': 'false',
@@ -371,7 +372,11 @@ class Project:
         }
 
         response = requests.post(self.api_url, data=data, headers=headers)
-        response.raise_for_status()
+
+        try:
+            response.raise_for_status()
+        except requests.HTTPError as e:
+            raise APIError(response = response) from e
 
         return response.json() if format == "json" else response.text
 
@@ -660,3 +665,18 @@ def det(project: Project, record: dict, instrument: str, generated_by: str = Non
         det_record['redcap_event_name'] = record['redcap_event_name']
 
     return det_record
+
+
+class APIError(requests.HTTPError):
+    """
+    Error class for bad responses from the REDCap API.
+
+    Includes useful details of the error in the stringification.
+    """
+    def __str__(self):
+        # Intentionally use .text instead of .json() so that we don't
+        # accidentally fail to decode the response body and cause another
+        # exception.  Though we could also catch such exceptions, it's useful
+        # to see things exactly as they were, with minimal post-processing,
+        # when troubleshooting.
+        return f"{self.response.status_code} {self.response.reason}: {self.response.text}"

@@ -4,6 +4,7 @@ Pandas utilities for I/O.
 import click
 import logging
 import pandas as pd
+from sys import stdout
 from textwrap import dedent
 from typing import List
 
@@ -11,13 +12,19 @@ from typing import List
 LOG = logging.getLogger(__name__)
 
 
-def dump_ndjson(df: pd.DataFrame):
+def dump_ndjson(df: pd.DataFrame, file = None):
     """
     Prints a :class:`pandas.DataFrame` as NDJSON.
 
     Dates are formatted according to ISO 8601.
+
+    Outputs to the stream *file*, if given, otherwise the current value of
+    :attr:`sys.stdout`.  (Just like :func:`print`.)
     """
-    print(df.to_json(orient = "records", lines = True, date_format = "iso"))
+    if file is None:
+        file = stdout
+
+    print(df.to_json(orient = "records", lines = True, date_format = "iso"), file = file)
 
 
 def load_file_as_dataframe(filename: str) -> pd.DataFrame:
