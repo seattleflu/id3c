@@ -299,6 +299,13 @@ class CollectionsAppleRespiratoryLayout(LabelLayout):
     reference = "seattleflu.org"
 
 
+class CollectionsAppleRespiratorySerialLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'APPLE SERIAL'
+    copies_per_barcode = 2
+    reference = "seattleflu.org"
+
+
 class CollectionsAdultFamilyHomeOutbreakLayout(LabelLayout):
     sku = "LCRY-1100"
     barcode_type = 'AFH OUTBREAK'
@@ -340,6 +347,7 @@ LAYOUTS = {
     'collections-school-testing-home': CollectionsSchoolTestingHomeLayout,
     'collections-school-testing-observed': CollectionsSchoolTestingObservedLayout,
     'collections-apple-respiratory': CollectionsAppleRespiratoryLayout,
+    'collections-apple-respiratory-serial': CollectionsAppleRespiratorySerialLayout,
     'collections-adult-family-home-outbreak': CollectionsAdultFamilyHomeOutbreakLayout,
     'collections-workplace-outbreak': CollectionsWorkplaceOutbreakLayout,
 }
