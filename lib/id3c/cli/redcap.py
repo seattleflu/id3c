@@ -345,6 +345,128 @@ class Project:
         return updated_count
 
 
+    def report(self, report_id: str, raw: bool = False) -> List[Dict[str, Any]]:
+        """
+        Fetch the REDCap report *report_id* with all its fields.
+
+        The optional *raw* parameter controls if numeric/coded values are
+        returned for multiple choice fields.  When false (the default),
+        string labels are returned.
+        """
+        parameters = {
+            'type': 'flat',
+            'report_id': report_id,
+            'rawOrLabel': 'raw' if raw else 'label',
+            'exportCheckboxLabel': 'true', # ignored by API if rawOrLabel == raw
+        }
+
+        return self._fetch('report', parameters)
+
+
+    def metadata(self) -> List[Dict[str, str]]:
+        """
+        Fetch the REDCap project metadata.
+        """
+        return self._fetch('metadata', {})
+
+
+    def update_metadata(self, metadata: Dict[str, str]) -> int:
+        """
+        Update existing *metadata* in this REDCap project.
+
+        *metadata* must be an iterable of :py:class:``dict``s mapping REDCap
+        field names, form names, and other instrument metadata to values.  The
+        instrument field name, form name, and field type, and field label, at a
+        minimum, must be included.   All keys and values must be strings.
+
+        Any value provided for a field, including the empty string, will
+        overwrite any existing value. From the REDCap API Documentation:
+
+        > Because of this method's destructive nature, it is only available for
+        > use for projects in Development status.
+
+        Returns a count of the number of records updated, as reported by
+        REDCap.
+        """
+        parameters = {
+            'data': json.dumps(metadata),
+            'type': 'flat',
+            'overwriteBehavior': 'overwrite',
+            'returnContent': 'count',
+        }
+
+        expected_count = len(metadata)
+
+        if not self.dry_run:
+            LOG.debug(f"Updating {expected_count:,} REDCap metadata for {self}")
+            result = self._fetch("metadata", parameters)
+
+            updated_count = result
+        else:
+            LOG.debug(f"Pretending to update {expected_count:,} REDCap metadata for {self} (dry run)")
+            updated_count = expected_count
+
+        assert expected_count == updated_count, \
+            "Expected vs. actual metadata updated do not match: {expected_count:,} != {updated_count:,}"
+
+        LOG.debug(f"Updated {updated_count:,} REDCap metadata for {self}")
+
+        return updated_count
+
+
+    def users(self) -> List[Dict[str, Any]]:
+        """
+        Fetch the REDCap project's users.
+        """
+        return self._fetch('user', {})
+
+
+    def update_users(self, users: List[Dict[str, Any]]) -> int:
+        """
+        Update existing *users* in this REDCap project.
+
+        *users* must be an iterable of :py:class:``dict``s mapping REDCap
+        user metadata to values.  The username, at a minimum, must be included.
+        All keys must be strings. From the REDCap API documentation:
+
+        > All values should be numerical with the exception of username,
+        > expiration, data_access_group, and forms.
+
+        Any value provided for a field, including the empty string, will
+        overwrite any existing value. Missing attributes, according to the
+        REDCap API docs, are handled by provisioning a user with:
+
+        > the minimum privileges (typically 0=No Access) for the
+        > attribute/privilege. However, if an existing user's privileges are
+        > being modified in the API request, then any attributes not provided
+        > will not be modified from their current value but only the attributes
+        > provided in the request will be modified.
+
+        Returns a count of the number of users updated, as reported by REDCap.
+        """
+        expected_count = len(users)
+
+        parameters = {
+            'data': json.dumps(users)
+        }
+
+        if not self.dry_run:
+            LOG.debug(f"Updating {expected_count:,} REDCap users for {self}")
+            result = self._fetch("user", parameters)
+
+            updated_count = result
+        else:
+            LOG.debug(f"Pretending to update {expected_count:,} REDCap users for {self} (dry run)")
+            updated_count = expected_count
+
+        assert expected_count == updated_count, \
+            "Expected vs. actual users updated do not match: {expected_count:,} != {updated_count:,}"
+
+        LOG.debug(f"Updated {updated_count:,} REDCap users for {self}")
+
+        return updated_count
+
+
     def _fetch(self, content: str, parameters: Dict[str, str] = {}, *, format: str = "json") -> Any:
         """
         Fetch REDCap *content* with a POST request to the REDCap API.
