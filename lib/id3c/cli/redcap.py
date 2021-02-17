@@ -382,7 +382,7 @@ class Project:
         REDCap.
         """
         parameters = {
-            'data': json.dumps(metadata),
+            'data': as_json(metadata),
             'type': 'flat',
             'overwriteBehavior': 'overwrite',
             'returnContent': 'count',
@@ -440,7 +440,7 @@ class Project:
         expected_count = len(users)
 
         parameters = {
-            'data': json.dumps(users)
+            'data': as_json(users)
         }
 
         if not self.dry_run:
