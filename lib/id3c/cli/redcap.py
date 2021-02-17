@@ -363,14 +363,7 @@ class Project:
         return self._fetch('report', parameters)
 
 
-    def metadata(self) -> List[Dict[str, str]]:
-        """
-        Fetch the REDCap project metadata.
-        """
-        return self._fetch('metadata', {})
-
-
-    def update_metadata(self, metadata: Dict[str, str]) -> int:
+    def update_fields(self, metadata: Dict[str, str]) -> int:
         """
         Update existing *metadata* in this REDCap project.
 
