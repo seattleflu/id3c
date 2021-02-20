@@ -59,7 +59,8 @@ def etl_presence_absence(*, db: DatabaseSession):
     presence_absence = db.cursor("presence_absence")
     presence_absence.itersize = 1
     presence_absence.execute("""
-        select presence_absence_id as id, document
+        select presence_absence_id as id, document,
+               received::date as received_date
           from receiving.presence_absence
          where not processing_log @> %s
          order by id
@@ -189,6 +190,7 @@ def etl_presence_absence(*, db: DatabaseSession):
                         target_id  = target.id,
                         present    = present,
                         details    = presence_absence_details(test_result,
+                                                              group.received_date,
                                                               chip,
                                                               extraction_date,
                                                               assay_name,
@@ -305,6 +307,7 @@ def sample_details(document: dict) -> dict:
     }
 
 def presence_absence_details(document: dict,
+                             received_date: str,
                              chip: Any = None,
                              extraction_date: Any = None,
                              assay_name: Any = None,
@@ -334,8 +337,8 @@ def presence_absence_details(document: dict,
     if assay_type:
         assert assay_type in {'Clia', 'Research'}, f"Found unknown assay type «{assay_type}»"
     else:
-        # 7 April 2020 was the date we first started ingesting `assay_type`.
-        if extraction_date < '2020-04-07':
+        # 12 February 2021 was the date we first received `assayType` for OpenArray results.
+        if received_date < datetime(2021, 2, 12).date():
             # Assumes anything with 4 wellResults is "Clia" and everything else
             # "Research" assays
             assay_type = 'Clia' if len(document['wellResults']) == 4 else 'Research'
