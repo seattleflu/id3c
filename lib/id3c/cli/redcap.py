@@ -404,6 +404,10 @@ class Project:
 
         LOG.debug(f"Updated {updated_count:,} REDCap metadata for {self}")
 
+        # Invalidate fields property cache so it's refreshed with any updates
+        # we just made next time it's needed (if ever).
+        self._fields = None
+
         return updated_count
 
 
