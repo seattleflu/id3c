@@ -363,14 +363,7 @@ class Project:
         return self._fetch('report', parameters)
 
 
-    def metadata(self) -> List[Dict[str, str]]:
-        """
-        Fetch the REDCap project metadata.
-        """
-        return self._fetch('metadata', {})
-
-
-    def update_metadata(self, metadata: Dict[str, str]) -> int:
+    def update_fields(self, metadata: Dict[str, str]) -> int:
         """
         Update existing *metadata* in this REDCap project.
 
@@ -389,7 +382,7 @@ class Project:
         REDCap.
         """
         parameters = {
-            'data': json.dumps(metadata),
+            'data': as_json(metadata),
             'type': 'flat',
             'overwriteBehavior': 'overwrite',
             'returnContent': 'count',
@@ -410,6 +403,10 @@ class Project:
             "Expected vs. actual metadata updated do not match: {expected_count:,} != {updated_count:,}"
 
         LOG.debug(f"Updated {updated_count:,} REDCap metadata for {self}")
+
+        # Invalidate fields property cache so it's refreshed with any updates
+        # we just made next time it's needed (if ever).
+        self._fields = None
 
         return updated_count
 
@@ -447,7 +444,7 @@ class Project:
         expected_count = len(users)
 
         parameters = {
-            'data': json.dumps(users)
+            'data': as_json(users)
         }
 
         if not self.dry_run:
