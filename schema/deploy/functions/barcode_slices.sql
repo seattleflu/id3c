@@ -2,14 +2,14 @@
 
 begin;
 
-create or replace function public.barcode_slices(input citext)
-    returns citext[]
+create or replace function public.barcode_slices(input public.citext)
+    returns public.citext[]
     returns null on null input
     as $$
         declare
         slice_width integer := 2;
         slice_count integer;
-        slices citext[];
+        slices public.citext[];
 
         begin
         slice_count = length(input) - slice_width + 1;
