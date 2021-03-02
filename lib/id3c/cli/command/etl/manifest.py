@@ -77,6 +77,12 @@ def etl_manifest(*, db: DatabaseSession):
             "collections-uw-observed",
             "collections-household-general",
             "collections-childcare",
+            "collections-school-testing-home",
+            "collections-school-testing-observed",
+            "collections-apple-respiratory",
+            "collections-apple-respiratory-serial",
+            "collections-adult-family-home-outbreak",
+            "collections-workplace-outbreak",
         },
         "rdt": {"collections-fluathome.org"}
     }
