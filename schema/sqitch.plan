@@ -219,3 +219,8 @@ functions/barcode_slices 2020-11-17T18:31:45Z Chris Craft <jccraft@uw.edu> # Add
 warehouse/identifier/triggers/barcode-distance-check [warehouse/identifier/triggers/barcode-distance-check@2020-11-17 functions/barcode_slices] 2020-11-17T18:36:26Z Chris Craft <jccraft@uw.edu> # Add slices check to barcode-distance-check
 warehouse/identifier/indexes/identifier_barcode_slices [functions/barcode_slices] 2020-11-18T19:38:09Z Chris Craft <jccraft@uw.edu> # Add barcode_slices index to warehouse.identifier table
 warehouse/identifier/indexes/identifier_barcode_slices_null [functions/barcode_slices] 2020-12-14T23:30:16Z Chris Craft <jccraft@uw.edu> # Create an index to make null barcode slices check faster
+
+@2021-02-27 2021-02-27T16:09:44Z Chris Craft <jccraft@uw.edu> # Schema as of 27 Feb 2021
+
+functions/barcode_slices [functions/barcode_slices@2021-02-27] 2021-02-27T16:10:36Z Chris Craft <jccraft@uw.edu> # Explicitly mark public schema usage to fix db restore
+@2021-02-27b 2021-02-27T16:33:09Z Chris Craft <jccraft@uw.edu> # Schema as of later on 27 Feb 2021
