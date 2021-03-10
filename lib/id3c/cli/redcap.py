@@ -263,7 +263,7 @@ class Project:
                 for lower
                 in range(1, next_record_id, page_size)]
 
-        LOG.debug(f"Computed pages for record fetch: {pages!r}")
+        LOG.debug(f"Computed pages for record fetch for {self}: {pages!r}")
 
         for lower_bound, upper_bound in pages:
             page_filter = f"[{self.record_id_field}] >= {lower_bound}"
@@ -472,7 +472,7 @@ class Project:
         if "data" in loggable_parameters:
             loggable_parameters["data"] = "***MASKED***"
 
-        LOG.debug(f"Requesting content={content} from REDCap with params {loggable_parameters}")
+        LOG.debug(f"Requesting content={content} from REDCap with params {loggable_parameters} for {self}")
 
         headers = {
             'Content-type': 'application/x-www-form-urlencoded',
