@@ -4,7 +4,8 @@ API route definitions.
 import json
 import logging
 import pkg_resources
-from flask import Blueprint, request, send_file
+from flask import Blueprint, make_response, request, send_file
+from .. import metrics
 from . import datastore
 from .utils.routes import authenticated_datastore_session_required, content_types_accepted, check_content_length
 
@@ -145,6 +146,21 @@ def receive_fhir(*, session):
     datastore.store_fhir(session, document)
 
     return "", 204
+
+
+@api_v1.route("/metrics", methods = ["GET"])
+@authenticated_datastore_session_required
+def expose_metrics(*, session):
+    """
+    Exposes metrics for Prometheus.
+    """
+    # Make an ephemeral registry for metrics collected via the authenticated
+    # session.
+    registry = metrics.CollectorRegistry(auto_describe = True)
+
+    registry.register(metrics.DatabaseCollector(session))
+
+    return make_response(metrics.make_wsgi_app(registry))
 
 
 # Load all extra API routes from extensions
