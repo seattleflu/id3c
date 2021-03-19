@@ -2,17 +2,12 @@
 Metrics handling functions.
 """
 import logging
-import prometheus_client
 from prometheus_client.core import GaugeMetricFamily
 from psycopg2.errors import InsufficientPrivilege
 from .db import DatabaseSession
 
 
 LOG = logging.getLogger(__name__)
-
-CollectorRegistry = prometheus_client.CollectorRegistry
-
-make_wsgi_app = prometheus_client.make_wsgi_app
 
 
 class DatabaseCollector:
