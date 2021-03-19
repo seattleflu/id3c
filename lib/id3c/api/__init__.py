@@ -4,6 +4,7 @@ Web API
 import logging
 from flask import Flask
 from . import config
+from .metrics import metrics
 from .routes import blueprints
 
 
@@ -16,6 +17,8 @@ def create_app():
 
     for blueprint in blueprints:
         app.register_blueprint(blueprint)
+
+    metrics.init_app(app)
 
     LOG.debug(f"app root is {app.root_path}")
     LOG.debug(f"app static directory is {app.static_folder}")

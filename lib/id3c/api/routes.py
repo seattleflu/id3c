@@ -4,8 +4,12 @@ API route definitions.
 import json
 import logging
 import pkg_resources
-from flask import Blueprint, request, send_file
+import prometheus_client
+from flask import Blueprint, make_response, request, send_file
+
+from ..metrics import DatabaseCollector
 from . import datastore
+from .metrics import metrics
 from .utils.routes import authenticated_datastore_session_required, content_types_accepted, check_content_length
 
 
@@ -18,6 +22,28 @@ blueprints = [
     api_v1,
     api_unversioned,
 ]
+
+
+# Metrics exposition endpoint
+@api_v1.route("/metrics", methods = ["GET"])
+@metrics.do_not_track()
+@authenticated_datastore_session_required
+def expose_metrics(*, session):
+    """
+    Exposes metrics for Prometheus.
+
+    Includes metrics collected from the Flask app, as well as the database.
+    """
+    registry = prometheus_client.CollectorRegistry(auto_describe = True)
+
+    # Collect metrics from the app-wide registry, potentially from multiple
+    # server processes via files in prometheus_multiproc_dir.
+    registry.register(metrics.registry)
+
+    # Collect metrics from the database using the authenticated session.
+    registry.register(DatabaseCollector(session))
+
+    return make_response(prometheus_client.make_wsgi_app(registry))
 
 
 @api_v1.route("/", methods = ['GET'])
