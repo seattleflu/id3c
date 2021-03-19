@@ -2,9 +2,15 @@
 Metrics handling functions.
 """
 import logging
+import os
+import threading
+from prometheus_client import CollectorRegistry, REGISTRY as DEFAULT_REGISTRY
 from prometheus_client.core import GaugeMetricFamily
+from prometheus_client.values import ValueClass
 from psycopg2.errors import InsufficientPrivilege
+from time import sleep
 from .db import DatabaseSession
+from .utils import set_thread_name
 
 
 LOG = logging.getLogger(__name__)
@@ -54,3 +60,36 @@ class DatabaseCollector:
             family.add_metric((metric.schema, metric.table), metric.estimated_row_count)
 
         yield family
+
+
+class MultiProcessWriter(threading.Thread):
+    def __init__(self, registry: CollectorRegistry = DEFAULT_REGISTRY, interval: int = 15):
+        super().__init__(name = "metrics writer", daemon = True)
+
+        self.registry = registry
+        self.interval = interval
+
+    def run(self):
+        set_thread_name(self)
+
+        while True:
+            for metric in self.registry.collect():
+                for sample in metric.samples:
+                    if metric.type == "gauge":
+                        # Metrics from GaugeMetricFamily will not have the
+                        # attribute set, for example.
+                        multiprocess_mode = getattr(metric, "_multiprocess_mode", "all")
+                    else:
+                        multiprocess_mode = ""
+
+                    value = ValueClass(
+                        metric.type,
+                        metric.name,
+                        sample.name,
+                        sample.labels.keys(),
+                        sample.labels.values(),
+                        multiprocess_mode = multiprocess_mode)
+
+                    value.set(sample.value)
+
+            sleep(self.interval)

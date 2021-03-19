@@ -1,6 +1,8 @@
 """
 Utilities.
 """
+import ctypes
+import threading
 from typing import Any, Sequence, Union
 
 
@@ -94,3 +96,21 @@ def shorten(text, length, placeholder):
         return text[0:length - len(placeholder)] + placeholder
     else:
         return text
+
+
+LIBCAP = None
+
+def set_thread_name(thread: threading.Thread):
+    global LIBCAP
+
+    if LIBCAP is None:
+        try:
+            LIBCAP = ctypes.CDLL("libcap.so.2")
+        except:
+            LIBCAP = False
+
+    if not LIBCAP:
+        return
+
+    # From the prctl(2) manpage, PR_SET_NAME is 15.
+    LIBCAP.prctl(15, thread.name.encode())

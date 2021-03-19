@@ -2,8 +2,11 @@
 Web API metrics.
 """
 import os
+from prometheus_client import CollectorRegistry, GCCollector, PlatformCollector, ProcessCollector
 import prometheus_flask_exporter
 import prometheus_flask_exporter.multiprocess
+
+from ..metrics import MultiProcessWriter
 
 
 if "prometheus_multiproc_dir" in os.environ:
@@ -25,3 +28,14 @@ XXX = FlaskMetrics(
 
 def register_app(app):
     XXX.init_app(app)
+
+    # XXX TODO FIXME needs to be postfork for a pre-forking server like uWSGI
+    if MULTIPROCESS:
+        registry = CollectorRegistry(auto_describe = True)
+
+        ProcessCollector(registry = registry)
+        PlatformCollector(registry = registry)
+        GCCollector(registry = registry)
+
+        writer = MultiProcessWriter(registry)
+        writer.start()
