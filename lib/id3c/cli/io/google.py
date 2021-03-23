@@ -87,6 +87,6 @@ def get_document_etag(document_id: str) -> str:
     Returns the etag of a Google Drive document.
     """
     drive_service = discovery.build("drive", "v2")
-    metadata = drive_service.files().get(fileId=document_id).execute()
+    metadata = drive_service.files().get(fileId=document_id, supportsAllDrives=True).execute()
 
     return metadata["etag"]
