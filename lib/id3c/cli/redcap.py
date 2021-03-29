@@ -493,7 +493,14 @@ class Project:
         except requests.HTTPError as e:
             raise APIError(response = response) from e
 
-        return response.json() if format == "json" else response.text
+        if format == "json":
+            try:
+                return response.json()
+            except json.decoder.JSONDecodeError as e:
+                raise APIJsonDecodeError(msg = e.msg, doc = e.doc, pos = e.pos)
+
+        else:
+            return response.text
 
 
     def __repr__(self) -> str:
@@ -795,3 +802,13 @@ class APIError(requests.HTTPError):
         # to see things exactly as they were, with minimal post-processing,
         # when troubleshooting.
         return f"{self.response.status_code} {self.response.reason}: {self.response.text}"
+
+
+class APIJsonDecodeError(json.decoder.JSONDecodeError):
+    """
+    Error class for bad JSON responses from the REDCap API.
+
+    Includes useful details of the error in the stringification.
+    """
+    def __str__(self):
+        return f"Error: {self.msg!r} Text to decode: {self.doc!r}"
