@@ -493,6 +493,8 @@ class Project:
         except requests.HTTPError as e:
             raise APIError(response = response) from e
 
+        LOG.debug(f"{response.status_code} {response.reason} response for content={content} for {self}")
+
         return response.json() if format == "json" else response.text
 
 
