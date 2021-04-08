@@ -11,7 +11,7 @@ from functools import lru_cache
 from operator import itemgetter
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 from .utils import running_command_name
-from ..json import as_json
+from ..json import as_json, load_json
 from ..url import Url
 
 
@@ -493,7 +493,9 @@ class Project:
         except requests.HTTPError as e:
             raise APIError(response = response) from e
 
-        return response.json() if format == "json" else response.text
+        LOG.debug(f"{response.status_code} {response.reason} response for content={content} for {self}")
+
+        return load_json(response.text) if format == "json" else response.text
 
 
     def __repr__(self) -> str:

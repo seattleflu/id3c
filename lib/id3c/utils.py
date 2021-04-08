@@ -94,3 +94,64 @@ def shorten(text, length, placeholder):
         return text[0:length - len(placeholder)] + placeholder
     else:
         return text
+
+
+def contextualize_char(text, idx, context = 10):
+    """
+    Marks the *idx* char in *text* and snips out a surrounding amount of
+    *context*.
+
+    Avoids making a copy of *text* before snipping, in case *text* is very
+    large.
+
+    >>> contextualize_char('hello world', 0, context = 4)
+    '▸▸▸h◂◂◂ello…'
+    >>> contextualize_char('hello world', 5, context = 3)
+    '…llo▸▸▸ ◂◂◂wor…'
+    >>> contextualize_char('hello world', 5, context = 100)
+    'hello▸▸▸ ◂◂◂world'
+    >>> contextualize_char('hello world', 10)
+    'hello worl▸▸▸d◂◂◂'
+    >>> contextualize_char('hello world', 2, context = 0)
+    '…▸▸▸l◂◂◂…'
+
+    >>> contextualize_char('hello world', 11)
+    Traceback (most recent call last):
+        ...
+    IndexError: string index out of range
+    """
+    if context < 0:
+        raise ValueError("context must be positive")
+
+    start = max(0, idx - context)
+    end   = min(len(text), idx + context + 1)
+    idx   = min(idx, context)
+
+    start_placeholder = "…" if start > 0         else ""
+    end_placeholder   = "…" if end   < len(text) else ""
+
+    return start_placeholder + mark_char(text[start:end], idx) + end_placeholder
+
+
+def mark_char(text, idx):
+    """
+    Prominently marks the *idx* char in *text*.
+
+    >>> mark_char('hello world', 0)
+    '▸▸▸h◂◂◂ello world'
+    >>> mark_char('hello world', 2)
+    'he▸▸▸l◂◂◂lo world'
+    >>> mark_char('hello world', 10)
+    'hello worl▸▸▸d◂◂◂'
+
+    >>> mark_char('hello world', 11)
+    Traceback (most recent call last):
+        ...
+    IndexError: string index out of range
+
+    >>> mark_char('', 0)
+    Traceback (most recent call last):
+        ...
+    IndexError: string index out of range
+    """
+    return text[0:idx] + '▸▸▸' + text[idx] + '◂◂◂' + text[idx+1:]
