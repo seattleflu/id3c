@@ -83,6 +83,8 @@ def etl_manifest(*, db: DatabaseSession):
             "collections-apple-respiratory-serial",
             "collections-adult-family-home-outbreak",
             "collections-workplace-outbreak",
+            "collections-radxup-yakima-schools-home",
+            "collections-radxup-yakima-schools-observed",
         },
         "rdt": {"collections-fluathome.org"}
     }
