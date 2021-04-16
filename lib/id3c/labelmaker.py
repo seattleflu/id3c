@@ -353,7 +353,8 @@ LAYOUTS = {
 }
 
 
-def layout_identifiers(set_name: str, identifiers: Iterable, layout: str='default') -> LabelLayout:
+def layout_identifiers(set_name: str, identifiers: Iterable,
+                       layout: str='default', copies_per_barcode: int=None) -> LabelLayout:
     """
     Use the layout associated with the given identifier *set_name* to make
     labels for the given *identifiers*.
@@ -361,7 +362,12 @@ def layout_identifiers(set_name: str, identifiers: Iterable, layout: str='defaul
     Each item in *identifiers* must have a ``barcode`` attribute.  These are
     passed to the layout.
     """
-    return LAYOUTS[set_name]([id.barcode for id in identifiers], layout)
+    layout_class = LAYOUTS[set_name]([id.barcode for id in identifiers], layout)
+
+    if copies_per_barcode:
+        setattr(layout_class, 'copies_per_barcode', copies_per_barcode)
+
+    return layout_class
 
 
 def generate_pdf(layout: LabelLayout, api: str = DEFAULT_LABEL_API) -> bytes:
