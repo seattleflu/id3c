@@ -320,6 +320,20 @@ class CollectionsWorkplaceOutbreakLayout(LabelLayout):
     reference = "seattleflu.org"
 
 
+class CollectionsRadxupYakimaSchoolHomeLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'RADXUP YAKIMA HOME'
+    copies_per_barcode = 2
+    reference = "seattleflu.org"
+
+
+class CollectionsRadxupYakimaSchoolObservedLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'RADXUP YAKIMA OBSERVED'
+    copies_per_barcode = 1
+    reference = "seattleflu.org"
+
+
 LAYOUTS = {
     "samples": SamplesLayout,
     "collections-scan": CollectionsScanLayout,
@@ -350,6 +364,8 @@ LAYOUTS = {
     'collections-apple-respiratory-serial': CollectionsAppleRespiratorySerialLayout,
     'collections-adult-family-home-outbreak': CollectionsAdultFamilyHomeOutbreakLayout,
     'collections-workplace-outbreak': CollectionsWorkplaceOutbreakLayout,
+    'collections-radxup-yakima-schools-home': CollectionsRadxupYakimaSchoolHomeLayout,
+    'collections-radxup-yakima-schools-observed': CollectionsRadxupYakimaSchoolObservedLayout,
 }
 
 
