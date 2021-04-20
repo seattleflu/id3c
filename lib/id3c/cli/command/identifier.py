@@ -51,6 +51,11 @@ def identifier():
     default = 'default',
     help = "Specify a desired label layout.")
 
+@click.option("--copies-per-barcode",
+    type = click.Choice(['1','2']),
+    help = "Specify a desired number of copies per barcode. "
+           "Currently only allows values 1 or 2 to avoid bad UX for the label PDFs.")
+
 @click.option("--quiet", "-q",
     help = "Suppress printing of new identifiers to stdout",
     is_flag = True,
@@ -62,7 +67,7 @@ def identifier():
     flag_value = True)
 
 
-def mint(set_name, count, *, labels, layout, quiet, dry_run):
+def mint(set_name, count, *, labels, layout, copies_per_barcode, quiet, dry_run):
     """
     Mint new identifiers and make barcode labels.
 
@@ -95,7 +100,7 @@ def mint(set_name, count, *, labels, layout, quiet, dry_run):
             print(identifier.barcode, identifier.uuid, sep = "\t")
 
     if labels:
-        label_layout = labelmaker.layout_identifiers(set_name, minted, layout)
+        label_layout = labelmaker.layout_identifiers(set_name, minted, layout, copies_per_barcode)
         pdf = labelmaker.generate_pdf(label_layout)
         labels.write(pdf)
 
@@ -111,8 +116,13 @@ def mint(set_name, count, *, labels, layout, quiet, dry_run):
     default = 'default',
     help = "Specify a desired label layout.")
 
+@click.option("--copies-per-barcode",
+    type = click.Choice(['1','2']),
+    help = "Specify a desired number of copies per barcode. "
+           "Currently only allows values 1 or 2 to avoid bad UX for the label PDFs.")
 
-def labels(filename, layout: str='default'):
+
+def labels(filename, layout: str='default', copies_per_barcode: int=None):
     """
     Make barcode labels for an existing batch of identifiers.
 
@@ -126,6 +136,9 @@ def labels(filename, layout: str='default'):
 
     If --layout is requested, the printable barcode labels will use the given
     version of the layout, if available.
+
+    The option --copies-per-barcode can be provded to change the number of
+    copies per barcode in the printable barcode labels.
 
     ¹ https://github.com/MullinsLab/Lab-Labels
     """
@@ -176,7 +189,7 @@ def labels(filename, layout: str='default'):
 
     assert len(identifiers) == chosen_batch.count
 
-    label_layout = labelmaker.layout_identifiers(chosen_batch.set_name, identifiers, layout)
+    label_layout = labelmaker.layout_identifiers(chosen_batch.set_name, identifiers, layout, copies_per_barcode)
     pdf = labelmaker.generate_pdf(label_layout)
     filename.write(pdf)
 
