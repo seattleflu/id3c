@@ -52,8 +52,9 @@ def identifier():
     help = "Specify a desired label layout.")
 
 @click.option("--copies-per-barcode",
-    metavar = "<copies-per-barcode>",
-    help = "Specify a desired number of copies per barcode.")
+    type = click.Choice(['1','2']),
+    help = "Specify a desired number of copies per barcode. "
+           "Currently only allows values 1 or 2 to avoid bad UX for the label PDFs.")
 
 @click.option("--quiet", "-q",
     help = "Suppress printing of new identifiers to stdout",
@@ -116,8 +117,9 @@ def mint(set_name, count, *, labels, layout, copies_per_barcode, quiet, dry_run)
     help = "Specify a desired label layout.")
 
 @click.option("--copies-per-barcode",
-    metavar = "<copies-per-barcode>",
-    help = "Specify a desired number of copies per barcode.")
+    type = click.Choice(['1','2']),
+    help = "Specify a desired number of copies per barcode. "
+           "Currently only allows values 1 or 2 to avoid bad UX for the label PDFs.")
 
 
 def labels(filename, layout: str='default', copies_per_barcode: int=None):
