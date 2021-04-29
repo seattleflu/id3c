@@ -14,6 +14,9 @@ jobs:
           - ubuntu-latest
         python:
           - 3.6
+          - 3.7
+          - 3.8
+          - 3.9
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
@@ -24,11 +27,8 @@ jobs:
       - name: Upgrade Python toolchain
         run: python3 -m pip install --upgrade pip setuptools wheel
 
-      - name: Install Pipenv
-        run: python3 -m pip install pipenv
-
       - name: Install ID3C
-        run: pipenv sync --dev
+        run: python3 -m pip install --upgrade --editable ".[dev]"
 
       - name: Run pytest
-        run: pipenv run pytest -v
+        run: pytest -v
