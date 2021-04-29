@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  - push
+  - pull_request
+
+jobs:
+  test:
+    name: python=${{ matrix.python }} os=${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+        python:
+          - 3.6
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Upgrade Python toolchain
+        run: python3 -m pip install --upgrade pip setuptools wheel
+
+      - name: Install Pipenv
+        run: python3 -m pip install pipenv
+
+      - name: Install ID3C
+        run: pipenv sync --dev
+
+      - name: Run pytest
+        run: pipenv run pytest -v
