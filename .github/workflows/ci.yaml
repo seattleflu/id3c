@@ -11,7 +11,8 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - ubuntu-latest
+          - ubuntu-20.04
+          - ubuntu-18.04
         python:
           - 3.6
           - 3.7
