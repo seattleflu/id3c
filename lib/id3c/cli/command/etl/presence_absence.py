@@ -17,7 +17,7 @@ The presence-absence ETL process will abort under these conditions:
 """
 import click
 import logging
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Optional
 from id3c.cli.command import with_database_session
 from id3c.db import find_identifier
@@ -307,7 +307,7 @@ def sample_details(document: dict) -> dict:
     }
 
 def presence_absence_details(document: dict,
-                             received_date: str,
+                             received_date: date,
                              chip: Any = None,
                              extraction_date: Any = None,
                              assay_name: Any = None,

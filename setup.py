@@ -82,4 +82,13 @@ setup(
         # setuptools is nearly ever-present, but it can be missing!
         "setuptools",
     ],
+
+    extras_require = {
+        "dev": [
+            "mypy",
+            "pylint",
+            "pytest",
+            "sqlparse",
+        ],
+    },
 )

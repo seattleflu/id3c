@@ -240,14 +240,14 @@ Interact with the database on the command-line in your shell to:
 * Send Slack notifications from the [Reportable Conditions Notifications Slack
   App](https://api.slack.com/apps/ALJJAQGKH)
 
-The `bin/id3c` command is the entry point.  It must be run within the project
-environment, for example by using `pipenv run bin/id3c`.
+The `id3c` command is the entry point.  It must be run within the project
+environment, for example by using `pipenv run id3c`.
 
 The `LOG_LEVEL` environment variable controls the level of terminal output.
 Levels are strings: `debug`, `info`, `warning`, `error`.
 
 
-## Setup
+## Development setup
 
 ### Dependencies
 
@@ -257,9 +257,10 @@ Install all the (locked, known-good) dependencies by running:
 
     pipenv sync
 
-Add new dependencies to `Pipfile`, run:
+Add new dependencies to `setup.py` and run:
 
-    pipenv install <name>
+    pipenv lock
+    pipenv sync
 
 and then commit the changes to `Pipfile` and `Pipfile.lock`.
 
@@ -297,11 +298,12 @@ These files will also allow you to connect using `psql`:
 
     psql service=seattleflu-testing
 
+### Tests
 
-## Dev tools
+Run all tests with:
 
-### Type-checking
+    pipenv run pytest -v
 
-Run type-checking tests with:
+Run just type-checking tests with:
 
     ./dev/mypy
