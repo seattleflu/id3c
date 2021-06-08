@@ -74,12 +74,12 @@ class JSONDecodeError(json.JSONDecodeError):
     >>> load_json('{foo: "bar"}')
     Traceback (most recent call last):
         ...
-    id3c.json.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1): {▸▸▸f◂◂◂oo: "bar"}
+    id3c.json.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1): '{▸▸▸f◂◂◂oo: "bar"}'
 
     >>> load_json('not json')
     Traceback (most recent call last):
         ...
-    id3c.json.JSONDecodeError: Expecting value: line 1 column 1 (char 0): not json
+    id3c.json.JSONDecodeError: Expecting value: line 1 column 1 (char 0): 'not json'
 
     >>> load_json('')
     Traceback (most recent call last):
@@ -95,9 +95,9 @@ class JSONDecodeError(json.JSONDecodeError):
         if self.doc:
             if self.pos == 0 and self.msg == "Expecting value":
                 # Most likely not a JSON document at all, so show the whole thing.
-                context = self.doc
+                context = repr(self.doc)
             else:
-                context = contextualize_char(self.doc, self.pos)
+                context = repr(contextualize_char(self.doc, self.pos))
         else:
             context = "(empty source document)"
 
