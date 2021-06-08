@@ -90,6 +90,29 @@ def shorten(text, length, placeholder):
         return text
 
 
+def shorten_left(text, length, placeholder):
+    """
+    A variant of :py:func:`shorten` which shortens from the left end of *text*
+    instead of the right.
+
+    >>> shorten_left("foobar", 6, "...")
+    'foobar'
+    >>> shorten_left("foobarbaz", 6, "...")
+    '...baz'
+    >>> shorten_left("foobar", 3, "...")
+    Traceback (most recent call last):
+        ...
+    ValueError: maximum length (3) must be greater than length of placeholder (3)
+    """
+    if length <= len(placeholder):
+        raise ValueError(f"maximum length ({length}) must be greater than length of placeholder ({len(placeholder)})")
+
+    if len(text) > length:
+        return placeholder + text[-(length - len(placeholder)):]
+    else:
+        return text
+
+
 def contextualize_char(text, idx, context = 10):
     """
     Marks the *idx* char in *text* and snips out a surrounding amount of
