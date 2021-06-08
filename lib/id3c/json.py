@@ -4,7 +4,7 @@ Standardized JSON conventions.
 import json
 from datetime import datetime
 from typing import Iterable
-from .utils import contextualize_char
+from .utils import contextualize_char, shorten_left
 
 
 def as_json(value):
@@ -81,6 +81,16 @@ class JSONDecodeError(json.JSONDecodeError):
         ...
     id3c.json.JSONDecodeError: Expecting value: line 1 column 1 (char 0): 'not json'
 
+    >>> load_json("[0, 1, 2, 3, 4, 5")
+    Traceback (most recent call last):
+        ...
+    id3c.json.JSONDecodeError: Expecting ',' delimiter: line 1 column 18 (char 17): unexpected end of document: '…, 3, 4, 5'
+
+    >>> load_json("[\\n")
+    Traceback (most recent call last):
+        ...
+    id3c.json.JSONDecodeError: Expecting value: line 2 column 1 (char 2): unexpected end of document: '[\\n'
+
     >>> load_json('')
     Traceback (most recent call last):
         ...
@@ -98,6 +108,8 @@ class JSONDecodeError(json.JSONDecodeError):
             if self.pos == 0 and self.msg == "Expecting value":
                 # Most likely not a JSON document at all, so show the whole thing.
                 context = repr(self.doc)
+            elif self.pos > 0 and self.pos == len(self.doc):
+                context = "unexpected end of document: " + repr(shorten_left(self.doc, self.CONTEXT_LENGTH, "…"))
             else:
                 context = repr(contextualize_char(self.doc, self.pos, self.CONTEXT_LENGTH))
         else:
