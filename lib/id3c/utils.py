@@ -68,15 +68,11 @@ def shorten(text, length, placeholder):
 
     The maximum *length* must be longer than the length of the *placeholder*.
 
-    The right-hand end of *text* is stripped of whitespace.
-
     Behaviour is slightly different than :py:func:`textwrap.shorten` which is
     intended for shortening sentences and works at the word, not character,
     level.
 
     >>> shorten("foobar", 6, "...")
-    'foobar'
-    >>> shorten("foobar  ", 6, "...")
     'foobar'
     >>> shorten("foobarbaz", 6, "...")
     'foo...'
@@ -85,8 +81,6 @@ def shorten(text, length, placeholder):
         ...
     ValueError: maximum length (3) must be greater than length of placeholder (3)
     """
-    text = text.rstrip()
-
     if length <= len(placeholder):
         raise ValueError(f"maximum length ({length}) must be greater than length of placeholder ({len(placeholder)})")
 
