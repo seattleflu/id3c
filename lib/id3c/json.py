@@ -86,6 +86,8 @@ class JSONDecodeError(json.JSONDecodeError):
         ...
     id3c.json.JSONDecodeError: Expecting value: line 1 column 1 (char 0): (empty source document)
     """
+    CONTEXT_LENGTH = 10
+
     def __init__(self, exc: json.JSONDecodeError):
         super().__init__(exc.msg, exc.doc, exc.pos)
 
@@ -97,7 +99,7 @@ class JSONDecodeError(json.JSONDecodeError):
                 # Most likely not a JSON document at all, so show the whole thing.
                 context = repr(self.doc)
             else:
-                context = repr(contextualize_char(self.doc, self.pos))
+                context = repr(contextualize_char(self.doc, self.pos, self.CONTEXT_LENGTH))
         else:
             context = "(empty source document)"
 
