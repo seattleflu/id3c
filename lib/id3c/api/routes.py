@@ -119,9 +119,7 @@ def receive_redcap_det(*, session):
     """
     Receive REDCap data entry triggers.
     """
-
-    # The REDCap payload should have unique keys, hence we create a flat dict
-    document = request.form.to_dict(flat=True)
+    document = request.form.to_dict()
 
     LOG.debug(f"Received REDCap data entry trigger")
 
