@@ -860,6 +860,24 @@
             "markers": "python_version < '3.8' and implementation_name == 'cpython'",
             "version": "==1.4.3"
         },
+        "types-pkg-resources": {
+            "hashes": [
+                "sha256:42d640500de564f1ccc21f918117afadf78039e4fa7f513c647ccf742d609aeb"
+            ],
+            "version": "==0.1.2"
+        },
+        "types-pyyaml": {
+            "hashes": [
+                "sha256:8620045462a0ae1ecff7e97041905abdedc7afdff7ea66cac31df29fb1af6fa3"
+            ],
+            "version": "==0.1.6"
+        },
+        "types-requests": {
+            "hashes": [
+                "sha256:24a51b692d36101e5b81f08733d74b944ccae3e90589fb712e4dfc6f36965c35"
+            ],
+            "version": "==0.1.9"
+        },
         "typing-extensions": {
             "hashes": [
                 "sha256:0ac0f89795dd19de6b97debb0c6af1c70987fd80a2d62d1958f7e56fcc31b497",
