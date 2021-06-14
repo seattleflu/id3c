@@ -386,6 +386,9 @@ def extract_address(address: dict) -> dict:
 
     address_text = ', '.join([str(val) for val in list(address.values()) if val])
 
+    if not address_text.strip():
+        return None
+
     lookup = ExtractLookup()
     lookup.text = address_text
 
