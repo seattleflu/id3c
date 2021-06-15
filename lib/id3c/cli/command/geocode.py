@@ -281,7 +281,7 @@ def geocode_address(address: dict) -> dict:
         STREET_CLIENT = smartystreets_client_builder().build_us_street_api_client()
 
     lookup = us_street_lookup(address)
-    if not lookup.street:
+    if lookup.street is None or not lookup.street.strip():
         LOG.warning(f"Missing street address; can't geocode")
         return None
 
@@ -385,6 +385,9 @@ def extract_address(address: dict) -> dict:
         EXTRACT_CLIENT = smartystreets_client_builder().build_us_extract_api_client()
 
     address_text = ', '.join([str(val) for val in list(address.values()) if val])
+
+    if not address_text.strip():
+        return None
 
     lookup = ExtractLookup()
     lookup.text = address_text
