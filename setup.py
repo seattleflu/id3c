@@ -89,6 +89,9 @@ setup(
             "pylint",
             "pytest",
             "sqlparse",
+            "types-pkg_resources",
+            "types-PyYAML",
+            "types-requests",
         ],
     },
 )
