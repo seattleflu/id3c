@@ -135,19 +135,19 @@ def etl_manifest(*, db: DatabaseSession):
 
             # Skip a record if it has a sample barcode but the barcode doesn't match an identifier
             if sample_barcode and not sample_identifier:
-                LOG.warning(f"Skipping sample with unknown sample barcode «{sample_barcode}»")
+                LOG.warning(f"Skipping record «{manifest_record.id}» with unknown sample barcode «{sample_barcode}»")
                 mark_skipped(db, manifest_record.id)
                 continue
 
             # Skip a record if it has a collection barcode but the barcode doesn't match an identifier
             if collection_barcode and not collection_identifier:
-                LOG.warning(f"Skipping sample with unknown collection barcode «{collection_barcode}»")
+                LOG.warning(f"Skipping record «{manifest_record.id}» with unknown collection barcode «{collection_barcode}»")
                 mark_skipped(db, manifest_record.id)
                 continue
 
              # Skip a record if the collection identifier is from an unexpected set
             if collection_identifier and collection_identifier.set_name not in expected_identifier_sets["collections"]:
-                LOG.warning(f"Skipping sample because collection identifier found in set «{collection_identifier.set_name}», not \
+                LOG.warning(f"Skipping record «{manifest_record.id}» because collection identifier found in set «{collection_identifier.set_name}», not \
                     {expected_identifier_sets['collections']}")
                 mark_skipped(db, manifest_record.id)
                 continue
