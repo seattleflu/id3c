@@ -47,6 +47,17 @@ class JsonEncoder(json.JSONEncoder):
     Encodes Python values into JSON for non-standard objects.
     """
 
+    def __init__(self, *args, **kwargs):
+        """
+        Disallows the floating point values NaN, Infinity, and -Infinity.
+
+        Python's :class:`json` allows them by default because they work with
+        JSON-as-JavaScript, but they don't work with spec-compliant JSON
+        parsers.
+        """
+        kwargs["allow_nan"] = False
+        super().__init__(*args, **kwargs)
+
     def default(self, value):
         """
         Returns *value* as JSON or raises a TypeError.

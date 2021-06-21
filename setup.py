@@ -76,6 +76,7 @@ setup(
         "requests",
         "s3fs",
         "smartystreets-python-sdk >= 4.0.1, != 4.7.0, != 4.8.0",
+        "typing_extensions >=3.7.4",
         "xlrd <=1.2.0",
 
         # We use pkg_resources, which (confusingly) is provided by setuptools.
