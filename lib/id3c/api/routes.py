@@ -161,6 +161,55 @@ def get_identifier(id, *, session):
     return jsonify(identifier._asdict())
 
 
+@api_v1.route("/warehouse/identifier-sets", methods = ['GET'])
+@authenticated_datastore_session_required
+def get_identifier_sets(*, session):
+    """
+    Retrieve metadata about all identifier sets.
+
+    GET /warehouse/identifier-set to receive a JSON array of objects, each
+    containing a set's metadata fields.
+    """
+    LOG.debug(f"Fetching identifier sets")
+
+    sets = datastore.fetch_identifier_sets(session)
+
+    return jsonify([ set._asdict() for set in sets ])
+
+
+@api_v1.route("/warehouse/identifier-sets/<name>", methods = ['GET'])
+@authenticated_datastore_session_required
+def get_identifier_set(name, *, session):
+    """
+    Retrieve an identifier set's metadata.
+
+    GET /warehouse/identifier-set/*name* to receive a JSON object containing the set's
+    metadata fields.
+    """
+    LOG.debug(f"Fetching identifier set «{name}»")
+
+    set = datastore.fetch_identifier_set(session, name)
+
+    return jsonify(set._asdict())
+
+
+@api_v1.route("/warehouse/identifier-sets/<name>", methods = ['PUT'])
+@authenticated_datastore_session_required
+def put_identifier_set(name, *, session):
+    """
+    Make a new identifier set.
+
+    PUT /warehouse/identifier-sets/*name* to create the set if it doesn't yet
+    exist.  201 Created is returned when the set is created, 204 No Content if
+    the set already existed.
+    """
+    LOG.debug(f"Making identifier set «{name}»")
+
+    new_set = datastore.make_identifier_set(session, name)
+
+    return "", 201 if new_set else 204
+
+
 # Load all extra API routes from extensions
 # Needs to be at the end of route declarations to allow customization of
 # existing routes and avoid dependency errors

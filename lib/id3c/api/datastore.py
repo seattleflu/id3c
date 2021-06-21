@@ -213,6 +213,68 @@ def fetch_identifier(session: DatabaseSession, id: str) -> Any:
 
 
 @export
+@catch_permission_denied
+def fetch_identifier_sets(session: DatabaseSession) -> Any:
+    """
+    Fetch all identifier sets from the backing database using *session*.
+
+    Returns a list of named tuples with ``name`` and ``description``
+    attributes.
+    """
+    with session, session.cursor() as cursor:
+        cursor.execute("""
+            select name, description
+              from warehouse.identifier_set
+            """)
+
+        return list(cursor)
+
+
+@export
+@catch_permission_denied
+def fetch_identifier_set(session: DatabaseSession, name: str) -> Any:
+    """
+    Fetch the identifier set *name* from the backing database using *session*.
+
+    Returns a named tuple with ``name`` and ``description`` attributes.  If the
+    set doesn't exist, raises a :class:`~werkzeug.exceptions.NotFound`
+    exception.
+    """
+    with session:
+        set = session.fetch_row("""
+            select name, description
+              from warehouse.identifier_set
+             where name = %s
+            """, (name,))
+
+    if not set:
+        LOG.error(f"Identifier set «{name}» not found")
+        raise NotFound(f"Identifier set «{name}» not found")
+
+    return set
+
+
+@export
+@catch_permission_denied
+def make_identifier_set(session: DatabaseSession, name: str) -> bool:
+    """
+    Create a new identifier set *name* in the backing database using *session*
+    if it doesn't already exist.
+
+    Returns ``True`` if the set was just created and ``False`` if it already
+    existed.
+    """
+    with session, session.cursor() as cursor:
+        cursor.execute("""
+            insert into warehouse.identifier_set (name)
+                values (%s)
+                on conflict (name) do nothing
+            """, (name,))
+
+        return cursor.rowcount == 1
+
+
+@export
 class BadRequestDatabaseError(BadRequest):
     """
     Subclass of :class:`id3c.api.exceptions.BadRequest` which takes a
