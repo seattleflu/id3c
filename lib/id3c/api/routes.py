@@ -4,7 +4,7 @@ API route definitions.
 import json
 import logging
 import pkg_resources
-from flask import Blueprint, request, send_file
+from flask import Blueprint, jsonify, request, send_file
 from . import datastore
 from .utils.routes import authenticated_datastore_session_required, content_types_accepted, check_content_length
 
@@ -143,6 +143,22 @@ def receive_fhir(*, session):
     datastore.store_fhir(session, document)
 
     return "", 204
+
+
+@api_v1.route("/warehouse/identifier/<id>", methods = ['GET'])
+@authenticated_datastore_session_required
+def get_identifier(id, *, session):
+    """
+    Retrieve an identifier's metadata.
+
+    GET /warehouse/identifier/*id* to receive a JSON object containing the
+    identifier's record.  *id* may be a full UUID or shortened barcode.
+    """
+    LOG.debug(f"Fetching identifier «{id}»")
+
+    identifier = datastore.fetch_identifier(session, id)
+
+    return jsonify(identifier._asdict())
 
 
 # Load all extra API routes from extensions

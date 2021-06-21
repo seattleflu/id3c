@@ -7,7 +7,9 @@ from functools import wraps
 from psycopg2 import DataError, DatabaseError, IntegrityError, ProgrammingError
 from psycopg2.errors import InsufficientPrivilege
 from typing import Any
-from werkzeug.exceptions import Forbidden
+from uuid import UUID
+from werkzeug.exceptions import Forbidden, NotFound
+from .. import db
 from ..db.session import DatabaseSession
 from .exceptions import AuthenticationRequired, BadRequest
 from .utils import export
@@ -175,6 +177,39 @@ def store_fhir(session: DatabaseSession, document: str) -> None:
 
         except (DataError, IntegrityError) as error:
             raise BadRequestDatabaseError(error) from None
+
+
+@export
+@catch_permission_denied
+def fetch_identifier(session: DatabaseSession, id: str) -> Any:
+    """
+    Fetch the identifier *id* from the backing database using *session*.
+
+    *id* may be a full UUID or shortened barcode.
+
+    Returns a named tuple with ``uuid``, ``barcode``, ``generated``, and
+    ``set`` attributes.  If the identifier doesn't exist, raises a
+    :class:`~werkzeug.exceptions.NotFound` exception.
+    """
+    try:
+        uuid = UUID(id)
+        id_field = "uuid"
+    except ValueError:
+        id_field = "barcode"
+
+    with session:
+        identifier = session.fetch_row(f"""
+            select uuid, barcode, generated, identifier_set.name as set
+              from warehouse.identifier
+              join warehouse.identifier_set using (identifier_set_id)
+             where {id_field} = %s
+            """, (id,))
+
+    if not identifier:
+        LOG.error(f"Identifier {id_field} «{id}» not found")
+        raise NotFound(f"Identifier {id_field} «{id}» not found")
+
+    return identifier
 
 
 @export
