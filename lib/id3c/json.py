@@ -4,6 +4,7 @@ Standardized JSON conventions.
 import json
 from datetime import datetime
 from typing import Iterable
+from uuid import UUID
 from .utils import contextualize_char, shorten_left
 
 
@@ -65,9 +66,14 @@ class JsonEncoder(json.JSONEncoder):
         Serializes:
 
         * :class:`~datetime.datetime` using :meth:`~datetime.datetime.isoformat()`
+        * :class:`~uuid.UUID` using ``str()``
         """
         if isinstance(value, datetime):
             return value.isoformat()
+
+        elif isinstance(value, UUID):
+            return str(value)
+
         else:
             # Let the base class raise the TypeError
             return super().default(value)
