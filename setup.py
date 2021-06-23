@@ -60,7 +60,7 @@ setup(
 
     install_requires = [
         "cachetools",
-        "click >=7.0",
+        "click >=7.0,<8.0",
         "colorama",
         "deepdiff",
         "fhir.resources <6.0",
