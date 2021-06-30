@@ -180,6 +180,25 @@ def parse_using_config(config_file):
           test_results: "Test ResulTS"
         ...
 
+    A YAML document can also contain a list of workbooks that share the same
+    format:
+    
+    \b
+        ---
+        workbooks:
+          - s3://bucketname/seattleflu/bbi/2020_2021_sfs_aliquoting_01.xlsx
+          - s3://bucketname/seattleflu/bbi/2020_2021_sfs_aliquoting_02.xlsx
+          - s3://bucketname/seattleflu/bbi/2020_2021_sfs_aliquoting_03.xlsx
+        sheet: aliquoting
+        sample_column: sample_id
+        extra_columns:
+          barcode: sample_id
+          collection_date: collection_date
+          mrn: mrn
+          accession_no: accession
+          sample_origin: sample_origin
+        ...
+    
     The sample_column entry specifies the name of the column
     containing the sample barcode. The collection_column entry specifies
     the name of the column containing the collection barcode. You must supply one
@@ -233,22 +252,27 @@ def parse_using_config(config_file):
             chdir(config_dir)
 
     for config in configs:
+        kwargs_list = []
         try:
-            kwargs = {
-                "workbook": config["workbook"],
-                "sheet": config["sheet"],
-                "sample_column": config.get("sample_column"),
-                "collection_column": config.get("collection_column"),
-                "date_column": config.get("date_column"),
-                "extra_columns": list(config.get("extra_columns", {}).items()),
-                "sample_type": config.get("sample_type"),
-                "row_filter" : config.get("row_filter")
-            }
+            workbooks = config.get("workbooks") or [config["workbook"]]
+            for workbook in workbooks:
+                kwargs = {
+                    "workbook": workbook,
+                    "sheet": config["sheet"],
+                    "sample_column": config.get("sample_column"),
+                    "collection_column": config.get("collection_column"),
+                    "date_column": config.get("date_column"),
+                    "extra_columns": list(config.get("extra_columns", {}).items()),
+                    "sample_type": config.get("sample_type"),
+                    "row_filter" : config.get("row_filter")
+                }
+                kwargs_list.append(kwargs)
         except KeyError as key:
             LOG.error(f"Required key «{key}» missing from config {config}")
             raise key from None
 
-        dump_ndjson(_parse(**kwargs))
+        for kwargs in kwargs_list:
+            dump_ndjson(_parse(**kwargs))
 
 
 def _parse(*,
