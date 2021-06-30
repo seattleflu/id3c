@@ -3,6 +3,10 @@ __pycache__/
 /.mypy_cache/
 /lib/id3c.egg-info/
 
+# pyproject.toml is auto-generated when using pipenv>=2020.11.15, added here
+# to avoid having it deployed until production is updated to that version
+pyproject.toml
+
 # Some OS-generated files that should really be in people's global git
 # excludes, but which we proactively make sure don't enter the repo here.
 .DS_Store
