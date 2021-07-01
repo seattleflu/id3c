@@ -71,7 +71,8 @@ def check_content_length(route):
     """
     @wraps(route)
     def wrapped_route(*args, **kwargs):
-        if request.content_length > request.max_content_length: # type: ignore
+        if (request.content_length is not None
+        and request.content_length > request.max_content_length): # type: ignore
             raise RequestEntityTooLarge(f"Content-Length exceeded {request.max_content_length} bytes")
 
         return route(*args, **kwargs)
