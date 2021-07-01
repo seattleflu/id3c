@@ -256,20 +256,35 @@ def fetch_identifier_set(session: DatabaseSession, name: str) -> Any:
 
 @export
 @catch_permission_denied
-def make_identifier_set(session: DatabaseSession, name: str) -> bool:
+def make_identifier_set(session: DatabaseSession, name: str, **fields) -> bool:
     """
     Create a new identifier set *name* in the backing database using *session*
     if it doesn't already exist.
 
-    Returns ``True`` if the set was just created and ``False`` if it already
-    existed.
+    If *description* is provided as a keyword argument, its value is
+    set/updated in the database.
+
+    Returns ``True`` if the set was created or updated and ``False`` if it
+    already existed.
     """
     with session, session.cursor() as cursor:
-        cursor.execute("""
-            insert into warehouse.identifier_set (name)
-                values (%s)
-                on conflict (name) do nothing
-            """, (name,))
+        # If I expected to have additional columns in the future, I'd build up
+        # the SQL dynamically, but I don't, so a simple conditional is enough.
+        #   -trs, 1 July 2021
+        if "description" in fields:
+            cursor.execute("""
+                insert into warehouse.identifier_set (name, description)
+                    values (%s, nullif(%s, ''))
+                    on conflict (name) do update
+                        set description = excluded.description
+                """, (name, fields["description"]))
+
+        else:
+            cursor.execute("""
+                insert into warehouse.identifier_set (name)
+                    values (%s)
+                    on conflict (name) do nothing
+                """, (name,))
 
         return cursor.rowcount == 1
 

@@ -194,18 +194,30 @@ def get_identifier_set(name, *, session):
 
 
 @api_v1.route("/warehouse/identifier-sets/<name>", methods = ['PUT'])
+@content_types_accepted(["application/x-www-form-urlencoded", "multipart/form-data", None])
+@check_content_length
 @authenticated_datastore_session_required
 def put_identifier_set(name, *, session):
     """
     Make a new identifier set.
 
     PUT /warehouse/identifier-sets/*name* to create the set if it doesn't yet
-    exist.  201 Created is returned when the set is created, 204 No Content if
-    the set already existed.
+    exist.
+
+    If a *description* form parameter is provided, its value is set/updated in
+    the database.
+
+    201 Created is returned when the set is created or updated, 204 No
+    Content if the set already existed.
     """
     LOG.debug(f"Making identifier set «{name}»")
 
-    new_set = datastore.make_identifier_set(session, name)
+    fields = {}
+
+    if "description" in request.form:
+        fields["description"] = request.form["description"]
+
+    new_set = datastore.make_identifier_set(session, name, **fields)
 
     return "", 201 if new_set else 204
 
