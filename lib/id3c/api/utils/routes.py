@@ -42,16 +42,29 @@ def authenticated_datastore_session_required(route):
 @export
 def content_types_accepted(allowed: Iterable[str]):
     """
-    Decorate a route with set of allowed Content-Types for the request body.
+    Decorate a route with set of *allowed* Content-Types for the request body.
+
+    Include the value ``None`` in *allowed* to allow Content-Type to be omitted
+    for requests without a body.
 
     Raises an :class:`werkzeug.exceptions.UnsupportedMediaType` exception if
     the request's Content-Type is not allowed.
     """
+    allowed = set(allowed)
+
+    try:
+        allowed.remove(None)
+        missing_ok = True
+    except KeyError:
+        missing_ok = False
+
     def decorator(route):
         @wraps(route)
         def wrapped_route(*args, **kwargs):
-            if request.mimetype not in allowed:
-                raise UnsupportedMediaType(f"Body data Content-Type must be {prose_list(allowed)}")
+            if missing_ok and request.content_length is None and not request.mimetype:
+                pass
+            elif request.mimetype not in allowed:
+                raise UnsupportedMediaType(f"Body data Content-Type must be {prose_list(allowed)}{' when a body is sent' if missing_ok else ''}")
 
             return route(*args, **kwargs)
 
