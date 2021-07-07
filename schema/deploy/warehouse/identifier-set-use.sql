@@ -15,7 +15,7 @@ comment on table warehouse.identifier_set_use is
 comment on column warehouse.identifier_set_use.use is
     'A standard identifier use type, e.g. sample, collection, clia';
 
-comment on column warehouse.encounter_location_relation.priority is
+comment on column warehouse.identifier_set_use.description is
     'A plain text description of this identifier use type';
 
 commit;

@@ -208,43 +208,100 @@ def set_ls():
 
     with session.cursor() as cursor:
         cursor.execute("""
-            select name, description
+            select name, use, description
               from warehouse.identifier_set
              order by lower(name)
             """)
 
         sets = list(cursor)
 
-    # Line up names nicely into a column
-    template = "{:<%d}" % (max(len(s.name) for s in sets) + 3)
+    # Line up names and uses nicely into columns
+    template_name = "{:<%d}" % (max(len(s.name) for s in sets) + 3)
+    template_use = "{:<%d}" % (max(len(s.use) for s in sets) + 3)
 
     for set in sets:
-        click.secho(template.format(set.name), bold = True, nl = False)
+        click.secho(template_name.format(set.name), bold = True, nl = False)
+        click.secho(template_use.format(set.use), nl = False)
         click.echo(set.description)
 
 
 @set_.command("create")
 @click.argument("name", metavar = "<name>")
+@click.argument("use", metavar="<use>")
 @click.argument("description", metavar = "<description>")
 
-def set_create(name, description):
+def set_create(name, use, description):
     """
     Create a new identifier set.
 
     \b
     <name> is the name of the new set.
+    <use> is the use classification for this set, valid values can be found using `id3c identifier set-use ls` command.
     <description> is a comment explaining the purpose of the set.
     """
     session = DatabaseSession()
 
     with session:
         identifier_set_id, = session.fetch_row("""
-            insert into warehouse.identifier_set (name, description)
-            values (%s, %s)
+            insert into warehouse.identifier_set (name, use, description)
+            values (%s, %s, %s)
             returning identifier_set_id
-            """, (name, description))
+            """, (name, use, description))
 
     click.echo(
         "Created identifier set " +
         click.style(name, bold = True) +
         f" (#{identifier_set_id})")
+
+# Set use subcommands
+@identifier.group("set-use")
+def set_use_():
+    """Manage identifier set uses."""
+    pass
+
+
+@set_use_.command("ls")
+def set_use_ls():
+    """List identifier set uses."""
+    session = DatabaseSession()
+
+    with session.cursor() as cursor:
+        cursor.execute("""
+            select use, description
+              from warehouse.identifier_set_use
+             order by use
+            """)
+
+        set_uses = list(cursor)
+
+    # Line up names nicely into a column
+    template = "{:<%d}" % (max(len(su.use) for su in set_uses) + 3)
+
+    for set_use in set_uses:
+        click.secho(template.format(set_use.use), bold = True, nl = False)
+        click.echo(set_use.description)
+
+@set_use_.command("create")
+@click.argument("use", metavar="<use>")
+@click.argument("description", metavar = "<description>")
+
+def set_use_create(use, description):
+    """
+    Create a new identifier set use.
+
+    \b
+    <use> is the name of the new use.
+    <description> is a comment explaining the purpose of the use.
+    """
+    session = DatabaseSession()
+
+    with session:
+        use, = session.fetch_row("""
+            insert into warehouse.identifier_set_use (use, description)
+            values (%s, %s)
+            returning use
+            """, (use, description))
+
+    click.echo(
+        "Created identifier set use " +
+        click.style(use, bold = True))

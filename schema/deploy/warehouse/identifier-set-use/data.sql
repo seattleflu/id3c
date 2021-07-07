@@ -5,11 +5,11 @@ begin;
 
 insert into warehouse.identifier_set_use (use, description)
     values
-        ('sample', 'Sample ID'),
-        ('collection', 'Collection ID'),
-        ('clia', 'CLIA ID'),
-        ('kit','Test kit ID'),
-        ('test-strip','Test strip ID')
+        ('sample', 'Identifiers for samples received and processed by the lab'),
+        ('collection', 'Identifiers for collection tubes'),
+        ('clia', 'Secondary identifiers for CLIA compliance'),
+        ('kit','Identifiers for test kits'),
+        ('test-strip','Identifiers for test strips')
     on conflict (use) do update set
         description = excluded.description
 ;
