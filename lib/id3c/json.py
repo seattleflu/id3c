@@ -4,7 +4,7 @@ Standardized JSON conventions.
 import json
 from datetime import datetime
 from typing import Iterable
-from .utils import contextualize_char
+from .utils import contextualize_char, shorten_left
 
 
 def as_json(value):
@@ -74,18 +74,30 @@ class JSONDecodeError(json.JSONDecodeError):
     >>> load_json('{foo: "bar"}')
     Traceback (most recent call last):
         ...
-    id3c.json.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1): {▸▸▸f◂◂◂oo: "bar"}
+    id3c.json.JSONDecodeError: Expecting property name enclosed in double quotes: line 1 column 2 (char 1): '{▸▸▸f◂◂◂oo: "bar"}'
 
     >>> load_json('not json')
     Traceback (most recent call last):
         ...
-    id3c.json.JSONDecodeError: Expecting value: line 1 column 1 (char 0): not json
+    id3c.json.JSONDecodeError: Expecting value: line 1 column 1 (char 0): 'not json'
+
+    >>> load_json("[0, 1, 2, 3, 4, 5")
+    Traceback (most recent call last):
+        ...
+    id3c.json.JSONDecodeError: Expecting ',' delimiter: line 1 column 18 (char 17): unexpected end of document: '…, 3, 4, 5'
+
+    >>> load_json("[\\n")
+    Traceback (most recent call last):
+        ...
+    id3c.json.JSONDecodeError: Expecting value: line 2 column 1 (char 2): unexpected end of document: '[\\n'
 
     >>> load_json('')
     Traceback (most recent call last):
         ...
     id3c.json.JSONDecodeError: Expecting value: line 1 column 1 (char 0): (empty source document)
     """
+    CONTEXT_LENGTH = 10
+
     def __init__(self, exc: json.JSONDecodeError):
         super().__init__(exc.msg, exc.doc, exc.pos)
 
@@ -95,9 +107,11 @@ class JSONDecodeError(json.JSONDecodeError):
         if self.doc:
             if self.pos == 0 and self.msg == "Expecting value":
                 # Most likely not a JSON document at all, so show the whole thing.
-                context = self.doc
+                context = repr(self.doc)
+            elif self.pos > 0 and self.pos == len(self.doc):
+                context = "unexpected end of document: " + repr(shorten_left(self.doc, self.CONTEXT_LENGTH, "…"))
             else:
-                context = contextualize_char(self.doc, self.pos)
+                context = repr(contextualize_char(self.doc, self.pos, self.CONTEXT_LENGTH))
         else:
             context = "(empty source document)"
 
