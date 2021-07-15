@@ -75,6 +75,7 @@ EXPECTED_COLLECTION_IDENTIFIER_SETS = [
     'collections-scan-kiosks',
     'collections-uw-home',
     'collections-uw-observed',
+    'collections-uw-tiny-swabs',
     'collections-household-general',
     'collections-childcare',
 ]
