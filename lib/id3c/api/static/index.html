@@ -89,15 +89,30 @@
     <h3 class="code">GET /v1/warehouse/identifier-sets/<em>&lt;name&gt;</em></h3>
     <p>Retrieve metadata about an identifier set <em>name</em>.
 
-    <h3 class="code">PUT /v1/warehouse/identifier-sets/<em>&lt;set&gt;</em></h3>
+    <h3 class="code">PUT /v1/warehouse/identifier-sets/<em>&lt;name&gt;</em></h3>
     <p>Make a new identifier set <em>name</em>.  Idempotent if the set already
     exists.  Optional <em>description</em> parameter may be provided. A <em>use</em>
     parameter is required for new sets and is optional if only updating
     <em>description</em> on an existing set.
 
-    <h3 class="code">GET /v1/warehouse/identifier-set_uses</h3>
+    <h3 class="code">GET /v1/warehouse/identifier-set-uses</h3>
     <p>Retrieve metadata about all identifier set uses.
 
+    <h3 class="code">POST /v1/verification/barcode-uses/verify</h3>
+    <p>Verify a list of barcodes and use types for each.
+
+    <p>By convention, the body of the request should be a JSON array of objects
+      like the following:
+  
+        <pre>
+        [
+            {
+              "barcode": "20e1d4a2",
+              "use": "sample"
+            },
+            ...
+        ]
+        </pre>
     <hr>
 
     <h2>Legacy Routes</h2>
