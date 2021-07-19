@@ -91,7 +91,12 @@
 
     <h3 class="code">PUT /v1/warehouse/identifier-sets/<em>&lt;set&gt;</em></h3>
     <p>Make a new identifier set <em>name</em>.  Idempotent if the set already
-    exists.  An optional <em>description</em> parameter may be provided.
+    exists.  Optional <em>description</em> parameter may be provided. A <em>use</em>
+    parameter is required for new sets and is optional if only updating
+    <em>description</em> on an existing set.
+
+    <h3 class="code">GET /v1/warehouse/identifier-set_uses</h3>
+    <p>Retrieve metadata about all identifier set uses.
 
     <hr>
 

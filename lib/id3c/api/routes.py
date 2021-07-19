@@ -201,26 +201,39 @@ def put_identifier_set(name, *, session):
     """
     Make a new identifier set.
 
-    PUT /warehouse/identifier-sets/*name* to create the set if it doesn't yet
-    exist.
+    PUT /warehouse/identifier-sets/*name* to create the set if it doesn't yet exist.
 
-    If a *description* form parameter is provided, its value is set/updated in
-    the database.
+    For new sets, *use* form parameter is required. For existing sets, if *use* form parameter
+    is provided, its value is updated in the database. Valid *use* values can be found via
+    GET /warehouse/identifier-set-uses. 
+    
+    If a *description* form parameter is provided, its value is set/updated in the database.
 
     201 Created is returned when the set is created or updated, 204 No
-    Content if the set already existed.
+    Content if the set with *name* already existed and was not updated.
     """
     LOG.debug(f"Making identifier set «{name}»")
 
-    fields = {}
-
-    if "description" in request.form:
-        fields["description"] = request.form["description"]
-
+    fields = {k: v for k, v in request.form.items() if k in ["use","description"]}
+    
     new_set = datastore.make_identifier_set(session, name, **fields)
 
     return "", 201 if new_set else 204
 
+@api_v1.route("/warehouse/identifier-set-uses", methods = ['GET'])
+@authenticated_datastore_session_required
+def get_identifier_set_uses(*, session):
+    """
+    Retrieve metadata about all identifier set uses.
+
+    GET /warehouse/identifier-set-uses to receive a JSON array of objects, each
+    containing a use's metadata fields.
+    """
+    LOG.debug(f"Fetching identifier set uses")
+
+    uses = datastore.fetch_identifier_set_uses(session)
+
+    return jsonify([ use._asdict() for use in uses ])
 
 # Load all extra API routes from extensions
 # Needs to be at the end of route declarations to allow customization of

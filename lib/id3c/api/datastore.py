@@ -187,8 +187,8 @@ def fetch_identifier(session: DatabaseSession, id: str) -> Any:
 
     *id* may be a full UUID or shortened barcode.
 
-    Returns a named tuple with ``uuid``, ``barcode``, ``generated``, and
-    ``set`` attributes.  If the identifier doesn't exist, raises a
+    Returns a named tuple with ``uuid``, ``barcode``, ``generated``, ``set``,
+    and ``use`` attributes.  If the identifier doesn't exist, raises a
     :class:`~werkzeug.exceptions.NotFound` exception.
     """
     try:
@@ -199,7 +199,7 @@ def fetch_identifier(session: DatabaseSession, id: str) -> Any:
 
     with session:
         identifier = session.fetch_row(f"""
-            select uuid, barcode, generated, identifier_set.name as set
+            select uuid, barcode, generated, identifier_set.name as set, identifier_set.use
               from warehouse.identifier
               join warehouse.identifier_set using (identifier_set_id)
              where {id_field} = %s
@@ -218,12 +218,12 @@ def fetch_identifier_sets(session: DatabaseSession) -> Any:
     """
     Fetch all identifier sets from the backing database using *session*.
 
-    Returns a list of named tuples with ``name`` and ``description``
+    Returns a list of named tuples with ``name``, ``description``, and ``use``
     attributes.
     """
     with session, session.cursor() as cursor:
         cursor.execute("""
-            select name, description
+            select name, description, use
               from warehouse.identifier_set
             """)
 
@@ -236,13 +236,13 @@ def fetch_identifier_set(session: DatabaseSession, name: str) -> Any:
     """
     Fetch the identifier set *name* from the backing database using *session*.
 
-    Returns a named tuple with ``name`` and ``description`` attributes.  If the
-    set doesn't exist, raises a :class:`~werkzeug.exceptions.NotFound`
+    Returns a named tuple with ``name``, ``description``, and ``use`` attributes.
+    If the set doesn't exist, raises a :class:`~werkzeug.exceptions.NotFound`
     exception.
     """
     with session:
         set = session.fetch_row("""
-            select name, description
+            select name, description, use
               from warehouse.identifier_set
              where name = %s
             """, (name,))
@@ -259,35 +259,96 @@ def fetch_identifier_set(session: DatabaseSession, name: str) -> Any:
 def make_identifier_set(session: DatabaseSession, name: str, **fields) -> bool:
     """
     Create a new identifier set *name* in the backing database using *session*
-    if it doesn't already exist.
+    if it doesn't already exist, or update if it does exist.
 
-    If *description* is provided as a keyword argument, its value is
-    set/updated in the database.
+    If *use* and/or *description* are provided as keyword arguments, their values
+    are set in the database. Becuase *use* is a required field in the target table,
+    if it is not provided as a keyword argument the query will attempt to retrieve
+    its value from an existing record.
 
     Returns ``True`` if the set was created or updated and ``False`` if it
-    already existed.
+    already existed and was not updated.
+
+    Raises a :class:`BadRequestDatabaseError` exception if the database reports a
+    `constraint` error and a :class:`Forbidden` exception if the database reports a
+    `permission denied` error.
     """
     with session, session.cursor() as cursor:
-        # If I expected to have additional columns in the future, I'd build up
-        # the SQL dynamically, but I don't, so a simple conditional is enough.
-        #   -trs, 1 July 2021
-        if "description" in fields:
-            cursor.execute("""
-                insert into warehouse.identifier_set (name, description)
-                    values (%s, nullif(%s, ''))
-                    on conflict (name) do update
-                        set description = excluded.description
-                """, (name, fields["description"]))
-
+        if "use" in fields and "description" in fields:
+            try:
+                cursor.execute("""
+                    insert into warehouse.identifier_set (name, use, description)
+                        values (%s, %s, nullif(%s, ''))
+                        on conflict (name) do update
+                            set use = excluded.use,
+                                description = excluded.description
+                            where identifier_set.use <> excluded.use
+                                or coalesce(identifier_set.description,'') <> coalesce(excluded.description,'')
+                    """, (name, fields["use"], fields["description"]))
+            except (DataError, IntegrityError) as error:
+                raise BadRequestDatabaseError(error) from None
+        elif "use" in fields:
+            try:
+                cursor.execute("""
+                    insert into warehouse.identifier_set (name, use)
+                        values (%s, %s)
+                        on conflict (name) do update
+                            set use = excluded.use
+                            where identifier_set.use <> excluded.use
+                    """, (name, fields["use"]))
+            except (DataError, IntegrityError) as error:
+                raise BadRequestDatabaseError(error) from None
+        elif "description" in fields:
+            try:
+                cursor.execute("""
+                    insert into warehouse.identifier_set (name, use, description)
+                        select s.name, t.use, s.description 
+                        from (values(%s, nullif(%s,''))) s(name, description)
+                        left join (
+                            select name, use 
+                            FROM warehouse.identifier_set WHERE name = %s
+                        ) t using (name)
+                        on conflict (name) do update
+                            set use = excluded.use, description = excluded.description
+                            where identifier_set.use <> excluded.use
+                            or coalesce(identifier_set.description,'') <> coalesce(excluded.description,'')
+                    """, (name, fields["description"], name))
+            except (DataError, IntegrityError) as error:
+                raise BadRequestDatabaseError(error) from None
         else:
-            cursor.execute("""
-                insert into warehouse.identifier_set (name)
-                    values (%s)
-                    on conflict (name) do nothing
-                """, (name,))
+            try:
+                cursor.execute("""
+                    insert into warehouse.identifier_set (name, use)
+                        select s.name, t.use
+                        from (values(%s)) s(name)
+                        left join (
+                            select name, use 
+                            FROM warehouse.identifier_set WHERE name = %s
+                        ) t using (name)
+                        on conflict (name) do update
+                            set use = excluded.use
+                            where identifier_set.use <> excluded.use
+                    """, (name, name))
+            except (DataError, IntegrityError) as error:
+                raise BadRequestDatabaseError(error) from None
 
         return cursor.rowcount == 1
 
+@export
+@catch_permission_denied
+def fetch_identifier_set_uses(session: DatabaseSession) -> Any:
+    """
+    Fetch all identifier set uses from the backing database using *session*.
+
+    Returns a list of named tuples with ``use`` and ``description`` attributes.
+    """
+    with session, session.cursor() as cursor:
+        cursor.execute("""
+            select use, description
+              from warehouse.identifier_set_use
+            """)
+
+        return list(cursor)
 
 @export
 class BadRequestDatabaseError(BadRequest):
