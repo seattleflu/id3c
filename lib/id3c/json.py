@@ -4,6 +4,7 @@ Standardized JSON conventions.
 import json
 from datetime import datetime
 from typing import Iterable
+from uuid import UUID
 from .utils import contextualize_char, shorten_left
 
 
@@ -47,6 +48,17 @@ class JsonEncoder(json.JSONEncoder):
     Encodes Python values into JSON for non-standard objects.
     """
 
+    def __init__(self, *args, **kwargs):
+        """
+        Disallows the floating point values NaN, Infinity, and -Infinity.
+
+        Python's :class:`json` allows them by default because they work with
+        JSON-as-JavaScript, but they don't work with spec-compliant JSON
+        parsers.
+        """
+        kwargs["allow_nan"] = False
+        super().__init__(*args, **kwargs)
+
     def default(self, value):
         """
         Returns *value* as JSON or raises a TypeError.
@@ -54,9 +66,14 @@ class JsonEncoder(json.JSONEncoder):
         Serializes:
 
         * :class:`~datetime.datetime` using :meth:`~datetime.datetime.isoformat()`
+        * :class:`~uuid.UUID` using ``str()``
         """
         if isinstance(value, datetime):
             return value.isoformat()
+
+        elif isinstance(value, UUID):
+            return str(value)
+
         else:
             # Let the base class raise the TypeError
             return super().default(value)
