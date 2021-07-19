@@ -303,9 +303,16 @@ def smartystreets_client_builder():
     Returns a new :class:`smartystreets_python_sdk.ClientBuilder` using
     credentials from the required environment variables
     ``SMARTYSTREETS_AUTH_ID`` and ``SMARTYSTREETS_AUTH_TOKEN``.
+
+    The environment variable ``SMARTYSTREETS_LICENSES`` can be used to
+    explicitly specify a comma-separated list of one or more licenses to
+    consider for the API request.  By default no licenses are specified.  See
+    `<https://www.smartystreets.com/docs/cloud/licensing>`__ for more
+    information on licensing.
     """
     auth_id = environ.get('SMARTYSTREETS_AUTH_ID')
     auth_token = environ.get('SMARTYSTREETS_AUTH_TOKEN')
+    licenses = environ.get('SMARTYSTREETS_LICENSES', '').split(",")
 
     if not auth_id and not auth_token:
         raise Exception("The environment variables SMARTYSTREETS_AUTH_ID and SMARTYSTREETS_AUTH_TOKEN are required.")
@@ -314,7 +321,7 @@ def smartystreets_client_builder():
     elif not auth_token:
         raise Exception("The environment variable SMARTYSTREETS_AUTH_TOKEN is required.")
 
-    return ClientBuilder(StaticCredentials(auth_id, auth_token))
+    return ClientBuilder(StaticCredentials(auth_id, auth_token)).with_licenses(licenses)
 
 
 def us_street_lookup(address: dict) -> Lookup:
