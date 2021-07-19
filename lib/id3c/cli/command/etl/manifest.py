@@ -75,6 +75,7 @@ def etl_manifest(*, db: DatabaseSession):
             "collections-validation",
             "collections-uw-home",
             "collections-uw-observed",
+            "collections-uw-tiny-swabs",
             "collections-household-general",
             "collections-childcare",
             "collections-school-testing-home",
