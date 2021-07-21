@@ -75,7 +75,7 @@ setup(
         "pyyaml",
         "requests",
         "s3fs",
-        "smartystreets-python-sdk >= 4.0.1, != 4.7.0, != 4.8.0",
+        "smartystreets-python-sdk >= 4.6.0, != 4.7.0, != 4.8.0",
         "typing_extensions >=3.7.4",
         "xlrd <=1.2.0",
 
