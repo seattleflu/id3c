@@ -283,6 +283,28 @@ def get_identifier_set_uses(*, session):
 
     return jsonify([ use._asdict() for use in uses ])
 
+@api_v1.route("/warehouse/sample", methods = ['POST'])
+@content_types_accepted(["application/json"])
+@check_content_length
+@authenticated_datastore_session_required
+def post_sample(*, session):
+    """
+    Create/update a single sample.
+
+    POST /warehouse/sample to validate, then create new or update
+    existing sample that passes validation.
+
+    JSON object with status (inserted, updated, or failed validation)
+    of the sample is returned.
+    """
+    sample = request.get_json()
+
+    LOG.debug(f"Creating/updating sample «{sample}»")
+
+    result = datastore.store_sample(session, sample)
+
+    return (jsonify(result), 200) if "sample" in result else (jsonify(result), 400)
+
 # Load all extra API routes from extensions
 # Needs to be at the end of route declarations to allow customization of
 # existing routes and avoid dependency errors
