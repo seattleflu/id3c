@@ -290,6 +290,24 @@ def make_identifier_set(session: DatabaseSession, name: str, **fields) -> bool:
 
 
 @export
+@catch_permission_denied
+def mint_identifiers(session: DatabaseSession, name: str, n: int) -> None:
+    """
+    Generate *n* new identifiers in the set *name*.
+
+    Raises a :class:`~werkzeug.exceptions.NotFound` exception if the set *name*
+    doesn't exist and a :class:`Forbidden` exception if the database reports a
+    `permission denied` error.
+    """
+    with session:
+        try:
+            return db.mint_identifiers(session, name, n)
+
+        except db.IdentifierSetNotFoundError as error:
+            raise NotFound(str(error)) from None
+
+
+@export
 class BadRequestDatabaseError(BadRequest):
     """
     Subclass of :class:`id3c.api.exceptions.BadRequest` which takes a

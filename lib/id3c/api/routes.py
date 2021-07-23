@@ -5,6 +5,7 @@ import json
 import logging
 import pkg_resources
 from flask import Blueprint, jsonify, request, send_file
+from werkzeug.exceptions import BadRequest
 from . import datastore
 from .utils.routes import authenticated_datastore_session_required, content_types_accepted, check_content_length
 
@@ -220,6 +221,34 @@ def put_identifier_set(name, *, session):
     new_set = datastore.make_identifier_set(session, name, **fields)
 
     return "", 201 if new_set else 204
+
+
+@api_v1.route("/warehouse/identifier-sets/<name>/identifiers", methods = ['POST'])
+@content_types_accepted(["application/x-www-form-urlencoded", "multipart/form-data"])
+@check_content_length
+@authenticated_datastore_session_required
+def mint_in_identifier_set(name, *, session):
+    """
+    Mint *n* new identifiers in the set *name*.
+
+    POST /warehouse/identifier-sets/*name*/identifiers with an *n* form
+    parameter specifying how many new identifiers you'd like to mint.  Responds
+    with a JSON array of objects (the new identifiers) containing the keys
+    ``uuid``, ``barcode``, and ``generated``.
+
+    This may take some time with a large *n* or with a lot of existing
+    identifiers.
+    """
+    try:
+        n = int(request.form['n'])
+    except ValueError as error:
+        raise BadRequest("n must be a plain integer")
+
+    LOG.debug(f"Minting {n} new identifiers in set «{name}»")
+
+    minted = datastore.mint_identifiers(session, name, n)
+
+    return jsonify([ identifier._asdict() for identifier in minted ])
 
 
 # Load all extra API routes from extensions
