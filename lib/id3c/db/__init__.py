@@ -7,12 +7,12 @@ import statistics
 from datetime import datetime
 from psycopg2 import IntegrityError
 from psycopg2.errors import ExclusionViolation
-from psycopg2.sql import SQL, Identifier
+from psycopg2.sql import SQL, Identifier, Literal
 from statistics import median, StatisticsError
-from typing import Any, Dict, Iterable, List, NamedTuple, Optional
+from typing import Any, Dict, Iterable, List, Tuple, NamedTuple, Optional
 from .types import IdentifierRecord
 from .session import DatabaseSession
-
+from .datatypes import Json
 
 LOG = logging.getLogger(__name__)
 
@@ -192,3 +192,91 @@ def mode(values):
         return mode_(values)
     except StatisticsError:
         return None
+
+def upsert_sample(db: DatabaseSession,
+                  update_identifiers: bool,
+                  identifier: Optional[str],
+                  collection_identifier: Optional[str],
+                  collection_date: Optional[str],
+                  encounter_id: Optional[int],
+                  additional_details: dict) -> Tuple[Any, str]:
+    """
+    Upsert sample by its *identifier* and/or *collection_identifier*.
+    An existing sample has its *identifier*, *collection_identifier*,
+    *collection_date* updated, and the provided *additional_details* are
+    merged (at the top-level only) into the existing sample details, if any.
+    Raises an exception if there is more than one matching sample.
+    """
+    data = {
+        "identifier": identifier,
+        "collection_identifier": collection_identifier,
+        "collection_date": collection_date,
+        "encounter_id": encounter_id,
+        "additional_details": Json(additional_details),
+    }
+
+    # Look for existing sample(s)
+    with db.cursor() as cursor:
+        cursor.execute("""
+            select sample_id as id, identifier, collection_identifier, encounter_id
+              from warehouse.sample
+             where identifier = %(identifier)s
+                or collection_identifier = %(collection_identifier)s
+               for update
+            """, data)
+
+        samples = list(cursor)
+
+    # Nothing found → create
+    if not samples:
+        LOG.info("Creating new sample")
+        status = 'created'
+        
+        sample = db.fetch_row("""
+            insert into warehouse.sample (identifier, collection_identifier, collected, encounter_id, details)
+                values (%(identifier)s,
+                        %(collection_identifier)s,
+                        date_or_null(%(collection_date)s),
+                        %(encounter_id)s,
+                        %(additional_details)s)
+            returning sample_id as id, identifier, collection_identifier, encounter_id
+            """, data)
+
+    # One found → update
+    elif len(samples) == 1:
+        status = 'updated'
+        sample = samples[0]
+
+        LOG.info(f"Updating existing sample {sample.id}")
+
+        # Update identifier and collection_identifier if update_identifiers is True
+        identifiers_update_composable = SQL("""
+             identifier = %(identifier)s,
+                collection_identifier = %(collection_identifier)s, """)  \
+                    if update_identifiers else SQL("")
+
+        sample = db.fetch_row(SQL("""
+            update warehouse.sample
+                set {}
+                    collected = coalesce(date_or_null(%(collection_date)s), collected),
+                    encounter_id = coalesce(%(encounter_id)s, encounter_id),
+                    details = coalesce(details, {}) || %(additional_details)s
+             where sample_id = %(sample_id)s
+            returning sample_id as id, identifier, collection_identifier, encounter_id
+            """).format(identifiers_update_composable,
+                Literal(Json({}))),
+                { **data, "sample_id": sample.id })
+
+        assert sample.id, "Update affected no rows!"
+
+    # More than one found → error
+    else:
+        raise Exception(f"More than one sample matching sample and/or collection barcodes: {samples}")
+
+    if sample:
+        if identifier:
+            LOG.info(f"Upserted sample {sample.id} with identifier «{sample.identifier}»")
+        elif collection_identifier:
+            LOG.info(f"Upserted sample {sample.id} with collection identifier «{sample.collection_identifier}»")
+
+    return sample, status
