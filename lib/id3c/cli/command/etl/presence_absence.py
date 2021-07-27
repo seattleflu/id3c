@@ -44,6 +44,13 @@ LOG = logging.getLogger(__name__)
 REVISION = 8
 
 
+# Valid identifier.set_name values for the samples to be processed
+valid_identifiers = [
+        "samples",
+        "collections-uw-tiny-swabs-home",
+        "collections-uw-tiny-swabs-observed",
+]
+
 @etl.command("presence-absence", help = __doc__)
 @with_database_session
 
@@ -286,8 +293,8 @@ def sample_identifier(db: DatabaseSession, barcode: str) -> Optional[str]:
     identifier = find_identifier(db, barcode)
 
     if identifier:
-        assert identifier.set_name == "samples", \
-            f"Identifier found in set «{identifier.set_name}», not «samples»"
+        assert identifier.set_name in valid_identifiers, \
+            f"Identifier found in invalid set «{identifier.set_name}»"
 
     return identifier.uuid if identifier else None
 
