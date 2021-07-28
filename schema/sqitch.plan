@@ -224,3 +224,12 @@ warehouse/identifier/indexes/identifier_barcode_slices_null [functions/barcode_s
 
 functions/barcode_slices [functions/barcode_slices@2021-02-27] 2021-02-27T16:10:36Z Chris Craft <jccraft@uw.edu> # Explicitly mark public schema usage to fix db restore
 @2021-02-27b 2021-02-27T16:33:09Z Chris Craft <jccraft@uw.edu> # Schema as of later on 27 Feb 2021
+
+warehouse/identifier-set-use 2021-07-04T03:43:50Z Dave Reinhart <davidrr@uw.edu> # Add identifier_set_use table
+warehouse/identifier-set-use/data [warehouse/identifier-set-use] 2021-07-04T03:52:19Z Dave Reinhart <davidrr@uw.edu> # Initial records for identifier_set_use table
+warehouse/identifier-set/use [warehouse/identifier warehouse/identifier-set-use] 2021-07-04T04:05:25Z Dave Reinhart <davidrr@uw.edu> # Add use column to identifier_set table
+@2021-07-03 2021-07-04T04:31:31Z Dave Reinhart <davidrr@uw.edu> # Schema as of 03 Jul 2021
+
+warehouse/identifier-set/use-not-null 2021-07-06T22:26:14Z Dave Reinhart <davidrr@uw.edu> # Add not null to identifier-set use column
+warehouse/identifier/indexes/identifier_set_id_btree 2021-07-06T22:33:41Z Dave Reinhart <davidrr@uw.edu> # Add index to identifier on identifier_set_id column
+@2021-07-06 2021-07-06T22:38:05Z Dave Reinhart <davidrr@uw.edu> # Schema as of 06 Jul 2021

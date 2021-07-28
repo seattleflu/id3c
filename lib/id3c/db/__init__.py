@@ -101,7 +101,8 @@ def find_identifier(db: DatabaseSession, barcode: str) -> Optional[IdentifierRec
         select uuid::text,
                barcode,
                generated,
-               identifier_set.name as set_name
+               identifier_set.name as set_name,
+               identifier_set.use as set_use
           from warehouse.identifier
           join warehouse.identifier_set using (identifier_set_id)
          where barcode = %s
