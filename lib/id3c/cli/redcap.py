@@ -486,7 +486,20 @@ class Project:
             'format': format,
         }
 
-        response = requests.post(self.api_url, data=data, headers=headers)
+        retry_count = 0
+        max_retry_count = 10
+
+        # Added as workaround for REDCap API bug which incorrectly returns 200 status code 
+        # and HTML response with "unknown error" message and substring included below, which
+        # in many cases succeeds with additional attempts.
+        # -drr, 7/28/2021
+        while retry_count <= max_retry_count:
+            response = requests.post(self.api_url, data=data, headers=headers)
+            if response.status_code==200 and 'multiple browser tabs of the same REDCap page. If that is not the case' in response.text:
+                retry_count += 1
+                LOG.debug(f"Retrying REDCap API request: {retry_count}/{max_retry_count}")
+                continue
+            break
 
         try:
             response.raise_for_status()
