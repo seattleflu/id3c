@@ -29,28 +29,6 @@ def index():
     return send_file("static/index.html", "text/html; charset=UTF-8")
 
 
-@api_v1.route("/receiving/enrollment", methods = ['POST'])
-@api_unversioned.route("/enrollment", methods = ['POST'])
-@content_types_accepted(["application/json"])
-@check_content_length
-@authenticated_datastore_session_required
-def receive_enrollment(*, session):
-    """
-    Receive a new enrollment document.
-
-    POST /enrollment with a JSON body.  Note that we don't actually need to
-    parse the JSON body.  The body is passed directly to the database which
-    will check its validity.
-    """
-    document = request.get_data(as_text = True)
-
-    LOG.debug(f"Received enrollment")
-
-    datastore.store_enrollment(session, document)
-
-    return "", 204
-
-
 @api_v1.route("/receiving/presence-absence", methods = ['POST'])
 @api_unversioned.route("/presence-absence", methods = ['POST'])
 @content_types_accepted(["application/json"])

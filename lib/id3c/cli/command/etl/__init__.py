@@ -21,10 +21,8 @@ def etl():
 
 # Load all ETL subcommands.
 __all__ = [
-    "enrollments",
     "manifest",
     "presence_absence",
-    "kit",
     "consensus_genome",
     "redcap_det",
     "fhir",
