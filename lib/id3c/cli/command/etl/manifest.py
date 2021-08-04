@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from psycopg2 import sql
 from typing import Any, Tuple, Optional
 from id3c.cli.command import with_database_session
-from id3c.db import find_identifier
+from id3c.db import find_identifier, upsert_sample
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
 from . import etl
@@ -176,7 +176,8 @@ def etl_manifest(*, db: DatabaseSession):
                 update_identifiers          = should_update_identifiers,
                 identifier                  = sample_identifier.uuid if sample_identifier else None,
                 collection_identifier       = collection_identifier.uuid if collection_identifier else None,
-                collection_date             =  collected_date,
+                collection_date             = collected_date,
+                encounter_id                = None,
                 additional_details          = manifest_record.document)
 
             mark_loaded(db, manifest_record.id,
@@ -184,89 +185,6 @@ def etl_manifest(*, db: DatabaseSession):
                 sample_id = sample.id)
 
             LOG.info(f"Finished processing manifest record {manifest_record.id}")
-
-
-def upsert_sample(db: DatabaseSession,
-                  update_identifiers: bool,
-                  identifier: str,
-                  collection_identifier: Optional[str],
-                  collection_date: Optional[str],
-                  additional_details: dict) -> Tuple[Any, str]:
-    """
-    Upsert sample by its *identifier* and/or *collection_identifier*.
-
-    An existing sample has its *identifier*, *collection_identifier*,
-    *collection_date* updated, and the provided *additional_details* are
-    merged (at the top-level only) into the existing sample details, if any.
-
-    Raises an exception if there is more than one matching sample.
-    """
-    data = {
-        "identifier": identifier,
-        "collection_identifier": collection_identifier,
-        "collection_date": collection_date,
-        "additional_details": Json(additional_details),
-    }
-
-    # Look for existing sample(s)
-    with db.cursor() as cursor:
-        cursor.execute("""
-            select sample_id as id, identifier, collection_identifier, encounter_id
-              from warehouse.sample
-             where identifier = %(identifier)s
-                or collection_identifier = %(collection_identifier)s
-               for update
-            """, data)
-
-        samples = list(cursor)
-
-    # Nothing found → create
-    if not samples:
-        LOG.info("Creating new sample")
-        status = 'created'
-        sample = db.fetch_row("""
-            insert into warehouse.sample (identifier, collection_identifier, collected, details)
-                values (%(identifier)s,
-                        %(collection_identifier)s,
-                        date_or_null(%(collection_date)s),
-                        %(additional_details)s)
-            returning sample_id as id, identifier, collection_identifier, encounter_id
-            """, data)
-
-    # One found → update
-    elif len(samples) == 1:
-        status = 'updated'
-        sample = samples[0]
-
-        LOG.info(f"Updating existing sample {sample.id}")
-
-        # Update identifier and collection_identifier if update_identifiers is True
-        identifiers_update_composable = sql.SQL("""
-             identifier = %(identifier)s,
-                collection_identifier = %(collection_identifier)s, """)  \
-                    if update_identifiers else sql.SQL("")
-
-        sample = db.fetch_row(sql.SQL("""
-            update warehouse.sample
-                set {}
-                    collected = coalesce(date_or_null(%(collection_date)s), collected),
-                    details = coalesce(details, {}) || %(additional_details)s
-
-             where sample_id = %(sample_id)s
-
-            returning sample_id as id, identifier, collection_identifier, encounter_id
-            """).format(identifiers_update_composable,
-                sql.Literal(Json({}))),
-                { **data, "sample_id": sample.id })
-
-        assert sample.id, "Update affected no rows!"
-
-    # More than one found → error
-    else:
-        raise Exception(f"More than one sample matching sample and/or collection barcodes: {samples}")
-
-    return sample, status
-
 
 def mark_loaded(db, manifest_id: int, status: str, sample_id: int) -> None:
     LOG.debug(f"Marking sample manifest record {manifest_id} as loaded")

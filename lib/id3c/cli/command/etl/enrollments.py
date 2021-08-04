@@ -8,19 +8,17 @@ from itertools import groupby
 from operator import itemgetter
 from typing import Any, Optional
 from id3c.cli.command import with_database_session
-from id3c.db import find_identifier
+from id3c.db import find_identifier, upsert_sample
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
 from . import (
     etl,
-
     find_or_create_site,
     find_location,
     upsert_individual,
     upsert_encounter,
     upsert_location,
-    upsert_encounter_location,
-    upsert_sample
+    upsert_encounter_location
 )
 
 
@@ -167,10 +165,13 @@ def process_samples(db: DatabaseSession,
             "type": sample["type"],
         }
 
-        sample = upsert_sample(db,
+        upsert_sample(db,
+            update_identifiers    = False,
+            identifier            = None,
             collection_identifier = identifier.uuid,
+            collection_date       = None,
             encounter_id          = encounter_id,
-            details               = details)
+            additional_details    = details)
 
     # XXX TODO: Should this delete existing linked samples which
     # weren't mentioned in this enrollment document?  This would
