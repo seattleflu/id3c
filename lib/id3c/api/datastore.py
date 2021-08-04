@@ -10,11 +10,10 @@ from typing import Any
 from uuid import UUID
 from werkzeug.exceptions import Forbidden, NotFound
 from .. import db
-from ..db import find_identifier
+from ..db import find_identifier, upsert_sample
 from ..db.session import DatabaseSession
 from .exceptions import AuthenticationRequired, BadRequest
 from .utils import export
-from ..cli.command.etl.manifest import upsert_sample
 
 
 LOG = logging.getLogger(__name__)
@@ -437,6 +436,7 @@ def store_sample(session: DatabaseSession, sample: dict) -> Any:
                 identifier                  = sample_identifier.uuid if sample_identifier else None,
                 collection_identifier       = collection_identifier.uuid if collection_identifier else None,
                 collection_date             = collected_date,
+                encounter_id                = None,
                 additional_details          = sample)
 
         result["sample"] = sample
