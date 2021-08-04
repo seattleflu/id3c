@@ -145,11 +145,16 @@ def etl_presence_absence(*, db: DatabaseSession):
                     continue
 
                 # Barcode must match a known identifier
-                received_sample_identifier = sample_identifier(db, received_sample_barcode)
+                db_identifier = find_identifier(db, received_sample_barcode)
 
-                if not received_sample_identifier:
+                if db_identifier:
+                    assert db_identifier.set_name in valid_identifiers, \
+                        f"Identifier found in invalid set «{db_identifier.set_name}»"
+                else:
                     LOG.warning(f"Skipping results for sample without a known identifier «{received_sample_barcode}»")
                     continue
+
+                received_sample_identifier = db_identifier.uuid
 
                 # Track Samplify's internal ids for our samples, which is
                 # unfortunately necessary for linking genomic data NWGC also
@@ -283,20 +288,6 @@ def update_details_nwgc_id(sample: Any, additional_details: dict) -> None:
 
     # Concatenate exisiting and new nwgc_ids and deduplicate
     additional_details["nwgc_id"] = list(set(existing_nwgc_ids + new_nwgc_ids))
-
-
-def sample_identifier(db: DatabaseSession, barcode: str) -> Optional[str]:
-    """
-    Find corresponding UUID for scanned sample barcode within
-    warehouse.identifier.
-    """
-    identifier = find_identifier(db, barcode)
-
-    if identifier:
-        assert identifier.set_name in valid_identifiers, \
-            f"Identifier found in invalid set «{identifier.set_name}»"
-
-    return identifier.uuid if identifier else None
 
 
 def sample_details(document: dict) -> dict:
