@@ -339,6 +339,18 @@ class CollectionsUWTinySwabsLayout(LabelLayout):
     copies_per_barcode = 1
     reference = "seattleflu.org"
 
+class CollectionsUWTinySwabsHomeLayout(LabelLayout):
+    sku = "LCRY-2380"
+    barcode_type = 'UW TINY U'
+    copies_per_barcode = 1
+    reference = "seattleflu.org"
+
+class CollectionsUWTinySwabsObservedLayout(LabelLayout):
+    sku = "LCRY-2380"
+    barcode_type = 'UW TINY O'
+    copies_per_barcode = 1
+    reference = "seattleflu.org"
+
 LAYOUTS = {
     "samples": SamplesLayout,
     "collections-scan": CollectionsScanLayout,
@@ -372,6 +384,8 @@ LAYOUTS = {
     'collections-radxup-yakima-schools-home': CollectionsRadxupYakimaSchoolHomeLayout,
     'collections-radxup-yakima-schools-observed': CollectionsRadxupYakimaSchoolObservedLayout,
     'collections-uw-tiny-swabs': CollectionsUWTinySwabsLayout,
+    'collections-uw-tiny-swabs-home': CollectionsUWTinySwabsHomeLayout,
+    'collections-uw-tiny-swabs-observed': CollectionsUWTinySwabsObservedLayout,
 }
 
 
