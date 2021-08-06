@@ -2,6 +2,7 @@
 API route definitions.
 """
 import json
+from jsonschema import validate, ValidationError
 import logging
 import pkg_resources
 from flask import Blueprint, jsonify, request, send_file
@@ -165,6 +166,30 @@ def verify_barcode_uses(*, session):
 
     LOG.debug(f"Validating «{barcode_use_list}»")
 
+    schema = {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+                "barcode": {
+                    "type": "string"
+                },
+                "use": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "barcode",
+                "use"
+            ]
+        }
+    }
+
+    try:
+        validate( instance = barcode_use_list, schema = schema )
+    except ValidationError as e:
+        return str(e), 400
+    
     result = datastore.verify_barcode_use_list(session, barcode_use_list)
     return jsonify([ row._asdict() for row in result ])
     
