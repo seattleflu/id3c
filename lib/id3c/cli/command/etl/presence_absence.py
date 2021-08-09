@@ -44,6 +44,13 @@ LOG = logging.getLogger(__name__)
 REVISION = 8
 
 
+# Valid identifier.set_name values for the samples to be processed
+valid_identifiers = [
+        "samples",
+        "collections-uw-tiny-swabs-home",
+        "collections-uw-tiny-swabs-observed",
+]
+
 @etl.command("presence-absence", help = __doc__)
 @with_database_session
 
@@ -138,18 +145,31 @@ def etl_presence_absence(*, db: DatabaseSession):
                     continue
 
                 # Barcode must match a known identifier
-                received_sample_identifier = sample_identifier(db, received_sample_barcode)
+                db_identifier = find_identifier(db, received_sample_barcode)
 
-                if not received_sample_identifier:
+                if db_identifier:
+                    assert db_identifier.set_name in valid_identifiers, \
+                        f"Identifier found in invalid set «{db_identifier.set_name}»"
+                    tiny_swab = False
+                    if db_identifier.set_name.find('tiny-swab') >= 0:
+                        tiny_swab = True
+                else:
                     LOG.warning(f"Skipping results for sample without a known identifier «{received_sample_barcode}»")
                     continue
+
+                received_sample_identifier = db_identifier.uuid
 
                 # Track Samplify's internal ids for our samples, which is
                 # unfortunately necessary for linking genomic data NWGC also
                 # sends.
-                sample = update_sample(db,
-                    identifier = received_sample_identifier,
-                    additional_details = sample_details(received_sample))
+                if tiny_swab:
+                    sample = update_sample(db,
+                        collection_identifier = received_sample_identifier,
+                        additional_details = sample_details(received_sample))
+                else:
+                    sample = update_sample(db,
+                        identifier = received_sample_identifier,
+                        additional_details = sample_details(received_sample))
 
                 # Finally, process all results.
                 for test_result in test_results:
@@ -213,8 +233,9 @@ def target_control(control: str) -> bool:
 
 
 def update_sample(db: DatabaseSession,
-                  identifier: str,
-                  additional_details: dict) -> Any:
+                  identifier: str = None,
+                  collection_identifier: str = None,
+                  additional_details: dict = None) -> Any:
     """
     Find sample by *identifier* and update with any *additional_details*.
 
@@ -224,14 +245,22 @@ def update_sample(db: DatabaseSession,
     Raises an :class:`SampleNotFoundError` if there is no sample known by
     *identifier*.
     """
-    LOG.debug(f"Looking up sample «{identifier}»")
-
-    sample = db.fetch_row("""
-        select sample_id as id, identifier, details
-          from warehouse.sample
-         where identifier = %s
-           for update
-        """, (identifier,))
+    if identifier:
+        LOG.debug(f"Looking up sample with identifier «{identifier}»")
+        sample = db.fetch_row("""
+            select sample_id as id, identifier, details
+              from warehouse.sample
+            where identifier = %s
+              for update
+            """, (identifier,))
+    elif collection_identifier:
+        LOG.debug(f"Looking up sample with collection_identifier «{collection_identifier}»")
+        sample = db.fetch_row("""
+            select sample_id as id, collection_identifier as identifier, details
+              from warehouse.sample
+            where collection_identifier = %s
+              for update
+            """, (collection_identifier,))
 
     if not sample:
         LOG.error(f"No sample with identifier «{identifier}» found")
@@ -276,20 +305,6 @@ def update_details_nwgc_id(sample: Any, additional_details: dict) -> None:
 
     # Concatenate exisiting and new nwgc_ids and deduplicate
     additional_details["nwgc_id"] = list(set(existing_nwgc_ids + new_nwgc_ids))
-
-
-def sample_identifier(db: DatabaseSession, barcode: str) -> Optional[str]:
-    """
-    Find corresponding UUID for scanned sample barcode within
-    warehouse.identifier.
-    """
-    identifier = find_identifier(db, barcode)
-
-    if identifier:
-        assert identifier.set_name == "samples", \
-            f"Identifier found in set «{identifier.set_name}», not «samples»"
-
-    return identifier.uuid if identifier else None
 
 
 def sample_details(document: dict) -> dict:
