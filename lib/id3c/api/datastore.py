@@ -178,6 +178,38 @@ def store_fhir(session: DatabaseSession, document: str) -> None:
         except (DataError, IntegrityError) as error:
             raise BadRequestDatabaseError(error) from None
 
+@export
+@catch_permission_denied
+def verify_barcode_use_list(session: DatabaseSession, barcode_use_list: list) -> Any:
+    """
+    Check the given *barcode_use_list* containing objects with ``barcode`` and ``use``
+    keys and values to verify that each barcode exists in the backing database and that the
+    given use matches the stored use.
+
+    Returns a list of objects in the same order as the input, with each object including the
+    ``barcode`` (string) and ``use`` (string) being verified, ``barcode_found`` (boolean)
+    indicating whether the given barcode exists, and ``use_match`` (boolean) indicating whether
+    the given use matches the stored use. The ``use_match`` value will be `null` if the barcode
+    does not exist.
+    """
+    barcode_use_tuples = [(bu["barcode"],bu["use"]) for bu in barcode_use_list]
+    args_str = ','.join(['%s'] * len(barcode_use_tuples))
+    sql = "select q.barcode, q.use, \
+            case \
+                when identifier.barcode is not null then true else false \
+            end as barcode_found, \
+            case \
+                when identifier_set.use IS NULL then null \
+                when q.use::citext=identifier_set.use then true \
+                else false \
+            end as use_match \
+            from (values {}) as q (barcode, use) \
+            left join warehouse.identifier on q.barcode::citext = identifier.barcode \
+            left join warehouse.identifier_set using (identifier_set_id)".format(args_str)
+
+    result = session.fetch_all(sql, tuple(barcode_use_tuples))
+    return result
+    
 
 @export
 @catch_permission_denied

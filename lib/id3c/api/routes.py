@@ -2,6 +2,7 @@
 API route definitions.
 """
 import json
+from jsonschema import validate, ValidationError
 import logging
 import pkg_resources
 from flask import Blueprint, jsonify, request, send_file
@@ -144,7 +145,54 @@ def receive_fhir(*, session):
 
     return "", 204
 
+@api_v1.route("/verification/barcode-uses/verify", methods=['POST'])
+@content_types_accepted(["application/json"])
+@check_content_length
+@authenticated_datastore_session_required
+def verify_barcode_uses(*, session):
+    """
+    Validate a list of barcodes and use types.
+    
+    POST /barcode-uses with a JSON array of objects containing ``barcode`` and
+    ``use`` keys with string values.
 
+    Response will be a JSON array in the same order as input array, with objects containing
+    ``barcode`` (string) and ``use`` (string) from input array plus ``barcode_found`` (boolean)
+    to indicate if the barcode exists in the database, and ``use_match`` (boolean) to indicate
+    if the use from the input matches what is stored in the database (the ``use_match`` value
+    will be `null` if ``barcode_found`` is `false`).
+    """
+    barcode_use_list = request.get_json()
+
+    LOG.debug(f"Validating «{barcode_use_list}»")
+
+    schema = {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {
+                "barcode": {
+                    "type": "string"
+                },
+                "use": {
+                    "type": "string"
+                }
+            },
+            "required": [
+                "barcode",
+                "use"
+            ]
+        }
+    }
+
+    try:
+        validate( instance = barcode_use_list, schema = schema )
+    except ValidationError as e:
+        return str(e), 400
+    
+    result = datastore.verify_barcode_use_list(session, barcode_use_list)
+    return jsonify([ row._asdict() for row in result ])
+    
 @api_v1.route("/warehouse/identifier/<id>", methods = ['GET'])
 @authenticated_datastore_session_required
 def get_identifier(id, *, session):
