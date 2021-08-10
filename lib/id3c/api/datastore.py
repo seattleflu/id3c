@@ -395,9 +395,9 @@ def store_sample(session: DatabaseSession, sample: dict) -> Any:
     failed validation.
     """
     with session:
-        sample_barcode = sample.pop("sample", None)
+        sample_barcode = sample.pop("sample_id", None)
         sample_identifier = find_identifier(session, sample_barcode) if sample_barcode else None
-        collection_barcode = sample.pop("collection", None) 
+        collection_barcode = sample.pop("collection_id", None) 
         collection_identifier = find_identifier(session, collection_barcode) if collection_barcode else None
         
         result = {
@@ -406,10 +406,7 @@ def store_sample(session: DatabaseSession, sample: dict) -> Any:
         }
 
         # validate barcodes
-        if not sample_barcode and not collection_barcode:
-            result["status"] = "validation_failed"
-            result["details"] = f"sample barcode or collection barcode required"
-        elif sample_barcode and not sample_identifier:
+        if sample_barcode and not sample_identifier:
             result["status"] = "validation_failed"
             result["details"] = f"sample barcode «{sample_barcode}» not found"
         elif sample_identifier and sample_identifier.set_use != 'sample':
@@ -425,12 +422,12 @@ def store_sample(session: DatabaseSession, sample: dict) -> Any:
         if result.get("status", None) == "validation_failed":
             return result
 
-        collected_date = sample.get("date", None)
+        collected_date = sample.get("collection_date", None)
 
         # When updating an existing row, update the identifiers only if the record has both
         # the 'sample_barcode' and 'collection_barcode' keys
         should_update_identifiers = True if (sample_identifier and collection_identifier) else False
-        
+
         sample, status = upsert_sample(session,
                 update_identifiers          = should_update_identifiers,
                 identifier                  = sample_identifier.uuid if sample_identifier else None,

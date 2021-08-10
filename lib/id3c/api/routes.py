@@ -2,10 +2,12 @@
 API route definitions.
 """
 import json
-from jsonschema import validate, ValidationError
+from jsonschema import Draft7Validator, ValidationError
 import logging
 import pkg_resources
 from flask import Blueprint, jsonify, request, send_file
+from datetime import datetime
+from hashlib import sha1
 from . import datastore
 from .utils.routes import authenticated_datastore_session_required, content_types_accepted, check_content_length
 
@@ -186,7 +188,7 @@ def verify_barcode_uses(*, session):
     }
 
     try:
-        validate( instance = barcode_use_list, schema = schema )
+        Draft7Validator(schema).validate(barcode_use_list)
     except ValidationError as e:
         return str(e), 400
     
@@ -297,9 +299,107 @@ def post_sample(*, session):
     JSON object with status (inserted, updated, or failed validation)
     of the sample is returned.
     """
+
     sample = request.get_json()
 
     LOG.debug(f"Creating/updating sample «{sample}»")
+
+    # everything except _provenance, which is auto-calculated and added below
+    schema = {
+        "type": "object",
+        "properties": {
+            "sample_id": {
+                "type": "string",
+                "minLength": 8,
+                "maxLength": 8
+            },
+            "collection_id": {
+                "type": "string",
+                "minLength": 8,
+                "maxLength": 8
+            },
+            "collection_date": {
+                "type": "string",
+                "format": "date"
+            },
+            "sample_origin": {
+                "type": "string"
+            },
+            "swab_site": {
+                "type": "string"
+            },
+            "clia_id": {
+                "type": "string",
+                "minLength": 8,
+                "maxLength": 8
+            },
+            "received_date": {
+                "type": "string",
+                "format": "date"
+            },
+            "aliquot_a": {
+                "type": "string"
+            },
+            "aliquot_b": {
+                "type": "string"
+            },
+            "aliquoted_date": {
+                "type": "string",
+                "format": "date"
+            },
+            "rack_a": {
+                "type": "string"
+            },
+            "rack_a_nickname": {
+                "type": "string"
+            },
+            "rack_b": {
+                "type": "string"
+            },
+            "rack_b_nickname": {
+                "type": "string"
+            },
+            "swab_type": {
+                "type": "string",
+                "enum": ["ans", "mtb", "np", "tiny", "unk", "none"]
+            },
+            "collection_matrix": {
+                "type": "string",
+                "enum": ["dry", "utm_vtm", "pbs", "none"]
+            },
+            "notes": {
+                "type": "string"
+            }
+        },
+        "anyOf": [
+            { "required":
+                [ "sample_id" ] },
+            { "required":
+                [ "collection_id" ] }
+        ],
+        "additionalProperties": False
+    }
+
+    # using DraftXValidator(schema).validate(...) instead of jsonschema.validate(...) to
+    # return accurate error message for "anyOf" requirement
+    try:
+        Draft7Validator(schema).validate(sample)
+    except ValidationError as e:
+        return str(e), 400
+
+    # Transform racks data into array to match previously established format
+    racks = {key: value for key, value in sample.items() if key.startswith('rack_')}
+    if racks:
+        sample["racks"]=[]
+        for k, v in racks.items():
+            sample["racks"].append(sample.pop(k))
+    
+    # Transform aliquots data into array to match previously established format
+    aliquots = {key: value for key, value in sample.items() if key.startswith('aliquot_')}
+    if aliquots:
+        sample["aliquots"]=[]
+        for k, v in aliquots.items():
+            sample["aliquots"].append(sample.pop(k))
 
     result = datastore.store_sample(session, sample)
 
