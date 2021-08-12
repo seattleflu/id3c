@@ -387,6 +387,18 @@ def post_sample(*, session):
     except ValidationError as e:
         return str(e), 400
 
+    # calculate hash based on serialized sample record
+    digest = sha1(json.dumps(sample, sort_keys=True).encode()).hexdigest()
+
+    provenance = {
+        "source": request.referrer or request.remote_addr or "?",
+        "method": request.method,
+        "path": request.path,
+        "timestamp": f'{datetime.now():%Y-%m-%d %H:%M:%S%z}',
+        "sha1sum": digest
+    }
+    sample.update(_provenance=provenance)
+
     # Transform racks data into array to match previously established format
     racks = {key: value for key, value in sample.items() if key.startswith('rack_')}
     if racks:
