@@ -2,7 +2,7 @@
 API route definitions.
 """
 import json
-from jsonschema import Draft7Validator, ValidationError
+from jsonschema import Draft7Validator, ValidationError, draft7_format_checker
 import logging
 import pkg_resources
 from flask import Blueprint, jsonify, request, send_file
@@ -383,10 +383,19 @@ def post_sample(*, session):
     # using DraftXValidator(schema).validate(...) instead of jsonschema.validate(...) to
     # return accurate error message for "anyOf" requirement
     try:
-        Draft7Validator(schema).validate(sample)
+        Draft7Validator(schema, format_checker=draft7_format_checker).validate(sample)
     except ValidationError as e:
         return str(e), 400
 
+    # Convert dates in YYYY-MM-DD format to MM/DD/YYYY for consistency with records
+    # created through manifest ETL process
+    for key in sample:
+        if key.endswith('_date'):
+            try:
+                sample[key] = datetime.strptime(sample[key], '%Y-%m-%d').strftime('%m/%d/%Y')
+            except:
+                pass
+    
     # calculate hash based on serialized sample record
     digest = sha1(json.dumps(sample, sort_keys=True).encode()).hexdigest()
 
