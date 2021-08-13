@@ -233,3 +233,7 @@ warehouse/identifier-set/use [warehouse/identifier warehouse/identifier-set-use]
 warehouse/identifier-set/use-not-null 2021-07-06T22:26:14Z Dave Reinhart <davidrr@uw.edu> # Add not null to identifier-set use column
 warehouse/identifier/indexes/identifier_set_id_btree 2021-07-06T22:33:41Z Dave Reinhart <davidrr@uw.edu> # Add index to identifier on identifier_set_id column
 @2021-07-06 2021-07-06T22:38:05Z Dave Reinhart <davidrr@uw.edu> # Schema as of 06 Jul 2021
+
+roles/sample-editor/create 2021-08-13T15:01:31Z Dave Reinhart <davidrr@uw.edu> # Add sample editor role
+roles/sample-editor/grants 2021-08-13T15:03:19Z Dave Reinhart <davidrr@uw.edu> # Grant permissions to sample-editor role
+@2021-08-13 2021-08-13T15:15:55Z Dave Reinhart <davidrr@uw.edu> # Schema as of 13 Aug 2021
