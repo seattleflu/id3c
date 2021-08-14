@@ -73,6 +73,7 @@ setup(
         "oauth2client >2.0.0,<4.0.0",
         "pandas >=1.0.1,<2",
         "psycopg2 >=2.8,<3",
+        "pycap",
         "pyyaml",
         "requests",
         "s3fs",
