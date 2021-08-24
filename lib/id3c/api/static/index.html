@@ -95,6 +95,31 @@
     parameter is required for new sets and is optional if only updating
     <em>description</em> on an existing set.
 
+    <h3 class="code">POST /v1/warehouse/sample</h3>
+    <p>Insert or update a sample record.
+    <p>The body of the request should be a JSON object with the following format:
+        <pre>
+        {
+            "sample_id": "20e1d4a2",
+            "collection_id": "2e99a5f3",
+            "sample_origin": "uw-reopening",
+            "collection_date": "2021-01-01",
+            "swab_site": "uw_club",
+            "clia_id": "9f8a58a6",
+            "received_date": "2021-01-01",
+            "aliquot_a":"123456789",
+            "aliquot_b":"987654321",
+            "aliquoted_date": "2021-01-01",
+            "rack_a":"TS01234567",
+            "rack_b":"TS07654321",
+            "rack_a_nickname":"COV2-123A",
+            "rack_b_nickname":"COV2-321B",
+            "notes": "sample notes",
+            "swab_type": "ans",
+            "collection_matrix": "dry"
+        }
+        </pre>
+
     <h3 class="code">GET /v1/warehouse/identifier-set-uses</h3>
     <p>Retrieve metadata about all identifier set uses.
 
