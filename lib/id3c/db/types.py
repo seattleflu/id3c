@@ -9,6 +9,7 @@ class IdentifierRecord(NamedTuple):
     barcode: str
     generated: datetime
     set_name: str
+    set_use: str
 
 class MinimalSampleRecord(NamedTuple):
     id: int

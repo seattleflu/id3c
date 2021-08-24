@@ -2,13 +2,15 @@
 API route definitions.
 """
 import json
-from jsonschema import validate, ValidationError
+from jsonschema import Draft7Validator, ValidationError, draft7_format_checker
 import logging
 import pkg_resources
 from flask import Blueprint, jsonify, request, send_file
+from datetime import datetime
+from hashlib import sha1
 from . import datastore
 from .utils.routes import authenticated_datastore_session_required, content_types_accepted, check_content_length
-
+from . import schemas
 
 LOG = logging.getLogger(__name__)
 
@@ -166,27 +168,8 @@ def verify_barcode_uses(*, session):
 
     LOG.debug(f"Validating «{barcode_use_list}»")
 
-    schema = {
-        "type": "array",
-        "items": {
-            "type": "object",
-            "properties": {
-                "barcode": {
-                    "type": "string"
-                },
-                "use": {
-                    "type": "string"
-                }
-            },
-            "required": [
-                "barcode",
-                "use"
-            ]
-        }
-    }
-
     try:
-        validate( instance = barcode_use_list, schema = schema )
+        Draft7Validator(schemas.VERIFY_BARCODE_USES_SCHEMA).validate(barcode_use_list)
     except ValidationError as e:
         return str(e), 400
     
@@ -282,6 +265,77 @@ def get_identifier_set_uses(*, session):
     uses = datastore.fetch_identifier_set_uses(session)
 
     return jsonify([ use._asdict() for use in uses ])
+
+@api_v1.route("/warehouse/sample", methods = ['POST'])
+@content_types_accepted(["application/json"])
+@check_content_length
+@authenticated_datastore_session_required
+def post_sample(*, session):
+    """
+    Create/update a single sample.
+
+    POST /warehouse/sample to validate, then create new or update
+    existing sample that passes validation.
+
+    JSON object with status (inserted, updated, or failed validation)
+    of the sample is returned.
+    """
+
+    sample = request.get_json()
+
+    LOG.debug(f"Creating/updating sample «{sample}»")
+    
+    # using DraftXValidator(schema).validate(...) instead of jsonschema.validate(...) to
+    # return accurate error message for "anyOf" requirement
+    try:
+        Draft7Validator(schemas.POST_SAMPLE_SCHEMA, format_checker=draft7_format_checker).validate(sample)
+    except ValidationError as e:
+        return str(e), 400
+
+    # Convert dates in YYYY-MM-DD format to MM/DD/YYYY for consistency with records
+    # created through manifest ETL process
+    for key in sample:
+        if key.endswith('_date'):
+            try:
+                sample[key] = datetime.strptime(sample[key], '%Y-%m-%d').strftime('%m/%d/%Y')
+            except:
+                pass
+    
+    # calculate hash based on serialized sample record
+    digest = sha1(json.dumps(sample, sort_keys=True).encode()).hexdigest()
+
+    provenance = {
+        "source": request.referrer or request.remote_addr or "?",
+        "method": request.method,
+        "path": request.path,
+        "timestamp": f'{datetime.now():%Y-%m-%d %H:%M:%S%z}',
+        "sha1sum": digest
+    }
+    sample.update(_provenance=provenance)
+
+    # Transform racks data into array to match previously established format
+    racks = {key: value for key, value in sample.items() if key.startswith('rack_')}
+    if racks:
+        sample["racks"]=[]
+        for k, v in racks.items():
+            sample["racks"].append(sample.pop(k))
+    
+    # Transform aliquots data into array to match previously established format
+    aliquots = {key: value for key, value in sample.items() if key.startswith('aliquot_')}
+    if aliquots:
+        sample["aliquots"]=[]
+        for k, v in aliquots.items():
+            sample["aliquots"].append(sample.pop(k))
+
+    result = datastore.store_sample(session, sample)
+
+    status_code = 500
+    if "sample" in result:
+        status_code = 200
+    elif result.get("status") == "validation_failed":
+        status_code = 400
+
+    return (jsonify(result), status_code)
 
 # Load all extra API routes from extensions
 # Needs to be at the end of route declarations to allow customization of

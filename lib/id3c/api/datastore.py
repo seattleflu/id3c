@@ -10,6 +10,7 @@ from typing import Any
 from uuid import UUID
 from werkzeug.exceptions import Forbidden, NotFound
 from .. import db
+from ..db import find_identifier, upsert_sample
 from ..db.session import DatabaseSession
 from .exceptions import AuthenticationRequired, BadRequest
 from .utils import export
@@ -381,6 +382,70 @@ def fetch_identifier_set_uses(session: DatabaseSession) -> Any:
             """)
 
         return list(cursor)
+
+@export
+@catch_permission_denied
+def store_sample(session: DatabaseSession, sample: dict) -> Any:
+    """"
+    Validate the given *sample* and insert or update in the backing database.
+
+    Returns a list of in the same order as the input, with each object including
+    the ``sample_id`` (string), ``status`` (string) to indicate if inserted,
+    updated, or validation failed, and ``details`` to indicate reason for
+    failed validation.
+    """
+    with session:
+        sample_barcode = sample.pop("sample_id", None)
+        sample_identifier = find_identifier(session, sample_barcode) if sample_barcode else None
+        collection_barcode = sample.pop("collection_id", None) 
+        collection_identifier = find_identifier(session, collection_barcode) if collection_barcode else None
+        
+        result = {
+            "sample_barcode": sample_barcode,
+            "collection_barcode": collection_barcode
+        }
+
+        # validate barcodes
+        if sample_barcode and not sample_identifier:
+            result["status"] = "validation_failed"
+            result["details"] = f"sample barcode «{sample_barcode}» not found"
+        elif sample_identifier and sample_identifier.set_use != 'sample':
+            result["status"] = "validation_failed"
+            result["details"] = f"barcode «{sample_barcode}» has use type «{sample_identifier.set_use}» instead of expected use type «sample»"
+        elif collection_barcode and not collection_identifier:
+            result["status"] = "validation_failed"
+            result["details"] = f"collection barcode «{collection_barcode}» not found"
+        elif collection_identifier and collection_identifier.set_use != 'collection':
+            result["status"] = "validation_failed"
+            result["details"] = f"barcode «{collection_barcode}» has use type «{collection_identifier.set_use}» instead of expected use type «collection»"
+
+        if result.get("status", None) == "validation_failed":
+            LOG.debug(f"Validation failed for {sample} with details: {result.get('details')}")
+            return result
+
+        collected_date = sample.get("collection_date", None)
+
+        # When updating an existing row, update the identifiers only if the record has both
+        # the 'sample_barcode' and 'collection_barcode' keys
+        should_update_identifiers = True if (sample_identifier and collection_identifier) else False
+
+        try:
+            sample, status = upsert_sample(session,
+                    update_identifiers          = should_update_identifiers,
+                    identifier                  = sample_identifier.uuid if sample_identifier else None,
+                    collection_identifier       = collection_identifier.uuid if collection_identifier else None,
+                    collection_date             = collected_date,
+                    encounter_id                = None,
+                    additional_details          = sample)
+
+            result["sample"] = sample
+            result["status"] = status
+        except Exception as e:
+            result["status"] = "upsert_error"
+            result["details"] = f"error upserting sample record: {str(e)}"
+            LOG.debug(f"Error on upsert_sample: {str(e)}")
+
+        return result
 
 @export
 class BadRequestDatabaseError(BadRequest):
