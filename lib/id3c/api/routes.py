@@ -329,7 +329,13 @@ def post_sample(*, session):
 
     result = datastore.store_sample(session, sample)
 
-    return (jsonify(result), 200) if "sample" in result else (jsonify(result), 400)
+    status_code = 500
+    if "sample" in result:
+        status_code = 200
+    elif result.get("status") == "validation_failed":
+        status_code = 400
+
+    return (jsonify(result), status_code)
 
 # Load all extra API routes from extensions
 # Needs to be at the end of route declarations to allow customization of

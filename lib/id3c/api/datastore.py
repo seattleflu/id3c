@@ -411,15 +411,16 @@ def store_sample(session: DatabaseSession, sample: dict) -> Any:
             result["details"] = f"sample barcode «{sample_barcode}» not found"
         elif sample_identifier and sample_identifier.set_use != 'sample':
             result["status"] = "validation_failed"
-            result["details"] = f"barcode «{sample_barcode}» has use type «{sample_identifier.set_use}»"
+            result["details"] = f"barcode «{sample_barcode}» has use type «{sample_identifier.set_use}» instead of expected use type «sample»"
         elif collection_barcode and not collection_identifier:
             result["status"] = "validation_failed"
             result["details"] = f"collection barcode «{collection_barcode}» not found"
         elif collection_identifier and collection_identifier.set_use != 'collection':
             result["status"] = "validation_failed"
-            result["details"] = f"barcode «{collection_barcode}» has use type «{collection_identifier.set_use}»"
+            result["details"] = f"barcode «{collection_barcode}» has use type «{collection_identifier.set_use}» instead of expected use type «collection»"
 
         if result.get("status", None) == "validation_failed":
+            LOG.debug(f"Validation failed for {sample} with details: {result.get('details')}")
             return result
 
         collected_date = sample.get("collection_date", None)
@@ -428,16 +429,22 @@ def store_sample(session: DatabaseSession, sample: dict) -> Any:
         # the 'sample_barcode' and 'collection_barcode' keys
         should_update_identifiers = True if (sample_identifier and collection_identifier) else False
 
-        sample, status = upsert_sample(session,
-                update_identifiers          = should_update_identifiers,
-                identifier                  = sample_identifier.uuid if sample_identifier else None,
-                collection_identifier       = collection_identifier.uuid if collection_identifier else None,
-                collection_date             = collected_date,
-                encounter_id                = None,
-                additional_details          = sample)
+        try:
+            sample, status = upsert_sample(session,
+                    update_identifiers          = should_update_identifiers,
+                    identifier                  = sample_identifier.uuid if sample_identifier else None,
+                    collection_identifier       = collection_identifier.uuid if collection_identifier else None,
+                    collection_date             = collected_date,
+                    encounter_id                = None,
+                    additional_details          = sample)
 
-        result["sample"] = sample
-        result["status"] = status
+            result["sample"] = sample
+            result["status"] = status
+        except Exception as e:
+            result["status"] = "upsert_error"
+            result["details"] = f"error upserting sample record: {str(e)}"
+            LOG.debug(f"Error on upsert_sample: {str(e)}")
+
         return result
 
 @export
