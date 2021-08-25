@@ -4,11 +4,11 @@ Datastore abstraction for our database.
 import logging
 import psycopg2
 from functools import wraps
-from psycopg2 import DataError, DatabaseError, IntegrityError, ProgrammingError
+from psycopg2 import DataError, DatabaseError, IntegrityError, ProgrammingError, sql
 from psycopg2.errors import InsufficientPrivilege
 from typing import Any
 from uuid import UUID
-from werkzeug.exceptions import Forbidden, NotFound
+from werkzeug.exceptions import Forbidden, NotFound, Conflict
 from .. import db
 from ..db import find_identifier, upsert_sample
 from ..db.session import DatabaseSession
@@ -382,6 +382,50 @@ def fetch_identifier_set_uses(session: DatabaseSession) -> Any:
             """)
 
         return list(cursor)
+
+@export
+@catch_permission_denied
+def get_sample(session: DatabaseSession, barcode: str) -> Any:
+    """
+    Fetch the sample with identifier or collection identifier matching *barcode* from the backing
+    database using *session*.
+
+    Returns a named tuple with ``identifier``, ``collection_identifier``, ``encounter_id``,
+    ``details``, ``created``, ``modified``, and ``collected`` attributes.
+    
+    If the identifier barcode or sample doesn't exist, raises a :class:`~werkzeug.exceptions.NotFound`
+    exception. If the identifier barcode exists but is not from a sample or collection identifier set,
+    raises a :class:`~werkzeug.exceptions.Conflict` exception.
+    """
+
+    with session:
+        sample_identifier = find_identifier(session, barcode) or None
+
+        if not sample_identifier:
+            LOG.error(f"Identifier barcode «{barcode}» not found")
+            raise NotFound(f"Identifier barcode «{barcode}» not found")
+        elif sample_identifier.set_use=='sample':
+            identifier_field = sql.Identifier('identifier')
+        elif sample_identifier.set_use=='collection':
+            identifier_field = sql.Identifier('collection_identifier')
+        else:
+            error_msg = f"Identifier barcode «{barcode}» has use type «{sample_identifier.set_use}» instead of expected use type «sample» or «collection»"
+            LOG.error(error_msg)
+            raise Conflict(error_msg)
+            
+        query = sql.SQL("""
+            select identifier, collection_identifier, encounter_id, 
+            details, created::text, modified::text, collected::text
+            from warehouse.sample
+            where {field} = %s
+            """).format(field=identifier_field)
+
+        sample = session.fetch_row(query, (sample_identifier.uuid,))
+    
+    if not sample:
+        raise NotFound(f"Sample record with {sample_identifier.set_use} identifier barcode «{barcode}» not found")
+    else:
+        return sample
 
 @export
 @catch_permission_denied
