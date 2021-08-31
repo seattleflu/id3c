@@ -239,7 +239,7 @@ def fetch_identifier(session: DatabaseSession, id: str) -> Any:
             """, (id,))
 
     if not identifier:
-        LOG.error(f"Identifier {id_field} «{id}» not found")
+        LOG.info(f"Identifier {id_field} «{id}» not found")
         raise NotFound(f"Identifier {id_field} «{id}» not found")
 
     return identifier
@@ -281,7 +281,7 @@ def fetch_identifier_set(session: DatabaseSession, name: str) -> Any:
             """, (name,))
 
     if not set:
-        LOG.error(f"Identifier set «{name}» not found")
+        LOG.info(f"Identifier set «{name}» not found")
         raise NotFound(f"Identifier set «{name}» not found")
 
     return set
@@ -399,18 +399,18 @@ def get_sample(session: DatabaseSession, barcode: str) -> Any:
     """
 
     with session:
-        sample_identifier = find_identifier(session, barcode) or None
+        identifier = find_identifier(session, barcode) or None
 
-        if not sample_identifier:
-            LOG.error(f"Identifier barcode «{barcode}» not found")
+        if not identifier:
+            LOG.info(f"Identifier barcode «{barcode}» not found")
             raise NotFound(f"Identifier barcode «{barcode}» not found")
-        elif sample_identifier.set_use=='sample':
+        elif identifier.set_use=='sample':
             identifier_field = sql.Identifier('identifier')
-        elif sample_identifier.set_use=='collection':
+        elif identifier.set_use=='collection':
             identifier_field = sql.Identifier('collection_identifier')
         else:
-            error_msg = f"Identifier barcode «{barcode}» has use type «{sample_identifier.set_use}» instead of expected use type «sample» or «collection»"
-            LOG.error(error_msg)
+            error_msg = f"Identifier barcode «{barcode}» has use type «{identifier.set_use}» instead of expected use type «sample» or «collection»"
+            LOG.info(error_msg)
             raise Conflict(error_msg)
             
         query = sql.SQL("""
@@ -420,10 +420,10 @@ def get_sample(session: DatabaseSession, barcode: str) -> Any:
             where {field} = %s
             """).format(field=identifier_field)
 
-        sample = session.fetch_row(query, (sample_identifier.uuid,))
+        sample = session.fetch_row(query, (identifier.uuid,))
     
     if not sample:
-        raise NotFound(f"Sample record with {sample_identifier.set_use} identifier barcode «{barcode}» not found")
+        raise NotFound(f"Sample record with {identifier.set_use} identifier barcode «{barcode}» not found")
     else:
         return sample
 
