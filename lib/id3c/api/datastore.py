@@ -424,7 +424,10 @@ def store_sample(session: DatabaseSession, sample: dict) -> Any:
             return result
 
         collected_date = sample.get("collection_date", None)
-
+        
+        # Add date to sample so that it gets written to the 'details' column in warehouse.sample
+        sample["date"] = collected_date
+        
         # When updating an existing row, update the identifiers only if the record has both
         # the 'sample_barcode' and 'collection_barcode' keys
         should_update_identifiers = True if (sample_identifier and collection_identifier) else False
