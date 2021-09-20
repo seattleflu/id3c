@@ -171,6 +171,13 @@ def etl_presence_absence(*, db: DatabaseSession):
                         identifier = received_sample_identifier,
                         additional_details = sample_details(received_sample))
 
+                if not sample:
+                    if tiny_swab:
+                        LOG.warning(f"Skipping results for sample with collection identifier «{received_sample_identifier}» not found")
+                    else:
+                        LOG.warning(f"Skipping results for sample with identifier «{received_sample_identifier}» not found")
+                    continue
+
                 # Finally, process all results.
                 for test_result in test_results:
                     test_result_target_id = test_result["geneTarget"]
@@ -242,8 +249,7 @@ def update_sample(db: DatabaseSession,
     The provided *additional_details* are merged (at the top-level only) into
     the existing sample details, if any.
 
-    Raises an :class:`SampleNotFoundError` if there is no sample known by
-    *identifier*.
+    Returns None if there is no sample known by *identifier*.
     """
     if identifier:
         LOG.debug(f"Looking up sample with identifier «{identifier}»")
@@ -264,7 +270,7 @@ def update_sample(db: DatabaseSession,
 
     if not sample:
         LOG.error(f"No sample with identifier «{identifier}» found")
-        raise SampleNotFoundError(identifier)
+        return None
 
     LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
 
