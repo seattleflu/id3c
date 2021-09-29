@@ -428,6 +428,10 @@ def store_sample(session: DatabaseSession, sample: dict) -> Any:
         # Add date to sample so that it gets written to the 'details' column in warehouse.sample
         sample["date"] = collected_date
         
+        # Rename clia_id to clia_barcode to include in 'details' column in warehouse.sample
+        if "clia_id" in sample:
+            sample["clia_barcode"] = sample.pop("clia_id")
+
         # When updating an existing row, update the identifiers only if the record has both
         # the 'sample_barcode' and 'collection_barcode' keys
         should_update_identifiers = True if (sample_identifier and collection_identifier) else False
