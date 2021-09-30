@@ -32,6 +32,7 @@ from smartystreets_python_sdk.us_street import Lookup
 from smartystreets_python_sdk.us_extract import Lookup as ExtractLookup
 from id3c.cli import cli
 from id3c.cli.command import pickled_cache
+from id3c.cli.io.helpers.text_helper import coerce_to_latin1
 from id3c.cli.io.pandas import (
     load_file_as_dataframe
 )
@@ -258,6 +259,7 @@ def get_geocoded_address(address: dict,
         response = cache[key]
         LOG.debug('Response found in cache.')
     except KeyError:
+        sanitize_address(address)
         response = cache[key] = geocode_address(address)
         LOG.debug('Adding new response to cache.')
 
@@ -266,6 +268,16 @@ def get_geocoded_address(address: dict,
 
     else:
         return response.get('lat'), response.get('lng'), response.get('canonicalized_address')
+
+
+def sanitize_address(address: dict) -> dict:
+    """
+    Sanitize addresses to be sent to SmartyStreets, which requires they
+    be encoded in latin-1. Addresses are user-entered data, so they
+    could contain any Unicode character.
+    """
+    for addr_element in address:
+        address[addr_element] = coerce_to_latin1(address[addr_element])
 
 
 def geocode_address(address: dict) -> dict:
