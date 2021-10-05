@@ -263,7 +263,7 @@ def update_sample(db: DatabaseSession,
             """, (collection_identifier,))
 
     if not sample:
-        LOG.error(f"No sample with identifier «{identifier}» found")
+        LOG.error(f"No sample found with identifier «{identifier}» or collection identifier «{collection_identifier}»")
         raise SampleNotFoundError(identifier)
 
     LOG.info(f"Found sample {sample.id} «{sample.identifier}»")
