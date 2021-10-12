@@ -423,14 +423,19 @@ def store_sample(session: DatabaseSession, sample: dict) -> Any:
             LOG.debug(f"Validation failed for {sample} with details: {result.get('details')}")
             return result
 
-        collected_date = sample.get("collection_date", None)
+        collected_date = sample.pop("collection_date", None)
         
         # Add date to sample so that it gets written to the 'details' column in warehouse.sample
-        sample["date"] = collected_date
+        if collected_date:
+            sample["date"] = collected_date
         
-        # Rename clia_id to clia_barcode to include in 'details' column in warehouse.sample
+        # Rename specific properties to include in 'details' column in warehouse.sample
         if "clia_id" in sample:
             sample["clia_barcode"] = sample.pop("clia_id")
+        if "aliquoted_date" in sample:
+            sample["aliquot_date"] = sample.pop("aliquoted_date")
+        if "received_date" in sample:
+            sample["arrival_date"] = sample.pop("received_date")
 
         # When updating an existing row, update the identifiers only if the record has both
         # the 'sample_barcode' and 'collection_barcode' keys
