@@ -67,7 +67,7 @@ setup(
         "fiona",
         "flask",
         "fsspec",
-        "google-api-python-client",
+        "google-api-python-client <=2.24.0",
         "jsonschema",
         "more-itertools",
         "oauth2client >2.0.0,<4.0.0",
