@@ -7,8 +7,7 @@ Data logistics system enabling real-time genomic epidemiology. Built for the
 * [Database](#database)
 * [Web API](#web-api)
 * [CLI](#cli)
-* [Setup](#setup)
-* [Dev tools](#dev-tools)
+* [Development Setup](#development-setup)
 
 ## Database
 
