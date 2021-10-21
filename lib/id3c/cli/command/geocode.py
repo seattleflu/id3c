@@ -396,6 +396,9 @@ def extract_address(address: dict) -> dict:
     if not address_text.strip():
         return None
 
+    address_bytes = address_text.encode('utf8')
+    address_text = address_bytes.decode('latin1')
+
     lookup = ExtractLookup()
     lookup.text = address_text
 
