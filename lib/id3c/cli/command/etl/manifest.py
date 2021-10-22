@@ -176,6 +176,7 @@ def etl_manifest(*, db: DatabaseSession):
             # warehouse for each piece of information.
             sample, status = upsert_sample(db,
                 update_identifiers          = should_update_identifiers,
+                overwrite_collection_date   = True,
                 identifier                  = sample_identifier.uuid if sample_identifier else None,
                 collection_identifier       = collection_identifier.uuid if collection_identifier else None,
                 collection_date             = collected_date,

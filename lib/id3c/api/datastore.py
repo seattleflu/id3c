@@ -444,6 +444,7 @@ def store_sample(session: DatabaseSession, sample: dict) -> Any:
         try:
             sample, status = upsert_sample(session,
                     update_identifiers          = should_update_identifiers,
+                    overwrite_collection_date   = True,
                     identifier                  = sample_identifier.uuid if sample_identifier else None,
                     collection_identifier       = collection_identifier.uuid if collection_identifier else None,
                     collection_date             = collected_date,

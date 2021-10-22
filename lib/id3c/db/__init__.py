@@ -196,6 +196,7 @@ def mode(values):
 
 def upsert_sample(db: DatabaseSession,
                   update_identifiers: bool,
+                  overwrite_collection_date: bool,
                   identifier: Optional[str],
                   collection_identifier: Optional[str],
                   collection_date: Optional[str],
@@ -256,15 +257,21 @@ def upsert_sample(db: DatabaseSession,
                 collection_identifier = %(collection_identifier)s, """)  \
                     if update_identifiers else SQL("")
 
+        collected_update_composable = SQL("""
+             collected = coalesce(date_or_null(%(collection_date)s), collected), """) \
+                 if overwrite_collection_date else SQL("""
+                    collected = coalesce(collected, date_or_null(%(collection_date)s)), """)
+
         sample = db.fetch_row(SQL("""
             update warehouse.sample
                 set {}
-                    collected = coalesce(date_or_null(%(collection_date)s), collected),
+                    {}
                     encounter_id = coalesce(%(encounter_id)s, encounter_id),
                     details = coalesce(details, {}) || %(additional_details)s
              where sample_id = %(sample_id)s
             returning sample_id as id, identifier, collection_identifier, encounter_id
             """).format(identifiers_update_composable,
+                collected_update_composable,
                 Literal(Json({}))),
                 { **data, "sample_id": sample.id })
 
