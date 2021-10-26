@@ -166,12 +166,13 @@ def process_samples(db: DatabaseSession,
         }
 
         upsert_sample(db,
-            update_identifiers    = False,
-            identifier            = None,
-            collection_identifier = identifier.uuid,
-            collection_date       = None,
-            encounter_id          = encounter_id,
-            additional_details    = details)
+            update_identifiers          = False,
+            overwrite_collection_date   = False,
+            identifier                  = None,
+            collection_identifier       = identifier.uuid,
+            collection_date             = None,
+            encounter_id                = encounter_id,
+            additional_details          = details)
 
     # XXX TODO: Should this delete existing linked samples which
     # weren't mentioned in this enrollment document?  This would

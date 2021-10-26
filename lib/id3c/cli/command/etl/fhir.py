@@ -673,12 +673,13 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
         # XXX TODO: Improve details object here; the current approach produces
         # an object like {"coding": [{…}]} which isn't very useful.
         upsert_sample(db,
-            update_identifiers      = False,
-            identifier              = sample_identifier,
-            collection_identifier   = collection_identifier,
-            collection_date         = collection_date,
-            encounter_id            = encounter_id,
-            additional_details      = additional_details)
+            update_identifiers          = False,
+            overwrite_collection_date   = False,
+            identifier                  = sample_identifier,
+            collection_identifier       = collection_identifier,
+            collection_date             = collection_date,
+            encounter_id                = encounter_id,
+            additional_details          = additional_details)
 
 def encounter_age(encounter: Encounter, resources: Dict[str, List[DomainResource]]) -> Optional[str]:
     """
