@@ -385,7 +385,7 @@ def fetch_identifier_set_uses(session: DatabaseSession) -> Any:
 
 @export
 @catch_permission_denied
-def get_sample(session: DatabaseSession, barcode: str) -> Any:
+def get_sample(session: DatabaseSession, barcode: str, barcode_type: str) -> Any:
     """
     Fetch the sample with identifier or collection identifier matching *barcode* from the backing
     database using *session*.
@@ -404,6 +404,8 @@ def get_sample(session: DatabaseSession, barcode: str) -> Any:
         if not identifier:
             LOG.info(f"Identifier barcode «{barcode}» not found")
             raise NotFound(f"Identifier barcode «{barcode}» not found")
+        elif identifier.set_use!=barcode_type and identifier.set_use in ('sample', 'collection'):
+            raise NotFound(f"Identifier use «{barcode_type}» does not match identifier use «{identifier.set_use}» of barcode")
         elif identifier.set_use=='sample':
             identifier_field = sql.Identifier('identifier')
         elif identifier.set_use=='collection':

@@ -266,18 +266,28 @@ def get_identifier_set_uses(*, session):
 
     return jsonify([ use._asdict() for use in uses ])
 
+@api_v1.route("/warehouse/sample", methods = ['GET'])
 @api_v1.route("/warehouse/sample/<barcode>", methods = ['GET'])
 @authenticated_datastore_session_required
-def get_sample(barcode, *, session):
+def get_sample(barcode=None, *, session):
     """
     Retrieve a sample's metadata.
 
     GET /warehouse/sample/*barcode* to receive a JSON object containing the
-    sample's record.
+    sample record with the provided sample barcode.
+
+    GET /warehouse/sample?collection_barcode=*barcode* to receive a JSON object
+    containing the sample record with the provided collection barcode.
     """
+    if not barcode:
+        barcode = request.args.get('collection_barcode')
+        barcode_type = 'collection'
+    else:
+        barcode_type = 'sample'
+
     LOG.debug(f"Fetching sample with barcode «{barcode}»")
 
-    sample = datastore.get_sample(session, barcode)
+    sample = datastore.get_sample(session, barcode, barcode_type)
 
     return jsonify(sample._asdict())
 
