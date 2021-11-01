@@ -445,5 +445,11 @@ class UnknownFluShotResponseError(ValueError):
     """
     pass
 
+class UnknownCovidScreenError(ValueError):
+    """
+    Raised by :function:`covid_screen` if its provided *is_covid_screen* is not
+    among the set of expected values.
+    """
+    pass
 
 from . import *
