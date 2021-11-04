@@ -179,7 +179,8 @@ def process_encounter_bundle_entry(db: DatabaseSession, bundle: Bundle, entry: B
     if not encounter:
         raise SkipBundleError("Insufficient information in Bundle to create an encounter")
 
-    process_encounter_samples(db, resource, encounter.id, related_resources)
+    bundle_source = bundle.meta.source if bundle.meta else None
+    process_encounter_samples(db, resource, encounter.id, related_resources, bundle_source)
     process_locations(db, encounter.id, resource)
 
 
@@ -592,7 +593,7 @@ def process_encounter_site(db: DatabaseSession, encounter: Encounter) -> Optiona
 
 
 def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encounter_id: int,
-    related_resources: Dict[str, List[DomainResource]]):
+    related_resources: Dict[str, List[DomainResource]], bundle_source: str):
     """
     Given a dict of *related_resources*, finds Specimens linked to the given
     *encounter*. Linked Specimens are attached the given *encounter_id* via
@@ -630,11 +631,21 @@ def process_encounter_samples(db: DatabaseSession, encounter: Encounter, encount
                             f"not «{INTERNAL_SYSTEM}/sample», or the barcode value is empty, which "
                             "violates the FHIR docs.")
 
+        is_hct_sample = isinstance(bundle_source, str) and bundle_source.lower().startswith("https://hct.redcap.rit.uw.edu/45/")
+
         LOG.debug(f"Looking up collected specimen barcode «{barcode}»")
-        specimen_identifier = find_identifier(db, barcode)
+        if is_hct_sample:
+            logging.disable(logging.WARNING)
+            specimen_identifier = find_identifier(db, barcode)
+            logging.disable(logging.NOTSET)
+        else:
+            specimen_identifier = find_identifier(db, barcode)
 
         if not specimen_identifier:
-            LOG.warning(f"Skipping collected specimen with unknown barcode «{barcode}»")
+            if is_hct_sample:
+                LOG.debug(f"Skipping collected specimen with unknown barcode «{barcode}»")
+            else:
+                LOG.warning(f"Skipping collected specimen with unknown barcode «{barcode}»")
             continue
 
         if not (specimen_identifier.set_name in EXPECTED_COLLECTION_IDENTIFIER_SETS or
