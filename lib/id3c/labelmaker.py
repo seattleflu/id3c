@@ -351,6 +351,28 @@ class CollectionsUWTinySwabsObservedLayout(LabelLayout):
     copies_per_barcode = 1
     reference = "seattleflu.org"
 
+
+class CollectionsScanTinySwabsLayout(LabelLayout):
+    sku = "LCRY-2380"
+    barcode_type = 'SCAN TINY'
+    copies_per_barcode = 1
+    reference = "scanpublichealth.org" 
+
+
+class CollectionsAdultFamilyHomeOutbreakTinyLayout(LabelLayout):
+    sku = "LCRY-2380"
+    barcode_type = 'AFH-TS'
+    copies_per_barcode = 1
+    reference = "seattleflu.org"
+
+
+class CollectionsWorkplaceOutbreakTinyLayout(LabelLayout):
+    sku = "LCRY-2380"
+    barcode_type = 'WORKPLACE-TS'
+    copies_per_barcode = 1
+    reference = "seattleflu.org"
+
+
 LAYOUTS = {
     "samples": SamplesLayout,
     "collections-scan": CollectionsScanLayout,
@@ -386,6 +408,9 @@ LAYOUTS = {
     'collections-uw-tiny-swabs': CollectionsUWTinySwabsLayout,
     'collections-uw-tiny-swabs-home': CollectionsUWTinySwabsHomeLayout,
     'collections-uw-tiny-swabs-observed': CollectionsUWTinySwabsObservedLayout,
+    'collections-scan-tiny-swabs': CollectionsScanTinySwabsLayout,
+    'collections-adult-family-home-outbreak-tiny-swabs': CollectionsAdultFamilyHomeOutbreakTinyLayout,
+    'collections-workplace-outbreak-tiny-swabs': CollectionsWorkplaceOutbreakTinyLayout
 }
 
 
