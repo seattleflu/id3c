@@ -49,6 +49,9 @@ valid_identifiers = [
         "samples",
         "collections-uw-tiny-swabs-home",
         "collections-uw-tiny-swabs-observed",
+        "collections-scan-tiny-swabs",
+        "collections-adult-family-home-outbreak-tiny-swabs",
+        "collections-workplace-outbreak-tiny-swabs",
 ]
 
 @etl.command("presence-absence", help = __doc__)

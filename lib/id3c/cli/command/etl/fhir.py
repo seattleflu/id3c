@@ -80,6 +80,9 @@ EXPECTED_COLLECTION_IDENTIFIER_SETS = [
     'collections-uw-tiny-swabs-observed',
     'collections-household-general',
     'collections-childcare',
+    "collections-scan-tiny-swabs",
+    "collections-adult-family-home-outbreak-tiny-swabs",
+    "collections-workplace-outbreak-tiny-swabs",
 ]
 EXPECTED_SAMPLE_IDENTIFIER_SETS = ['samples']
 
