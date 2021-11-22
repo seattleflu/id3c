@@ -104,7 +104,7 @@ def command_for_project(name: str,
             metavar = "<cache.pickle>",
             envvar = "GEOCODING_CACHE",
             help = "Local file for caching the results of address geocoding. Geocoding lookups will not be cached otherwise.",
-            required = False,
+            required = True,
             type = click.Path(dir_okay=False, writable=True))
 
         @redcap_det.command(name, **kwargs)

@@ -169,9 +169,9 @@ def pickled_cache(filename: str = None) -> Iterator[TTLCache]:
         try:
             with open(filename, "rb") as file:
                 cache = pickle.load(file)
-        except FileNotFoundError:
-            LOG.warning(f"Cache file «{filename}» does not exist; starting with empty cache.")
-            cache = empty_cache
+        except FileNotFoundError as error:
+            LOG.error(f"Cache file «{filename}» does not exist, please provide a valid cache.")
+            raise error from None
         else:
             assert isinstance(cache, TTLCache), \
                 f"Cache file contains a {cache!r}, not a TTLCache"
