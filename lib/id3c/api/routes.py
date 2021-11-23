@@ -2,6 +2,7 @@
 API route definitions.
 """
 import json
+import re
 from jsonschema import Draft7Validator, ValidationError, draft7_format_checker
 import logging
 import pkg_resources
@@ -11,6 +12,7 @@ from hashlib import sha1
 from . import datastore
 from .utils.routes import authenticated_datastore_session_required, content_types_accepted, check_content_length
 from . import schemas
+from .exceptions import BadRequest
 
 LOG = logging.getLogger(__name__)
 
@@ -281,12 +283,17 @@ def get_sample(barcode=None, *, session):
     """
     if not barcode:
         barcode = request.args.get('collection_barcode')
-        barcode_type = 'collection'
+        if barcode:
+            barcode_type = 'collection'
+        else:
+            raise BadRequest(f"Missing required argument")
     else:
         barcode_type = 'sample'
 
-    LOG.debug(f"Fetching sample with barcode «{barcode}»")
+    if not re.match("[a-fA-F0-9]{8}", barcode):
+        raise BadRequest(f"Invalid barcode format")
 
+    LOG.debug(f"Fetching sample with barcode «{barcode}»")
     sample = datastore.get_sample(session, barcode, barcode_type)
 
     return jsonify(sample._asdict())
