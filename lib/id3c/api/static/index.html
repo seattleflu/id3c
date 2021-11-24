@@ -95,6 +95,12 @@
     parameter is required for new sets and is optional if only updating
     <em>description</em> on an existing set.
 
+    <h3 class="code">GET /v1/warehouse/sample/<em>&lt;barcode&gt;</em></h3>
+    <p>Retrieve metadata about a sample record by sample barcode.
+
+    <h3 class="code">GET /v1/warehouse/sample?collection_barcode=<em>&lt;barcode&gt;</em></h3>
+    <p>Retrieve metadata about a sample record by collection barcode.
+  
     <h3 class="code">POST /v1/warehouse/sample</h3>
     <p>Insert or update a sample record.
     <p>The body of the request should be a JSON object with the following format:
