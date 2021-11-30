@@ -494,7 +494,7 @@ class Project:
         # in many cases succeeds with additional attempts.
         # -drr, 7/28/2021
         while retry_count <= max_retry_count:
-            response = requests.post(self.api_url, data=data, headers=headers)
+            response = requests.post(self.api_url, data=data, headers=headers, timeout=300)
             if response.status_code==200 and 'multiple browser tabs of the same REDCap page. If that is not the case' in response.text:
                 retry_count += 1
                 LOG.debug(f"Retrying REDCap API request: {retry_count}/{max_retry_count}")
