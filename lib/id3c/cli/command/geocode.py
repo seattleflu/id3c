@@ -294,6 +294,15 @@ def geocode_address(address: dict) -> dict:
 
     if not result:
         LOG.info(f"Invalid address: no response from SmartyStreets.")
+        '''
+        Incorrect user input in the secondary address field can cause lookups to fail.
+        Setting this field to a empty string and running the lookups again can fix
+        this issue.
+        '''
+        if address.get('secondary'):
+            LOG.info('Looking up address with empty secondary address field')
+            address['secondary'] = ''
+            return geocode_address(address)
 
     return parse_first_smartystreets_result(result)
 
