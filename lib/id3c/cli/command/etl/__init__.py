@@ -452,4 +452,18 @@ class UnknownCovidScreenError(ValueError):
     """
     pass
 
+class UnknownCovidShotResponseError(ValueError):
+    """
+    Raised by :function:`covid_shot` if its provided *covid_shot_response* is not
+    among the set of expected values.
+    """
+    pass
+
+class UnknownCovidShotManufacturerError(ValueError):
+    """
+    Raised by :function:`covid_shot_manufacturer` if its provided *covid_shot_manufacturer_name* is not
+    among the set of expected values.
+    """
+    pass
+
 from . import *
