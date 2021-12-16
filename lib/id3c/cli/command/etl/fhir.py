@@ -176,8 +176,9 @@ def process_encounter_bundle_entry(db: DatabaseSession, bundle: Bundle, entry: B
     LOG.debug(f"Processing Encounter Resource «{entry.fullUrl}».")
 
     related_resources = extract_related_resources(bundle, entry)
-
-    encounter = process_encounter(db, resource, related_resources)
+    immunization_resources = extract_immunization_resources(bundle)
+    
+    encounter = process_encounter(db, resource, related_resources, immunization_resources)
 
     if not encounter:
         raise SkipBundleError("Insufficient information in Bundle to create an encounter")
@@ -323,6 +324,24 @@ def extract_contained_resources(resource: DomainResource) -> Dict[str, List[Doma
     return resources
 
 
+def extract_immunization_resources(bundle: Bundle) -> Dict[str, List[DomainResource]]:
+    """
+    Finds all top-level Immunization resources in a given FHIR *bundle* that contain a full
+    URL reference to a *patient* identifier. Returns these Resources organized by
+    resource type.
+    """
+
+    immunization_resources: Dict[str, List[DomainResource]] = defaultdict(list)
+
+    for entry in bundle.entry:
+        resource, resource_type = resource_and_resource_type(entry)
+
+        if resource_type == 'Immunization':
+            immunization_resources['Immunization'].append(resource)
+
+    return immunization_resources
+
+
 def assert_required_resource_types_present(resources: Dict[str, List[DomainResource]]):
     """
     Raises an :class:`SkipBundleError` if the given *resources* do not meet the
@@ -431,7 +450,8 @@ def location_relation(code: str) -> str:
 
 
 def process_encounter(db: DatabaseSession, encounter: Encounter,
-    related_resources: Dict[str, List[DomainResource]]) -> Optional[Any]:
+    related_resources: Dict[str, List[DomainResource]],
+    patient_related_resources: Dict[str, List[DomainResource]]) -> Optional[Any]:
     """
     Given a FHIR *encounter* Resource, returns a newly upserted encounter from
     ID3C created with metdata from the given *related_resources*.
@@ -447,7 +467,8 @@ def process_encounter(db: DatabaseSession, encounter: Encounter,
     patient = encounter.subject.resolved(Patient)
     patient_language = process_patient_language(patient)
 
-    individual  = process_patient(db, patient)
+    patient_details = encounter_details(patient_related_resources)
+    individual  = process_patient(db, patient, patient_details)
 
     contained_resources = extract_contained_resources(encounter)
 
@@ -563,13 +584,14 @@ def process_encounter_reason(encounter: Encounter) -> Optional[List[dict]]:
         for coding in concept.coding]
 
 
-def process_patient(db: DatabaseSession, patient: Patient) -> Any:
+def process_patient(db: DatabaseSession, patient: Patient, details: dict) -> Any:
     """
     Returns an upserted individual using data from the given *patient*.
     """
     return upsert_individual(db,
         identifier  = identifier(patient, f"{INTERNAL_SYSTEM}/individual"),
-        sex         = sex(patient))
+        sex         = sex(patient),
+        details     = details)
 
 
 def process_encounter_site(db: DatabaseSession, encounter: Encounter) -> Optional[Any]:
