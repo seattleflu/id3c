@@ -87,7 +87,7 @@ setup(
 
     extras_require = {
         "dev": [
-            "mypy",
+            "mypy == 0.910",
             "pylint",
             "pytest",
             "sqlparse",
