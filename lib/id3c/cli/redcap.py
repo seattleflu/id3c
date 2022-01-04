@@ -576,6 +576,36 @@ class Record(dict):
             raise RuntimeError(f"Primary record id field «{self.project.record_id_field}» not available on fetched record") from e
 
 
+    def update_record(self, record: Dict[str, str], date_format: str = "YMD", check_count: bool = True) -> int:
+        """
+        Updates one redcap record.
+
+        *record* must be a :py:class:``dict``s mapping REDCap field
+        names to values. The primary record id field is optional.
+        Other pseudo-fields like ``redcap_event_name`` and
+        ``redcap_repeat_instance`` may be necessary and must be in raw format.
+        All keys and values must be strings.
+
+        Dates must be formatted as ``YYYY-MM-DD`` with the default
+        *date_format* of ``YMD``, as ``D/M/YYYY`` with ``DMY``, and as
+        ``M/D/YYYY`` with ``MDY``. Times are always assumed to be in the REDCap
+        server's timezone.
+
+        Any value provided for a field, including the empty string, will
+        overwrite any existing value.
+
+        This method is not suitable for creating a new record in projects that
+        use auto-numbered record ids.
+
+        Returns a count of the number of records updated, as reported by
+        REDCap which should be 1.
+        """
+        
+        record['record_id'] = self.id
+
+        return self.project.update_records([record], date_format, check_count)
+
+
 class InstrumentStatus(Enum):
     """
     Numeric and string codes used by REDCap for instrument status.
