@@ -44,6 +44,7 @@ LOG = logging.getLogger(__name__)
 STREET_CLIENT = None
 EXTRACT_CLIENT = None
 
+GEOCODE_IN_NON_PROD = None
 
 @cli.group("geocode", help = __doc__)
 def geocode():
@@ -274,6 +275,40 @@ def geocode_address(address: dict) -> dict:
     returns a dict containing a canonicalized address and lat/long coordinates
     from SmartyStreet's US Street geocoding API.
     """
+    
+    # if not running in production, then prompt for SmartyStreets lookup
+    # to prevent unintentional use of credits during local development and testing
+    global GEOCODE_IN_NON_PROD
+    if GEOCODE_IN_NON_PROD == 'none':
+        LOG.debug("Skipping geocoding.")
+        return None
+
+    if environ.get('GEOCODING_ENV') != 'production' and GEOCODE_IN_NON_PROD != 'all':
+        LOG.warning("Geocoding in non-production environment")
+        geocode_addresses = None
+        while True:
+            geocode_addresses = input("Geocode Address? (yes/no/all/none)").lower()
+            if geocode_addresses not in ['yes','no','y','n','all','none']:
+                print("Not a valid response")
+                continue
+            else:
+                break
+        
+        GEOCODE_IN_NON_PROD = geocode_addresses
+        
+        if geocode_addresses in ['yes', 'y']:
+            LOG.debug("Proceeding with geocoding. Smartystreet credits will be used.")
+            pass
+        elif geocode_addresses == 'all':
+            LOG.debug("Proceeding with geocoding. Smartystreet credits will be used.")
+            pass
+        elif geocode_addresses == 'none':
+            LOG.debug("Skipping geocoding.")
+            return None
+        else: 
+            LOG.debug("Skipping geocoding.")
+            return None
+
     LOG.debug("Making SmartyStreets geocoding API request")
 
     global STREET_CLIENT

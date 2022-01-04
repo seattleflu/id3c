@@ -142,7 +142,7 @@ def with_database_session(command = None, *, pass_action: bool = False):
 
 
 @contextmanager
-def pickled_cache(filename: str = None) -> Iterator[TTLCache]:
+def pickled_cache(filename: str = None, create_if_missing: bool = False) -> Iterator[TTLCache]:
     """
     Context manager for reading/writing a :class:`TTLCache` from/to the given
     *filename*.
@@ -155,10 +155,14 @@ def pickled_cache(filename: str = None) -> Iterator[TTLCache]:
     If no *filename* is provided, a transient, in-memory cache is returned
     instead.
 
-    >>> with pickled_cache("/tmp/id3c-geocoding.cache") as cache:
+    If a *filename* is provided that does not currently exist, and create_if_missing
+    is `True`, a new cache file will be created. If the provided *filename* does not
+    exist and create_if_missing is `False`, an error will be raised. 
+
+    >>> with pickled_cache("/tmp/id3c-geocoding.cache", True) as cache:
     ...     cache["key1"] = "value1"
 
-    >>> with pickled_cache("/tmp/id3c-geocoding.cache") as cache:
+    >>> with pickled_cache("/tmp/id3c-geocoding.cache", True) as cache:
     ...     print(cache["key1"])
     value1
     """
@@ -169,9 +173,13 @@ def pickled_cache(filename: str = None) -> Iterator[TTLCache]:
         try:
             with open(filename, "rb") as file:
                 cache = pickle.load(file)
-        except FileNotFoundError:
-            LOG.warning(f"Cache file «{filename}» does not exist; starting with empty cache.")
-            cache = empty_cache
+        except FileNotFoundError as error:
+            if create_if_missing:
+                LOG.warning(f"Cache file «{filename}» does not exist; starting with empty cache.")
+                cache = empty_cache
+            else:
+                LOG.error(f"Cache file «{filename}» does not exist, please provide a valid cache.")
+                raise error from None
         else:
             assert isinstance(cache, TTLCache), \
                 f"Cache file contains a {cache!r}, not a TTLCache"
