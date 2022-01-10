@@ -372,6 +372,11 @@ class CollectionsWorkplaceOutbreakTinySwabsLayout(LabelLayout):
     copies_per_barcode = 1
     reference = "seattleflu.org"
 
+class CollectionsAirsLayout(LabelLayout):
+    sku = "LCRY-1100"
+    barcode_type = 'AIRS'
+    copies_per_barcode = 2
+    reference = "fredhutch.org"
 
 LAYOUTS = {
     "samples": SamplesLayout,
@@ -410,7 +415,8 @@ LAYOUTS = {
     'collections-uw-tiny-swabs-observed': CollectionsUWTinySwabsObservedLayout,
     'collections-scan-tiny-swabs': CollectionsScanTinySwabsLayout,
     'collections-adult-family-home-outbreak-tiny-swabs': CollectionsAdultFamilyHomeOutbreakTinySwabsLayout,
-    'collections-workplace-outbreak-tiny-swabs': CollectionsWorkplaceOutbreakTinySwabsLayout
+    'collections-workplace-outbreak-tiny-swabs': CollectionsWorkplaceOutbreakTinySwabsLayout,
+    'collections-airs': CollectionsAirsLayout
 }
 
 
