@@ -356,7 +356,7 @@ class CollectionsScanTinySwabsLayout(LabelLayout):
     sku = "LCRY-2380"
     barcode_type = 'SCAN TINY'
     copies_per_barcode = 1
-    reference = "scanpublichealth.org" 
+    reference = "scanpublichealth.org"
 
 
 class CollectionsAdultFamilyHomeOutbreakTinySwabsLayout(LabelLayout):
@@ -377,6 +377,12 @@ class CollectionsAirsLayout(LabelLayout):
     barcode_type = 'AIRS'
     copies_per_barcode = 2
     reference = "fredhutch.org"
+
+class CollectionsCascadiaTinySwabsHome(SamplesLayout):
+    sku = "LCRY-2380"
+    barcode_type = 'CASCADIA'
+    copies_per_barcode = 2
+    reference = "cascadiastudy.org"
 
 LAYOUTS = {
     "samples": SamplesLayout,
@@ -416,7 +422,8 @@ LAYOUTS = {
     'collections-scan-tiny-swabs': CollectionsScanTinySwabsLayout,
     'collections-adult-family-home-outbreak-tiny-swabs': CollectionsAdultFamilyHomeOutbreakTinySwabsLayout,
     'collections-workplace-outbreak-tiny-swabs': CollectionsWorkplaceOutbreakTinySwabsLayout,
-    'collections-airs': CollectionsAirsLayout
+    'collections-airs': CollectionsAirsLayout,
+    'collections-cascadia-tiny-swabs-home': CollectionsCascadiaTinySwabsHome
 }
 
 
