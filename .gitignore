@@ -20,3 +20,7 @@ Thumbs.db
 
 # IDE files
 /.vscode
+
+# Build and dist files
+build/
+dist/
