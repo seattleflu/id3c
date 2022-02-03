@@ -96,11 +96,9 @@ class LCRY1100TriplicateLayout(LabelLayout):
         return 1 if barcode_number > 1 else 0
 
 
-class SamplesLayout(LabelLayout):
+class LCRY2380DuplicateLayout(LabelLayout):
     sku = "LCRY-2380"
-    barcode_type = "SAMPLE"
     copies_per_barcode = 2
-    reference = "seattleflu.org"
 
     def blanks_before(self, barcode_number):
         """
@@ -112,6 +110,11 @@ class SamplesLayout(LabelLayout):
         blank, it starts filling in from the 1st label of the next row).
         """
         return 1 if barcode_number > 1 and (barcode_number - 1) % 3 == 0 else 0
+
+
+class SamplesLayout(LCRY2380DuplicateLayout):
+    barcode_type = "SAMPLE"
+    reference = "seattleflu.org"
 
 
 class CollectionsSeattleFluLayout(LabelLayout):
@@ -378,10 +381,8 @@ class CollectionsAirsLayout(LabelLayout):
     copies_per_barcode = 2
     reference = "fredhutch.org"
 
-class CollectionsCascadiaTinySwabsHome(SamplesLayout):
-    sku = "LCRY-2380"
+class CollectionsCascadiaTinySwabsHome(LCRY2380DuplicateLayout):
     barcode_type = 'CASCADIA'
-    copies_per_barcode = 2
     reference = "cascadiastudy.org"
 
 LAYOUTS = {
