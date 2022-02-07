@@ -20,3 +20,9 @@ Thumbs.db
 
 # IDE files
 /.vscode
+
+# ignore data files that may have erroneously remained in this directory
+*.csv
+*.ndjson
+*.xls
+*.xlsx
