@@ -72,7 +72,7 @@ setup(
         "jsonschema",
         "more-itertools",
         "oauth2client >2.0.0,<4.0.0",
-        "pandas >=1.0.1,<2",
+        "pandas ~= 1.1.5",
         "psycopg2 >=2.8,<3",
         "pyyaml",
         "requests",
@@ -90,7 +90,7 @@ setup(
         "dev": [
             "mypy",
             "pylint",
-            "pytest",
+            "pytest >=6.2.5,!=7.0.0",
             "sqlparse",
             "types-pkg_resources",
             "types-PyYAML",
