@@ -2,6 +2,7 @@
 __pycache__/
 /.mypy_cache/
 /lib/id3c.egg-info/
+/build/
 
 # pyproject.toml is auto-generated when using pipenv>=2020.11.15, added here
 # to avoid having it deployed until production is updated to that version
