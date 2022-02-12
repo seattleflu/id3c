@@ -1,29 +1,27 @@
-*.pyc
-__pycache__/
-/.mypy_cache/
-/lib/id3c.egg-info/
-/build/
+# Ignore everything
+*
 
-# pyproject.toml is auto-generated when using pipenv>=2020.11.15, added here
-# to avoid having it deployed until production is updated to that version
-pyproject.toml
+# except these files
+!/.gitignore
+!/LICENSE
+!/README.md
+!/DEVELOPMENT.md
+!/Pipfile
+!/Pipfile.lock
+!/pytest.ini
+!/setup.py
+!/sqitch.conf
+!/wsgi.py
 
-# Some OS-generated files that should really be in people's global git
-# excludes, but which we proactively make sure don't enter the repo here.
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-Icon?
-ehthumbs.db
-Thumbs.db
+# and these directories
+!/bin/
+!/dev/
+!/docs/
+!/lib/
+!/schema/
+!/tests/
 
-# IDE files
-/.vscode
-
-# ignore data files that may have erroneously remained in this directory
-*.csv
-*.ndjson
-*.xls
-*.xlsx
+# and these nested files
+!/.github/
+!/.github/workflows/
+!/.github/workflows/ci.yaml

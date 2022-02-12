@@ -1,0 +1,8 @@
+# Ignore everything
+*
+
+# except these files
+!/.gitignore
+
+# and these directories
+!/id3c/

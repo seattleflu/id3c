@@ -1,0 +1,9 @@
+# Ignore everything
+*
+
+# except these files
+!/.gitignore
+!*.tmpl
+
+# even if in subdirectories
+!/**/
