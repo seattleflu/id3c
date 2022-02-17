@@ -466,4 +466,18 @@ class UnknownCovidShotManufacturerError(ValueError):
     """
     pass
 
+class UnknownAdmitEncounterResponseError(ValueError):
+    """
+    Raised by :function:`admit_encounter` if its provided *admit_encounter_response* is not
+    among the set of expected values.
+    """
+    pass
+
+class UnknownAdmitICUResponseError(ValueError):
+    """
+    Raised by :function:`admit_icu` if its provided *admit_icu_response* is not
+    among the set of expected values.
+    """
+    pass
+
 from . import *
