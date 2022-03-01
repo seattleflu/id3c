@@ -4,7 +4,7 @@ Run ETL routines
 import click
 import logging
 from math import ceil
-from typing import Any, Optional
+from typing import Any, Dict, Optional
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import Json
 from id3c.cli import cli
@@ -63,23 +63,31 @@ def find_or_create_site(db: DatabaseSession, identifier: str, details: dict) -> 
     return site
 
 
-def upsert_individual(db: DatabaseSession, identifier: str, sex: str = None) -> Any:
+def upsert_individual(db: DatabaseSession, identifier: str, sex: str = None, details: dict = None) -> Any:
     """
     Upsert individual by their *identifier*.
     """
+
+    # This will only perform a shallow merge of the details for an existing record.
+    # To make it more robust, this should be updated to a deep merge, using identifiers
+    # nested within the FHIR resource entries to append only new information.
+    # -drr, 7 Jan 2022
+
     LOG.debug(f"Upserting individual «{identifier}»")
 
     data = {
         "identifier": identifier,
         "sex": sex,
+        "details": Json(details),
     }
-
+    
     individual = db.fetch_row("""
-        insert into warehouse.individual (identifier, sex)
-            values (%(identifier)s, %(sex)s)
+        insert into warehouse.individual (identifier, sex, details)
+            values (%(identifier)s, %(sex)s, %(details)s)
 
         on conflict (identifier) do update
-            set sex = excluded.sex
+            set sex     = excluded.sex,
+                details = coalesce(individual.details, '{}'::jsonb) || excluded.details
 
         returning individual_id as id, identifier
         """, data)
