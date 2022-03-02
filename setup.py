@@ -72,7 +72,7 @@ setup(
         "jsonschema",
         "more-itertools",
         "oauth2client >2.0.0,<4.0.0",
-        "pandas ~= 1.1.5",
+        "pandas",
         "psycopg2 >=2.8,<3",
         "pyyaml",
         "requests",
