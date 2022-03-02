@@ -1,0 +1,9 @@
+# Ignore everything
+*
+
+# except these files
+!/.gitignore
+!/*.md
+
+# and these directories
+!/design-2019-summer/
