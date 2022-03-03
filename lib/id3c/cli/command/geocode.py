@@ -22,6 +22,8 @@ import pandas as pd
 import sys
 import json
 import yaml
+import io
+import contextlib
 from os import environ, chdir
 from os.path import dirname
 from textwrap import dedent
@@ -275,7 +277,7 @@ def geocode_address(address: dict) -> dict:
     returns a dict containing a canonicalized address and lat/long coordinates
     from SmartyStreet's US Street geocoding API.
     """
-    
+
     # if not running in production, then prompt for SmartyStreets lookup
     # to prevent unintentional use of credits during local development and testing
     global GEOCODE_IN_NON_PROD
@@ -293,9 +295,9 @@ def geocode_address(address: dict) -> dict:
                 continue
             else:
                 break
-        
+
         GEOCODE_IN_NON_PROD = geocode_addresses
-        
+
         if geocode_addresses in ['yes', 'y']:
             LOG.debug("Proceeding with geocoding. Smartystreet credits will be used.")
             pass
@@ -305,7 +307,7 @@ def geocode_address(address: dict) -> dict:
         elif geocode_addresses == 'none':
             LOG.debug("Skipping geocoding.")
             return None
-        else: 
+        else:
             LOG.debug("Skipping geocoding.")
             return None
 
@@ -320,7 +322,12 @@ def geocode_address(address: dict) -> dict:
         LOG.warning(f"Missing street address; can't geocode")
         return None
 
-    STREET_CLIENT.send_lookup(lookup)
+    # Capture Smarty Streets error messages output to stdout
+    smarty_err = io.StringIO()
+    with contextlib.redirect_stdout(smarty_err):
+        STREET_CLIENT.send_lookup(lookup)
+    surface_smarty_errors(smarty_err)
+
     result = lookup.result
 
     if not result:
@@ -446,7 +453,12 @@ def extract_address(address: dict) -> dict:
     lookup = ExtractLookup()
     lookup.text = address_text
 
-    result = EXTRACT_CLIENT.send(lookup)
+    # Capture and log Smarty Streets error messages sent to stdout
+    smarty_err = io.StringIO()
+    with contextlib.redirect_stdout(smarty_err):
+        result = EXTRACT_CLIENT.send(lookup)
+    surface_smarty_errors(smarty_err)
+
     addresses = result.addresses
 
     for add in addresses:
@@ -454,6 +466,19 @@ def extract_address(address: dict) -> dict:
             return add.candidates
 
     return None
+
+
+def surface_smarty_errors(output_buff: io.StringIO):
+    """
+    Surface captured stderr messages from Smarty Streets to logging module,
+    send no-op messages to info stream and real errors to error stream.
+    """
+    for smarty_err in output_buff.getvalue().splitlines():
+        if smarty_err.startswith('There was an error processing the request. Retrying in'):
+            LOG.info(smarty_err)
+        else:
+            LOG.error(smarty_err)
+    output_buff.close()
 
 
 class InvalidAddressMappingError(KeyError):
