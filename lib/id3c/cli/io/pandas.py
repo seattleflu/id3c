@@ -4,12 +4,20 @@ Pandas utilities for I/O.
 import click
 import logging
 import pandas as pd
+import sys
+import warnings
 from sys import stdout
 from textwrap import dedent
 from typing import List
 
 
 LOG = logging.getLogger(__name__)
+
+# Shut up openpyxl
+if not sys.warnoptions:
+    warnings.filterwarnings("ignore", category=UserWarning,
+                            message="Data Validation extension is not"
+                                    "supported and will be removed")
 
 
 def dump_ndjson(df: pd.DataFrame, file = None):
