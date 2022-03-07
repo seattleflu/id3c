@@ -364,7 +364,9 @@ def _parse(*,
 
     for dst, src in column_map:
         if src.get("multiple"):
-            parsed_manifest[dst] = select_columns(manifest, src["name"]).apply(list, axis="columns")
+            columns = select_columns(manifest, src["name"])
+            columns = columns.astype(object).where(pandas.notnull(columns), None)
+            parsed_manifest[dst] = columns.apply(list, axis="columns")
         else:
             parsed_manifest[dst] = select_column(manifest, src["name"])
 
