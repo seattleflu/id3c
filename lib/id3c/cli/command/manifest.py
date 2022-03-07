@@ -387,7 +387,8 @@ def _parse(*,
             }, parsed_manifest.index))
 
     # Return a standard list of dicts instead of a DataFrame
-    return parsed_manifest.to_dict(orient = "records")
+    out = parsed_manifest.astype(object).where(pandas.notnull(parsed_manifest), None)
+    return out.to_dict(orient = "records")
 
 
 @manifest.command("diff")
