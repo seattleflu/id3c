@@ -16,7 +16,7 @@ LOG = logging.getLogger(__name__)
 # Shut up openpyxl
 if not sys.warnoptions:
     warnings.filterwarnings("ignore", category=UserWarning,
-                            message="Data Validation extension is not"
+                            message="Data Validation extension is not "
                                     "supported and will be removed")
 
 
