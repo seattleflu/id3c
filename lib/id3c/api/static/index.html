@@ -100,7 +100,7 @@
 
     <h3 class="code">GET /v1/warehouse/sample?collection_barcode=<em>&lt;barcode&gt;</em></h3>
     <p>Retrieve metadata about a sample record by collection barcode.
-  
+
     <h3 class="code">POST /v1/warehouse/sample</h3>
     <p>Insert or update a sample record.
     <p>The body of the request should be a JSON object with the following format:
@@ -115,11 +115,14 @@
             "received_date": "2021-01-01",
             "aliquot_a":"123456789",
             "aliquot_b":"987654321",
+            "aliquot_c":"135792468",
             "aliquoted_date": "2021-01-01",
             "rack_a":"TS01234567",
             "rack_b":"TS07654321",
+            "rack_c":"TS08912345",
             "rack_a_nickname":"COV2-123A",
             "rack_b_nickname":"COV2-321B",
+            "rack_c_nickname":"COV2-213C",
             "notes": "sample notes",
             "swab_type": "ans",
             "collection_matrix": "dry"
@@ -134,7 +137,7 @@
 
     <p>By convention, the body of the request should be a JSON array of objects
       like the following:
-  
+
         <pre>
         [
             {
