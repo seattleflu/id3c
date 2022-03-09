@@ -55,6 +55,9 @@ POST_SAMPLE_SCHEMA = {
         "aliquot_b": {
             "type": "string"
         },
+        "aliquot_c": {
+            "type": "string"
+        },
         "aliquoted_date": {
             "type": "string",
             "format": "date"
@@ -69,6 +72,12 @@ POST_SAMPLE_SCHEMA = {
             "type": "string"
         },
         "rack_b_nickname": {
+            "type": "string"
+        },
+        "rack_c": {
+            "type": "string"
+        },
+        "rack_c_nickname": {
             "type": "string"
         },
         "swab_type": {
