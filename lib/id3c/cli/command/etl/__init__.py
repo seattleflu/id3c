@@ -123,7 +123,8 @@ def upsert_encounter(db: DatabaseSession,
     with db.cursor() as cursor:
         cursor.execute("""
             select encounter_id as id,
-                identifier
+                identifier,
+                md5(row (encounter.individual_id, encounter.site_id, encounter.encountered, encounter.age, encounter.details)::text) as row_hash
             from warehouse.encounter
             where identifier = %(identifier)s
             for update
@@ -159,6 +160,14 @@ def upsert_encounter(db: DatabaseSession,
 
         LOG.info(f"Updating existing encounter {encounter.id}")
 
+        new_row_hash = db.fetch_row("""
+            select md5(row ( %(individual_id)s::integer, %(site_id)s::integer, %(encountered)s::timestamp with time zone, %(age)s::interval, %(details)s::jsonb)::text)
+        """, data)
+
+        if encounter.row_hash == new_row_hash[0]:
+            LOG.info(f"Skipping upsert for encounter {encounter.id} «{identifier}» (no change).")
+            return encounter
+
         encounter = db.fetch_row("""
             update warehouse.encounter
                 set individual_id = %(individual_id)s,
@@ -167,17 +176,15 @@ def upsert_encounter(db: DatabaseSession,
                     age = %(age)s,
                     details = %(details)s
             where encounter_id = %(encounter_id)s
-        returning encounter_id as id, identifier
+                returning encounter_id as id, identifier
         """, { **data, "encounter_id": encounter.id })
-
-        assert encounter.id, "Upsert affected no rows!"
 
     # More than one found → error
     else:
         raise Exception(f"More than one encounter matching identifier: {identifier}")
 
     if encounter:
-        LOG.info(f"Upserted encounter {encounter.id} «{encounter.identifier}»")
+        LOG.info(f"Upserted encounter {encounter.id} «{identifier}»")
 
     return encounter
 
