@@ -80,7 +80,7 @@ def upsert_individual(db: DatabaseSession, identifier: str, sex: str = None, det
         "sex": sex,
         "details": Json(details),
     }
-    
+
     individual = db.fetch_row("""
         insert into warehouse.individual (identifier, sex, details)
             values (%(identifier)s, %(sex)s, %(details)s)
@@ -120,35 +120,64 @@ def upsert_encounter(db: DatabaseSession,
         "details": Json(details),
     }
 
-    encounter = db.fetch_row("""
-        insert into warehouse.encounter (
-                identifier,
-                individual_id,
-                site_id,
-                encountered,
-                age,
-                details)
-            values (
-                %(identifier)s,
-                %(individual_id)s,
-                %(site_id)s,
-                %(encountered)s::timestamp with time zone,
-                %(age)s,
-                %(details)s)
+    with db.cursor() as cursor:
+        cursor.execute("""
+            select encounter_id as id,
+                identifier
+            from warehouse.encounter
+            where identifier = %(identifier)s
+            for update
+            """, data)
 
-        on conflict (identifier) do update
-            set individual_id = excluded.individual_id,
-                site_id       = excluded.site_id,
-                encountered   = excluded.encountered,
-                age           = excluded.age,
-                details       = excluded.details
+        encounters = list(cursor)
 
+    # Nothing found → create
+    if not encounters:
+        LOG.info("Creating new encounter")
+
+        encounter = db.fetch_row("""
+            insert into warehouse.encounter (
+                    identifier,
+                    individual_id,
+                    site_id,
+                    encountered,
+                    age,
+                    details)
+                values (
+                    %(identifier)s,
+                    %(individual_id)s,
+                    %(site_id)s,
+                    %(encountered)s::timestamp with time zone,
+                    %(age)s,
+                    %(details)s)
         returning encounter_id as id, identifier
         """, data)
 
-    assert encounter.id, "Upsert affected no rows!"
+    # One found → update
+    elif len(encounters) == 1:
+        encounter = encounters[0]
 
-    LOG.info(f"Upserted encounter {encounter.id} «{encounter.identifier}»")
+        LOG.info(f"Updating existing encounter {encounter.id}")
+
+        encounter = db.fetch_row("""
+            update warehouse.encounter
+                set individual_id = %(individual_id)s,
+                    site_id = %(site_id)s,
+                    encountered = %(encountered)s,
+                    age = %(age)s,
+                    details = %(details)s
+            where encounter_id = %(encounter_id)s
+        returning encounter_id as id, identifier
+        """, { **data, "encounter_id": encounter.id })
+
+        assert encounter.id, "Upsert affected no rows!"
+
+    # More than one found → error
+    else:
+        raise Exception(f"More than one encounter matching identifier: {identifier}")
+
+    if encounter:
+        LOG.info(f"Upserted encounter {encounter.id} «{encounter.identifier}»")
 
     return encounter
 
