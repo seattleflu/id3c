@@ -120,16 +120,16 @@ def upsert_encounter(db: DatabaseSession,
         "details": Json(details),
     }
 
-    # Select on identifier to determine if the encounter record already exists. If a
-    # record is returned, it includes a hash calculated from the columns whose values
-    # would be set if this function results in an update. Note that `identifier` is
-    # not included because it is only set on insert. The hash value will be used
-    # to compare to a similarly calculated hash from the incoming values to determine if
-    # an update is necessary.
+    # Select on identifier to determine if the encounter record already exists.
     #
-    # If there are schema changes to `warehouse.encounter` and this upsert function, the
-    # list of columns and data types included in the hash should be updated to include
-    # all columns being updated.
+    # This query also includes a hash comparison to determine if the data has changed and
+    # an update is necessary. If a record is found with the given identifier, a hash is
+    # calculated on the columns that would be set on update, and compared to a hash calculated
+    # on the incoming values.
+    #
+    # Note: if there are schema changes to `warehouse.encounter` and this upsert function, the
+    # list of columns and data types included in the hash comparison should be updated to include
+    # all columns set on update.
     with db.cursor() as cursor:
         cursor.execute("""
             select encounter_id as id,
@@ -138,7 +138,13 @@ def upsert_encounter(db: DatabaseSession,
                         encounter.site_id,
                         encounter.encountered,
                         encounter.age,
-                        encounter.details)::text) as update_cols_hash
+                        encounter.details)::text)
+                !=
+                md5(row (%(individual_id)s::integer,
+                        %(site_id)s::integer,
+                        %(encountered)s::timestamp with time zone,
+                        %(age)s::interval,
+                        %(details)s::jsonb)::text) as data_changed
             from warehouse.encounter
             where identifier = %(identifier)s
             for update
@@ -174,22 +180,7 @@ def upsert_encounter(db: DatabaseSession,
 
         LOG.info(f"Updating existing encounter {encounter.id}")
 
-        # Generate md5 hash based on the incoming values, casting them to match the data type
-        # and format of the corresponding `warehouse.encounter` columns. The hash value will be
-        # compared with a hash value from the stored record to determine if an update is necessary.
-        #
-        # If there are schema changes to `warehouse.encounter` and this upsert function, the
-        # list of columns and data types included in the hash should be updated to include
-        # all columns being updated.
-        update_cols_hash = db.fetch_row("""
-            select md5(row (%(individual_id)s::integer,
-                            %(site_id)s::integer,
-                            %(encountered)s::timestamp with time zone,
-                            %(age)s::interval,
-                            %(details)s::jsonb)::text)
-        """, data)
-
-        if encounter.update_cols_hash == update_cols_hash[0]:
+        if encounter.data_changed==False:
             LOG.info(f"Skipping upsert for encounter {encounter.id} «{identifier}» (no change).")
             return encounter
 
