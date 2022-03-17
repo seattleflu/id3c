@@ -80,7 +80,7 @@ def upsert_individual(db: DatabaseSession, identifier: str, sex: str = None, det
         "sex": sex,
         "details": Json(details),
     }
-    
+
     individual = db.fetch_row("""
         insert into warehouse.individual (identifier, sex, details)
             values (%(identifier)s, %(sex)s, %(details)s)
@@ -120,35 +120,87 @@ def upsert_encounter(db: DatabaseSession,
         "details": Json(details),
     }
 
-    encounter = db.fetch_row("""
-        insert into warehouse.encounter (
+    # Select on identifier to determine if the encounter record already exists.
+    #
+    # This query also includes a hash comparison to determine if the data has changed and
+    # an update is necessary. If a record is found with the given identifier, a hash is
+    # calculated on the columns that would be set on update, and compared to a hash calculated
+    # on the incoming values.
+    #
+    # Note: if there are schema changes to `warehouse.encounter` and this upsert function, the
+    # list of columns and data types included in the hash comparison should be updated to include
+    # all columns set on update.
+    with db.cursor() as cursor:
+        cursor.execute("""
+            select encounter_id as id,
                 identifier,
-                individual_id,
-                site_id,
-                encountered,
-                age,
-                details)
-            values (
-                %(identifier)s,
-                %(individual_id)s,
-                %(site_id)s,
-                %(encountered)s::timestamp with time zone,
-                %(age)s,
-                %(details)s)
+                md5(row (encounter.individual_id,
+                        encounter.site_id,
+                        encounter.encountered,
+                        encounter.age,
+                        encounter.details)::text)
+                !=
+                md5(row (%(individual_id)s::integer,
+                        %(site_id)s::integer,
+                        %(encountered)s::timestamp with time zone,
+                        %(age)s::interval,
+                        %(details)s::jsonb)::text) as data_changed
+            from warehouse.encounter
+            where identifier = %(identifier)s
+            for update
+            """, data)
 
-        on conflict (identifier) do update
-            set individual_id = excluded.individual_id,
-                site_id       = excluded.site_id,
-                encountered   = excluded.encountered,
-                age           = excluded.age,
-                details       = excluded.details
+        encounters = list(cursor)
 
+    # Nothing found → create
+    if not encounters:
+        LOG.info("Creating new encounter")
+
+        encounter = db.fetch_row("""
+            insert into warehouse.encounter (
+                    identifier,
+                    individual_id,
+                    site_id,
+                    encountered,
+                    age,
+                    details)
+                values (
+                    %(identifier)s,
+                    %(individual_id)s,
+                    %(site_id)s,
+                    %(encountered)s::timestamp with time zone,
+                    %(age)s,
+                    %(details)s)
         returning encounter_id as id, identifier
         """, data)
 
-    assert encounter.id, "Upsert affected no rows!"
+    # One found → update
+    elif len(encounters) == 1:
+        encounter = encounters[0]
 
-    LOG.info(f"Upserted encounter {encounter.id} «{encounter.identifier}»")
+        LOG.info(f"Updating existing encounter {encounter.id}")
+
+        if encounter.data_changed==False:
+            LOG.info(f"Skipping upsert for encounter {encounter.id} «{identifier}» (no change).")
+            return encounter
+
+        encounter = db.fetch_row("""
+            update warehouse.encounter
+                set individual_id = %(individual_id)s,
+                    site_id = %(site_id)s,
+                    encountered = %(encountered)s,
+                    age = %(age)s,
+                    details = %(details)s
+            where encounter_id = %(encounter_id)s
+                returning encounter_id as id, identifier
+        """, { **data, "encounter_id": encounter.id })
+
+    # More than one found → error
+    else:
+        raise Exception(f"More than one encounter matching identifier: {identifier}")
+
+    if encounter:
+        LOG.info(f"Upserted encounter {encounter.id} «{identifier}»")
 
     return encounter
 
