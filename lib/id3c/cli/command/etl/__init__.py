@@ -122,29 +122,32 @@ def upsert_encounter(db: DatabaseSession,
 
     # Select on identifier to determine if the encounter record already exists.
     #
-    # This query also includes a hash comparison to determine if the data has changed and
-    # an update is necessary. If a record is found with the given identifier, a hash is
-    # calculated on the columns that would be set on update, and compared to a hash calculated
-    # on the incoming values.
+    # This query also compares the existing vs. incoming row to determine if an update
+    # is necessary. If a record is found with the given identifier, the columns that would be
+    # set on update are compared to the incoming values, ignoring any values in details starting
+    # with `urn:uuid:` (FHIR resource reference IDs that are randomly generated each time a FHIR
+    # bundle is constructed, and are not indicitive of data having changed).
     #
-    # Note: if there are schema changes to `warehouse.encounter` and this upsert function, the
-    # list of columns and data types included in the hash comparison should be updated to include
-    # all columns set on update.
+    # Note: if there are schema changes to `warehouse.encounter` resulting in changes to the columns
+    # that are set on update, the list of columns being compared should be updated to match.
+
     with db.cursor() as cursor:
         cursor.execute("""
             select encounter_id as id,
                 identifier,
-                md5(row (encounter.individual_id,
+                (
+                    row (encounter.individual_id,
                         encounter.site_id,
                         encounter.encountered,
                         encounter.age,
-                        encounter.details)::text)
-                !=
-                md5(row (%(individual_id)s::integer,
-                        %(site_id)s::integer,
-                        %(encountered)s::timestamp with time zone,
-                        %(age)s::interval,
-                        %(details)s::jsonb)::text) as data_changed
+                        regexp_replace(encounter.details::text, '"urn:uuid:[a-f0-9-]{36}"', '""', 'g'))
+                    !=
+                    row (%(individual_id)s::integer,
+                            %(site_id)s::integer,
+                            %(encountered)s::timestamp with time zone,
+                            %(age)s::interval,
+                            regexp_replace((%(details)s::jsonb)::text, '"urn:uuid:[a-f0-9-]{36}"', '""', 'g'))
+                ) as data_changed
             from warehouse.encounter
             where identifier = %(identifier)s
             for update
