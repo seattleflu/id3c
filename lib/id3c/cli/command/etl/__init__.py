@@ -381,17 +381,76 @@ def upsert_encounter_location(db: DatabaseSession,
     """
     Upserts an encounter location by its *encounter_id* and *relation*.
     """
-    LOG.debug(f"Upserting encounter {relation} location")
+    LOG.debug(f"Upserting encounter with location '{relation}'")
+
+    data = {
+        "encounter_id": encounter_id,
+        "relation": relation,
+        "location_id": location_id,
+    }
 
     with db.cursor() as cursor:
         cursor.execute("""
-            insert into warehouse.encounter_location (encounter_id, relation, location_id)
-                values (%s, %s, %s)
-                on conflict (encounter_id, relation) do update
-                    set location_id = excluded.location_id
-            """, (encounter_id, relation, location_id))
+            select
+                encounter_id,
+                relation,
+                encounter_location.location_id != %(location_id)s::integer
+                    as data_changed
+            from warehouse.encounter_location
+            where
+                encounter_id = %(encounter_id)s and
+                relation = %(relation)s
+            for update
+            """, data
+        )
 
-        assert cursor.rowcount == 1, "Upsert affected no rows!"
+        encounter_locs = list(cursor)
+
+    if not encounter_locs:
+        LOG.info("Adding new encounter location")
+
+        encounter_loc = db.fetch_row("""
+            insert into warehouse.encounter_location(
+                    encounter_id,
+                    relation,
+                    location_id
+                )
+                values (
+                    %(encounter_id)s,
+                    %(relation)s,
+                    %(location_id)s
+                )
+            returning encounter_id, relation
+            """, data
+        )
+
+    elif len(encounter_locs) == 1:
+        encounter_loc = encounter_locs[0]
+
+        LOG.info("Updating existing encounter location")
+
+        if encounter_loc.data_changed == False:
+            LOG.info(f"Skipping upsert for encounter with location '{relation}' (no change).")
+            return
+
+        encounter_loc = db.fetch_row("""
+            update warehouse.encounter_location
+                set
+                    location_id = %(location_id)s
+            where
+                encounter_id = %(encounter_id)s and
+                relation = %(relation)s
+            returning encounter_id, relation
+            """, data
+        )
+
+    else:
+        raise Exception(f"More than one encounter matching. encounter_id: {encounter_id}, relation: {relation}")
+
+    if encounter_loc:
+        LOG.info(f"Upserted encounter with location '{relation}'")
+
+    assert encounter_loc, "Upsert affected no rows!"
 
 
 def upsert_presence_absence(db: DatabaseSession,
