@@ -140,13 +140,13 @@ def upsert_encounter(db: DatabaseSession,
                         encounter.site_id,
                         encounter.encountered,
                         encounter.age,
-                        regexp_replace(encounter.details::text, '"urn:uuid:[a-f0-9-]{36}"', '""', 'g'))
+                        regexp_replace(encounter.details::text, '"urn:uuid:[a-f0-9-]{36}"', '""', 'g'))::text
                     !=
                     row (%(individual_id)s::integer,
                             %(site_id)s::integer,
                             %(encountered)s::timestamp with time zone,
                             %(age)s::interval,
-                            regexp_replace((%(details)s::jsonb)::text, '"urn:uuid:[a-f0-9-]{36}"', '""', 'g'))
+                            regexp_replace(%(details)s::jsonb::text, '"urn:uuid:[a-f0-9-]{36}"', '""', 'g'))::text
                 ) as data_changed
             from warehouse.encounter
             where identifier = %(identifier)s
