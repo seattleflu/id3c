@@ -68,9 +68,15 @@ def upsert_individual(db: DatabaseSession, identifier: str, sex: str = None, det
     Upsert individual by their *identifier*.
     """
 
-    # This will only perform a shallow merge of the details for an existing record.
-    # To make it more robust, this should be updated to a deep merge, using identifiers
-    # nested within the FHIR resource entries to append only new information.
+    # This function includes a comparison of existing vs. incoming data to determine if an update
+    # is necessary. If a record is found with the given identifier, the columns that would be
+    # set on update are compared to the incoming values, ignoring any values in details starting
+    # with `urn:uuid:` (FHIR resource reference IDs that are randomly generated each time a FHIR
+    # bundle is constructed, and are not indicitive of data having changed).
+    #
+    # If an update is needed, this will only perform a shallow merge of the details on the existing record.
+    # To make it more robust, this should be updated to a deep merge, using identifiers nested within the FHIR
+    # resource entries to append only new information.
     # -drr, 7 Jan 2022
 
     LOG.debug(f"Upserting individual «{identifier}»")
@@ -81,20 +87,65 @@ def upsert_individual(db: DatabaseSession, identifier: str, sex: str = None, det
         "details": Json(details),
     }
 
-    individual = db.fetch_row("""
-        insert into warehouse.individual (identifier, sex, details)
-            values (%(identifier)s, %(sex)s, %(details)s)
+    with db.cursor() as cursor:
+        cursor.execute("""
+            select individual_id as id,
+                identifier,
+                (
+                    row (individual.sex,
+                        regexp_replace(coalesce(individual.details, '{}'::jsonb)::text, '"urn:uuid:[a-f0-9-]{36}"', '""', 'g'))::text
+                    !=
+                    row (%(sex)s,
+                        regexp_replace((coalesce(individual.details, '{}'::jsonb) || coalesce(%(details)s::jsonb, '{}'::jsonb))::text, '"urn:uuid:[a-f0-9-]{36}"', '""', 'g'))::text
+                ) as data_changed
+            from warehouse.individual
+            where identifier = %(identifier)s
+            for update
+            """, data)
 
-        on conflict (identifier) do update
-            set sex     = excluded.sex,
-                details = coalesce(individual.details, '{}'::jsonb) || excluded.details
+        individuals = list(cursor)
 
+    # Nothing found → create
+    if not individuals:
+        LOG.info("Creating new individual")
+
+        individual = db.fetch_row("""
+            insert into warehouse.individual (
+                    identifier,
+                    sex,
+                    details)
+                values (
+                    %(identifier)s,
+                    %(sex)s,
+                    %(details)s)
         returning individual_id as id, identifier
         """, data)
 
-    assert individual.id, "Upsert affected no rows!"
+    # One found → update
+    elif len(individuals) == 1:
+        individual = individuals[0]
 
-    LOG.info(f"Upserted individual {individual.id} «{individual.identifier}»")
+        LOG.info(f"Updating existing individual {individual.id}")
+
+        if individual.data_changed==False:
+            LOG.info(f"Skipping upsert for individual {individual.id} «{identifier}» (no change).")
+            return individual
+
+        individual = db.fetch_row("""
+            update warehouse.individual
+                set sex = %(sex)s,
+                    details = coalesce(individual.details, '{}'::jsonb) || coalesce(%(details)s::jsonb, '{}'::jsonb)
+            where individual_id = %(individual_id)s
+        returning individual_id as id, identifier
+        """, { **data, "individual_id": individual.id })
+
+    # More than one found → error
+    else:
+        raise Exception(f"More than one individual matching identifier: {identifier}")
+
+    assert individual, "Upsert affected no rows!"
+
+    LOG.info(f"Upserted individual {individual.id} «{identifier}»")
 
     return individual
 
