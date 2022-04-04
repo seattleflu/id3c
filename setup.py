@@ -60,7 +60,7 @@ setup(
     python_requires = ">=3.6",
 
     install_requires = [
-        "cachetools <= 4.2.2",
+        "cachetools",
         "click >=7.0,<8.0",
         "colorama",
         "deepdiff",
