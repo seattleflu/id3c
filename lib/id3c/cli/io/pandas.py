@@ -19,8 +19,15 @@ if not sys.warnoptions:
                             message="Data Validation extension is not "
                                     "supported and will be removed")
 
+def mask_values(df: pd.DataFrame, columns_to_mask: List[str]) -> None:
+    for col in columns_to_mask:
+        if col in df.columns:
+            df[col] = "*****"
+        else:
+            raise Exception(f"Error: column «{col}» not found in dataframe.")
 
-def dump_ndjson(df: pd.DataFrame, file = None):
+
+def dump_ndjson(df: pd.DataFrame, file = None, columns_to_mask: List[str] = None):
     """
     Prints a :class:`pandas.DataFrame` as NDJSON.
 
@@ -31,6 +38,9 @@ def dump_ndjson(df: pd.DataFrame, file = None):
     """
     if file is None:
         file = stdout
+
+    if columns_to_mask:
+        mask_values(df, columns_to_mask)
 
     print(df.to_json(orient = "records", lines = True, date_format = "iso"), file = file)
 
