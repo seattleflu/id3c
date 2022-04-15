@@ -233,7 +233,7 @@ def upsert_sample(db: DatabaseSession,
     if not samples:
         LOG.info("Creating new sample")
         status = 'created'
-        
+
         sample = db.fetch_row("""
             insert into warehouse.sample (identifier, collection_identifier, collected, encounter_id, details)
                 values (%(identifier)s,
@@ -250,6 +250,10 @@ def upsert_sample(db: DatabaseSession,
         sample = samples[0]
 
         LOG.info(f"Updating existing sample {sample.id}")
+
+        # Log when encounter_id is being changed to a different value
+        if encounter_id and sample.encounter_id and encounter_id != sample.encounter_id:
+            LOG.debug(f"Warning: Encounter ID is changing on sample {sample.id} from {sample.encounter_id} to {encounter_id}")
 
         # Update identifier and collection_identifier if update_identifiers is True
         identifiers_update_composable = SQL("""
