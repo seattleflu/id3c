@@ -257,10 +257,10 @@ def get_geocoded_address(address: dict,
     """
     key = json.dumps(address, sort_keys=True)
 
-    try:
+    if key in cache.keys():
         response = cache[key]
         LOG.debug('Response found in cache.')
-    except KeyError:
+    else:
         response = cache[key] = geocode_address(address)
         LOG.debug('Adding new response to cache.')
 
