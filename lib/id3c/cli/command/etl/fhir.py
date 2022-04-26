@@ -80,9 +80,10 @@ EXPECTED_COLLECTION_IDENTIFIER_SETS = [
     'collections-uw-tiny-swabs-observed',
     'collections-household-general',
     'collections-childcare',
-    "collections-scan-tiny-swabs",
-    "collections-adult-family-home-outbreak-tiny-swabs",
-    "collections-workplace-outbreak-tiny-swabs",
+    'collections-scan-tiny-swabs',
+    'collections-adult-family-home-outbreak-tiny-swabs',
+    'collections-workplace-outbreak-tiny-swabs',
+    'collections-airs',
 ]
 EXPECTED_SAMPLE_IDENTIFIER_SETS = ['samples']
 
@@ -177,7 +178,7 @@ def process_encounter_bundle_entry(db: DatabaseSession, bundle: Bundle, entry: B
 
     related_resources = extract_related_resources(bundle, entry)
     immunization_resources = extract_immunization_resources(bundle)
-    
+
     encounter = process_encounter(db, resource, related_resources, immunization_resources)
 
     if not encounter:
