@@ -91,6 +91,7 @@ def etl_manifest(*, db: DatabaseSession):
             "collections-scan-tiny-swabs",
             "collections-adult-family-home-outbreak-tiny-swabs",
             "collections-workplace-outbreak-tiny-swabs",
+            "collections-airs",
         },
         "rdt": {"collections-fluathome.org"}
     }
