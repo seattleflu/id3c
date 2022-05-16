@@ -892,7 +892,7 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
         Return the boolean value of a presence/absence result observation.
 
         Expects the observation value to be within valueBoolean or
-        valueCodeableConcept. Raises Exception if both are None.
+        valueCodeableConcept (or None in the case of valueBoolean).
 
         Also raises Exception if valueCodeableConcept contains an unknown code.
         """
@@ -912,7 +912,9 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
 
             return code_map[code]
 
-        raise Exception("Could not find presence/absence observation value in valueBoolean or valueCodeableConcept")
+        elif observation.valueBoolean is None:
+            return observation.valueBoolean
+
 
     if not report.result:
         raise Exception("An empty value for `result` violates the FHIR docs.")
@@ -923,7 +925,7 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
         snomed_code = matching_system_code(observation.code, SNOMED_SYSTEM)
         assert snomed_code, "No SNOMED code found"
 
-        # Skip results that are Inconclusive
+        # Skip SNOMED based results that are Inconclusive
         if snomed_code == '911000124104':
             continue
 
@@ -936,11 +938,12 @@ def process_presence_absence_tests(db: DatabaseSession, report: DiagnosticReport
 
         result_value = observation_value(observation)
 
-        # Only store true/false results; we don't store indeterminate in ID3C.
-        if result_value is None:
-            continue
+        device = observation.device.identifier.value
+        details = { "device": device }
 
-        details = { "device": observation.device.identifier.value }
+        # Skip Ellume inconclusive results
+        if device == 'Ellume' and result_value is None:
+            continue
 
         if report.effectiveDateTime:
             details["effective_datetime"] = report.effectiveDateTime.as_json()
