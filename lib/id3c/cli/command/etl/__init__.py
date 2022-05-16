@@ -357,19 +357,70 @@ def upsert_location(db: DatabaseSession,
     else:
         hierarchy = hierarchy + "," + location_hierarchy
 
-    location = db.fetch_row("""
-        insert into warehouse.location (scale, identifier, hierarchy)
-        values (%s, %s, %s)
+    data = {
+        "scale": scale,
+        "identifier": identifier,
+        "hierarchy": hierarchy
+    }
 
-        on conflict (scale, identifier) do update
-            set hierarchy = coalesce(location.hierarchy, '') || excluded.hierarchy
+    with db.cursor() as cursor:
+        cursor.execute("""
+            select
+                location_id as id,
+                scale,
+                identifier,
+                hierarchy,
+                location.hierarchy != %(hierarchy)s::hstore as data_changed
 
-        returning location_id as id, scale, identifier, hierarchy
-        """, (scale, identifier, hierarchy))
+            from warehouse.location
+            where (scale, identifier) = (%(scale)s, %(identifier)s)
+            """, data
+        )
+
+        locations = list(cursor)
+
+    # nothing found - create new location
+    if not locations:
+        LOG.info("Adding new location")
+
+        location = db.fetch_row("""
+            insert into warehouse.location (
+                scale,
+                identifier,
+                hierarchy)
+              values (
+                %(scale)s,
+                %(identifier)s,
+                %(location)s)
+            returning location_id as id, scale, identifier, hierarchy
+            """, data
+        )
+
+    # one found - update location
+    elif len(locations) == 1:
+        location = locations[0]
+
+        LOG.info(f"Updating existing location {location.id}")
+
+        if location.data_changed == False:
+            LOG.info(f"Skipping upsert for location {(scale, identifier)} (no change)")
+            return location
+
+        location = db.fetch_row("""
+            update warehouse.location
+                set hierarchy = coalesce(location.hierarchy, '') || %(hierarchy)s
+            where (scale, identifier) = (%(scale)s, %(identifier)s)
+            returning location_id as id, scale, identifier, hierarchy
+            """, data
+        )
+
+    # more than one found - error
+    else:
+        raise Exception(f"More than one location matching {(scale, identifier)} found")
 
     assert location.id, "Upsert affected no rows!"
 
-    LOG.info(f"Upserted location {location.id} as {(location.scale,location.identifier)}")
+    LOG.info(f"Upserted location {location.id} as {(location.scale, location.identifier)}")
 
     return location
 
