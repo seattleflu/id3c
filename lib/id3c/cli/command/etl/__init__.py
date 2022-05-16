@@ -391,7 +391,7 @@ def upsert_location(db: DatabaseSession,
               values (
                 %(scale)s,
                 %(identifier)s,
-                %(location)s)
+                %(hierarchy)s)
             returning location_id as id, scale, identifier, hierarchy
             """, data
         )
