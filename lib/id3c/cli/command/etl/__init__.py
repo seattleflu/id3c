@@ -78,23 +78,64 @@ def upsert_individual(db: DatabaseSession, identifier: str, sex: str = None, det
     data = {
         "identifier": identifier,
         "sex": sex,
-        "details": Json(details),
+        "details": Json(details) if details else None,
     }
 
-    individual = db.fetch_row("""
-        insert into warehouse.individual (identifier, sex, details)
-            values (%(identifier)s, %(sex)s, %(details)s)
+    with db.cursor() as cursor:
+        cursor.execute("""
+            select individual_id as id,
+                identifier,
+                (
+                    individual.sex != %(sex)s
+                    or
+                    (coalesce(individual.details,'{}'::jsonb) != (coalesce(individual.details, '{}'::jsonb) || coalesce(%(details)s, '{}')::jsonb))
+                ) as data_changed
+            from warehouse.individual
+            where identifier = %(identifier)s
+            for update
+            """, data)
 
-        on conflict (identifier) do update
-            set sex     = excluded.sex,
-                details = coalesce(individual.details, '{}'::jsonb) || excluded.details
+        individuals = list(cursor)
 
+    if not individuals:
+        LOG.info("Creating new individual")
+
+        individual = db.fetch_row("""
+            insert into warehouse.individual (
+                    identifier,
+                    sex,
+                    details)
+                values (
+                    %(identifier)s,
+                    %(sex)s,
+                    %(details)s)
         returning individual_id as id, identifier
         """, data)
 
-    assert individual.id, "Upsert affected no rows!"
+    # One found → update
+    elif len(individuals) == 1:
+        individual = individuals[0]
 
-    LOG.info(f"Upserted individual {individual.id} «{individual.identifier}»")
+        LOG.info(f"Updating existing individual {individual.id}")
+
+        if individual.data_changed==False:
+            LOG.info(f"Skipping upsert for individual {individual.id} «{identifier}» (no change).")
+            return individual
+
+        individual = db.fetch_row("""
+            update warehouse.individual
+                set sex = %(sex)s,
+                    details = coalesce(individual.details, '{}'::jsonb) || coalesce(%(details)s, '{}')::jsonb
+            where individual_id = %(individual_id)s
+                returning individual_id as id, identifier
+        """, { **data, "individual_id": individual.id })
+
+    # More than one found → error
+    else:
+        raise Exception(f"More than one individual found matching identifier: {identifier}")
+
+    if individual:
+        LOG.info(f"Upserted individual {individual.id} «{identifier}»")
 
     return individual
 
