@@ -137,6 +137,9 @@ def etl_presence_absence(*, db: DatabaseSession):
                 # kfay, 28 Dec 2020
                 assay_type = received_sample.get("assayType")
 
+                result_timestamp = convert_to_datetime(received_sample.get("resultTimestamp"))
+                review_timestamp = convert_to_datetime(received_sample.get("reviewTimestamp"))
+
                 # Guard against empty chip values
                 assert chip or "chip" not in received_sample, "Received bogus chip id"
 
@@ -218,11 +221,28 @@ def etl_presence_absence(*, db: DatabaseSession):
                                                               extraction_date,
                                                               assay_name,
                                                               assay_date,
-                                                              assay_type))
+                                                              assay_type,
+                                                              result_timestamp,
+                                                              review_timestamp))
 
             mark_processed(db, group.id)
 
             LOG.info(f"Finished processing presence_absence group {group.id}")
+
+
+def convert_to_datetime(val: str) -> datetime:
+    """
+    Validate timestamp str and convert to datetime
+    """
+    if not val:
+        return None
+
+    try:
+        datetime_obj = datetime.strptime(val, '%Y-%m-%dT%H:%M:%S.%f%z')
+    except ValueError:
+        raise ValueError(f"Incorrect date format {val} should be YYYY-MM-DD'T'HH:MM:SS.ffffff+HHMM")
+
+    return datetime_obj
 
 
 def target_control(control: str) -> bool:
@@ -330,7 +350,9 @@ def presence_absence_details(document: dict,
                              extraction_date: Any = None,
                              assay_name: Any = None,
                              assay_date: Any = None,
-                             assay_type: Any = None) -> dict:
+                             assay_type: Any = None,
+                             result_timestamp: datetime = None,
+                             review_timestamp: datetime = None) -> dict:
     """
     Describe presence/absence details in a simple data structure designed to
     be used from SQL.
@@ -369,13 +391,19 @@ def presence_absence_details(document: dict,
             assay_type = 'Research'
 
 
-    return {
+    data = {
         "device": device,
         "assay_date": assay_date,
         "assay_type": assay_type,
         "extraction_date": extraction_date,
         "replicates": document['wellResults']
     }
+    if result_timestamp:
+        data["result_timestamp"] = result_timestamp
+    if review_timestamp:
+        data["review_timestamp"] = review_timestamp
+
+    return data
 
 def target_present(test_result: dict) -> Any:
     """
