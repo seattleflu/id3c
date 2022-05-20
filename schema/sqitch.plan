@@ -237,3 +237,6 @@ warehouse/identifier/indexes/identifier_set_id_btree 2021-07-06T22:33:41Z Dave R
 roles/sample-editor/create 2021-08-13T15:01:31Z Dave Reinhart <davidrr@uw.edu> # Add sample editor role
 roles/sample-editor/grants 2021-08-13T15:03:19Z Dave Reinhart <davidrr@uw.edu> # Grant permissions to sample-editor role
 @2021-08-13 2021-08-13T15:15:55Z Dave Reinhart <davidrr@uw.edu> # Schema as of 13 Aug 2021
+
+warehouse/identifier/indexes/identifier_barcode_idx 2022-05-20T20:38:41Z Dave Reinhart <davidrr@uw.edu> # Add index to identifier.barcode column.
+@2022-05-20 2022-05-20T20:48:35Z Dave Reinhart <davidrr@uw.edu> # Schema as of 20 May 2022.
