@@ -571,6 +571,9 @@ def upsert_presence_absence(db: DatabaseSession,
         cursor.execute("""
             select presence_absence_id as id,
                 identifier,
+                sample_id,
+                target_id,
+                present,
                 (
                     row (sample_id,
                         target_id,
@@ -617,6 +620,13 @@ def upsert_presence_absence(db: DatabaseSession,
         if presence_absence.data_changed==False:
             LOG.info(f"Skipping upsert for presence_absence {presence_absence.id} «{identifier}» (no change).")
             return presence_absence
+        else:
+            if presence_absence.present != present:
+                LOG.warning(f"upsert_presence_absence: present is changing on presence_absence {presence_absence.id} «{identifier}» from {presence_absence.present} to {present}")
+            if presence_absence.sample_id != sample_id:
+                LOG.warning(f"upsert_presence_absence: sample_id is changing on presence_absence {presence_absence.id} «{identifier}» from {presence_absence.sample_id} to {sample_id}")
+            if presence_absence.target_id != target_id:
+                LOG.warning(f"upsert_presence_absence: target_id is changing on presence_absence {presence_absence.id} «{identifier}» from {presence_absence.target_id} to {target_id}")
 
         presence_absence = db.fetch_row("""
             update warehouse.presence_absence
@@ -627,6 +637,7 @@ def upsert_presence_absence(db: DatabaseSession,
             where presence_absence_id = %(presence_absence_id)s
                 returning presence_absence_id as id, identifier
         """, { **data, "presence_absence_id": presence_absence.id })
+
 
     # More than one found → error
     else:
