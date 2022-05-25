@@ -251,9 +251,15 @@ def upsert_sample(db: DatabaseSession,
 
         LOG.info(f"Updating existing sample {sample.id}")
 
-        # Log when encounter_id is being changed to a different value
+        # Log when critical fields are changed to a different value, for manual followup as needed
         if encounter_id and sample.encounter_id and encounter_id != sample.encounter_id:
-            LOG.debug(f"Warning: Encounter ID is changing on sample {sample.id} from {sample.encounter_id} to {encounter_id}")
+            LOG.debug(f"upsert_sample: encounter_id is changing on sample {sample.id} from {sample.encounter_id} to {encounter_id}")
+
+        if identifier and sample.identifier and identifier != sample.identifier:
+            LOG.warning(f"upsert_sample: identifier is changing on sample {sample.id} from {sample.identifier} to {identifier}")
+
+        if collection_identifier and sample.collection_identifier and collection_identifier != sample.collection_identifier:
+            LOG.warning(f"upsert_sample: collection_identifier is changing on sample {sample.id} from {sample.collection_identifier} to {collection_identifier}")
 
         # Update identifier and collection_identifier if update_identifiers is True
         identifiers_update_composable = SQL("""
