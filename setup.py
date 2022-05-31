@@ -78,6 +78,7 @@ setup(
         "requests",
         "s3fs",
         "smartystreets-python-sdk >= 4.6.0, != 4.7.0, != 4.8.0",
+        "types-python-dateutil",
         "typing_extensions >=3.7.4",
         "xlrd <=1.2.0",
 

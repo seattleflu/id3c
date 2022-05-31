@@ -18,6 +18,7 @@ The presence-absence ETL process will abort under these conditions:
 import click
 import logging
 from datetime import date, datetime, timezone
+from dateutil import parser
 from typing import Any, Optional
 from id3c.cli.command import with_database_session
 from id3c.db import find_identifier
@@ -238,9 +239,9 @@ def convert_to_datetime(val: str) -> datetime:
         return None
 
     try:
-        datetime_obj = datetime.strptime(val, '%Y-%m-%dT%H:%M:%S.%f%z')
+        datetime_obj = parser.parse(val)
     except ValueError:
-        raise ValueError(f"Incorrect date format {val} should be YYYY-MM-DD'T'HH:MM:SS.ffffff+HHMM")
+        raise ValueError(f"Incorrect date format {val}, should be ISO format")
 
     return datetime_obj
 
