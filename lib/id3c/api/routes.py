@@ -8,11 +8,11 @@ import logging
 import pkg_resources
 from flask import Blueprint, jsonify, request, send_file
 from datetime import datetime
-from hashlib import sha1
 from . import datastore
 from .utils.routes import authenticated_datastore_session_required, content_types_accepted, check_content_length
 from . import schemas
 from .exceptions import BadRequest
+from .common import add_provenance
 
 LOG = logging.getLogger(__name__)
 
@@ -167,6 +167,7 @@ def receive_manifest_incident(*, session):
 
     LOG.debug(f"Received Manifest Document")
 
+    add_provenance(document, request)
     datastore.store_manifest(session, json.dumps(document))
 
     return "", 204
@@ -356,17 +357,7 @@ def post_sample(*, session):
             except:
                 pass
 
-    # calculate hash based on serialized sample record
-    digest = sha1(json.dumps(sample, sort_keys=True).encode()).hexdigest()
-
-    provenance = {
-        "source": request.referrer or request.remote_addr or "?",
-        "method": request.method,
-        "path": request.path,
-        "timestamp": f'{datetime.now():%Y-%m-%d %H:%M:%S%z}',
-        "sha1sum": digest
-    }
-    sample.update(_provenance=provenance)
+    add_provenance(sample, request)
 
     # Transform racks data into array to match previously established format
     racks = {key: value for key, value in sample.items() if key.startswith('rack_')}
