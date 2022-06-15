@@ -100,3 +100,36 @@ POST_SAMPLE_SCHEMA = {
     ],
     "additionalProperties": False
 }
+
+POST_INCIDENT_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "collection": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 8
+        },
+        "incident_date": {
+            "type": "string",
+            "format": "date"
+        },
+        "failure_type": {
+            "type": "string"
+        },
+        "swab_type": {
+            "type": "string",
+            "enum": ["ans", "mtb", "np", "tiny", "unk", "none"]
+        },
+        "collection_matrix": {
+            "type": "string",
+            "enum": ["dry", "utm_vtm", "pbs", "none"]
+        },
+        "corrective_action": {
+            "type": "string",
+            "enum": ["discarded", "continued processing"]
+        }
+    },
+    "required":
+        [ "collection" ],
+    "additionalProperties": False
+}

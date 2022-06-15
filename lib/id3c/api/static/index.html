@@ -79,6 +79,21 @@
     <p>Stores the request data as a consensus genome document in a receiving
     area of the study database.
 
+    <h3 class="code">POST /v1/receiving/manifest/incident</h3>
+    <p>Stores the request data as a manifest incident document in a receiving
+    area of the study database. The body of the request should be a JSON document
+    with the following format:
+      <pre>
+        {
+            "collection": "2e99a5f3",
+            "failure_type": "Unused kit",
+            "incident_date": "2021-01-01",
+            "swab_type": "ans",
+            "corrective_action": "discarded",
+            "collection_matrix": "dry"
+        }
+      </pre>
+
     <h3 class="code">GET /v1/warehouse/identifier/<em>&lt;id&gt;</em></h3>
     <p>Retrieve metadata about an identifier <em>id</em>.  <em>id</em> may be a
     full UUID or shortened barcode.

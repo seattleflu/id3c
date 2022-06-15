@@ -179,6 +179,28 @@ def store_fhir(session: DatabaseSession, document: str) -> None:
         except (DataError, IntegrityError) as error:
             raise BadRequestDatabaseError(error) from None
 
+
+@export
+@catch_permission_denied
+def store_manifest(session: DatabaseSession, document: str) -> None:
+    """
+    Store the given manifest *document* (a **string**) in the backing
+    database using *session*.
+
+    Raises a :class:`BadRequestDatabaseError` exception if the given *document*
+    isn't valid and a :class:`Forbidden` exception if the database reports a
+    `permission denied` error.
+    """
+    with session, session.cursor() as cursor:
+        try:
+            cursor.execute(
+                "insert into receiving.manifest (document) values (%s)",
+                    (document,))
+
+        except (DataError, IntegrityError) as error:
+            raise BadRequestDatabaseError(error) from None
+
+
 @export
 @catch_permission_denied
 def verify_barcode_use_list(session: DatabaseSession, barcode_use_list: list) -> Any:
@@ -210,7 +232,7 @@ def verify_barcode_use_list(session: DatabaseSession, barcode_use_list: list) ->
 
     result = session.fetch_all(sql, tuple(barcode_use_tuples))
     return result
-    
+
 
 @export
 @catch_permission_denied
@@ -335,10 +357,10 @@ def make_identifier_set(session: DatabaseSession, name: str, **fields) -> bool:
             try:
                 cursor.execute("""
                     insert into warehouse.identifier_set (name, use, description)
-                        select s.name, t.use, s.description 
+                        select s.name, t.use, s.description
                         from (values(%s, nullif(%s,''))) s(name, description)
                         left join (
-                            select name, use 
+                            select name, use
                             FROM warehouse.identifier_set WHERE name = %s
                         ) t using (name)
                         on conflict (name) do update
@@ -355,7 +377,7 @@ def make_identifier_set(session: DatabaseSession, name: str, **fields) -> bool:
                         select s.name, t.use
                         from (values(%s)) s(name)
                         left join (
-                            select name, use 
+                            select name, use
                             FROM warehouse.identifier_set WHERE name = %s
                         ) t using (name)
                         on conflict (name) do update
@@ -392,7 +414,7 @@ def get_sample(session: DatabaseSession, barcode: str, barcode_type: str) -> Any
 
     Returns a named tuple with ``identifier``, ``collection_identifier``, ``encounter_id``,
     ``details``, ``created``, ``modified``, and ``collected`` attributes.
-    
+
     If the identifier barcode or sample doesn't exist, raises a :class:`~werkzeug.exceptions.NotFound`
     exception. If the identifier barcode exists but is not from a sample or collection identifier set,
     raises a :class:`~werkzeug.exceptions.Conflict` exception.
@@ -414,16 +436,16 @@ def get_sample(session: DatabaseSession, barcode: str, barcode_type: str) -> Any
             error_msg = f"Identifier barcode «{barcode}» has use type «{identifier.set_use}» instead of expected use type «sample» or «collection»"
             LOG.info(error_msg)
             raise Conflict(error_msg)
-            
+
         query = sql.SQL("""
-            select identifier, collection_identifier, encounter_id, 
+            select identifier, collection_identifier, encounter_id,
             details, created::text, modified::text, collected::text
             from warehouse.sample
             where {field} = %s
             """).format(field=identifier_field)
 
         sample = session.fetch_row(query, (identifier.uuid,))
-    
+
     if not sample:
         raise NotFound(f"Sample record with {identifier.set_use} identifier barcode «{barcode}» not found")
     else:
@@ -443,9 +465,9 @@ def store_sample(session: DatabaseSession, sample: dict) -> Any:
     with session:
         sample_barcode = sample.pop("sample_id", None)
         sample_identifier = find_identifier(session, sample_barcode) if sample_barcode else None
-        collection_barcode = sample.pop("collection_id", None) 
+        collection_barcode = sample.pop("collection_id", None)
         collection_identifier = find_identifier(session, collection_barcode) if collection_barcode else None
-        
+
         result = {
             "sample_barcode": sample_barcode,
             "collection_barcode": collection_barcode
@@ -470,11 +492,11 @@ def store_sample(session: DatabaseSession, sample: dict) -> Any:
             return result
 
         collected_date = sample.pop("collection_date", None)
-        
+
         # Add date to sample so that it gets written to the 'details' column in warehouse.sample
         if collected_date:
             sample["date"] = collected_date
-        
+
         # Rename specific properties to include in 'details' column in warehouse.sample
         if "clia_id" in sample:
             sample["clia_barcode"] = sample.pop("clia_id")
