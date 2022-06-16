@@ -564,36 +564,87 @@ def upsert_presence_absence(db: DatabaseSession,
         "sample_id": sample_id,
         "target_id": target_id,
         "present": present,
-        "details": Json(details)
+        "details": Json(details) if details else None
     }
 
-    presence_absence = db.fetch_row("""
-        insert into warehouse.presence_absence (
+    with db.cursor() as cursor:
+        cursor.execute("""
+            select presence_absence_id as id,
                 identifier,
                 sample_id,
                 target_id,
                 present,
-                details)
-            values (
-                %(identifier)s,
-                %(sample_id)s,
-                %(target_id)s,
-                %(present)s,
-                %(details)s)
+                (
+                    row (sample_id,
+                        target_id,
+                        present,
+                        details)::text
+                    !=
+                    row (%(sample_id)s::integer,
+                    %(target_id)s::integer,
+                    %(present)s::boolean,
+                    coalesce(details, '{}'::jsonb) || coalesce(%(details)s, '{}')::jsonb)::text
+                ) as data_changed
+            from warehouse.presence_absence
+            where identifier = %(identifier)s
+            for update
+            """, data)
 
-        on conflict (identifier) do update
-            set sample_id = excluded.sample_id,
-                target_id = excluded.target_id,
-                present   = excluded.present,
-                details = coalesce(presence_absence.details, '{}') || excluded.details
+        presence_absence_rows = list(cursor)
 
-        returning presence_absence_id as id, identifier
-        """, data)
+    if not presence_absence_rows:
+        LOG.info("Creating new presence_absence")
 
-    assert presence_absence.id, "Upsert affected no rows!"
+        presence_absence = db.fetch_row("""
+            insert into warehouse.presence_absence (
+                    identifier,
+                    sample_id,
+                    target_id,
+                    present,
+                    details)
+                values (
+                    %(identifier)s,
+                    %(sample_id)s,
+                    %(target_id)s,
+                    %(present)s,
+                    %(details)s)
+            returning presence_absence_id as id, identifier
+            """, data)
 
-    LOG.info(f"Upserted presence_absence {presence_absence.id} \
-        «{presence_absence.identifier}»")
+    elif len(presence_absence_rows) == 1:
+        # One found → update
+        presence_absence = presence_absence_rows[0]
+
+        LOG.info(f"Updating existing presence_absence {presence_absence.id}")
+
+        if presence_absence.data_changed==False:
+            LOG.info(f"Skipping upsert for presence_absence {presence_absence.id} «{identifier}» (no change).")
+            return presence_absence
+        else:
+            if presence_absence.present != present:
+                LOG.warning(f"upsert_presence_absence: present is changing on presence_absence {presence_absence.id} «{identifier}» from {presence_absence.present} to {present}")
+            if presence_absence.sample_id != sample_id:
+                LOG.warning(f"upsert_presence_absence: sample_id is changing on presence_absence {presence_absence.id} «{identifier}» from {presence_absence.sample_id} to {sample_id}")
+            if presence_absence.target_id != target_id:
+                LOG.warning(f"upsert_presence_absence: target_id is changing on presence_absence {presence_absence.id} «{identifier}» from {presence_absence.target_id} to {target_id}")
+
+        presence_absence = db.fetch_row("""
+            update warehouse.presence_absence
+                set sample_id = %(sample_id)s,
+                    target_id = %(target_id)s,
+                    present = %(present)s,
+                    details = coalesce(presence_absence.details, '{}'::jsonb) || coalesce(%(details)s, '{}')::jsonb
+            where presence_absence_id = %(presence_absence_id)s
+                returning presence_absence_id as id, identifier
+        """, { **data, "presence_absence_id": presence_absence.id })
+
+
+    # More than one found → error
+    else:
+        raise Exception(f"More than one presence_absence record found matching identifier: {identifier}")
+
+    if presence_absence:
+        LOG.info(f"Upserted presence_absence {presence_absence.id} «{identifier}»")
 
     return presence_absence
 
