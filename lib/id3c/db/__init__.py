@@ -41,7 +41,6 @@ def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
     `permission denied` error.
     """
     minted: List[Any] = []
-    failures: Dict[int, int] = {}
 
     # Lookup identifier set by name
     identifier_set = session.fetch_row("""
@@ -56,37 +55,29 @@ def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
 
     started = datetime.now()
 
-    while len(minted) < n:
-        m = len(minted) + 1
+    minted = session.fetch_all("""
+        select uuid, barcode, identifier_set_id, generated
+        from mint_identifiers(%s, %s)
+        """, (identifier_set.id, n))
 
-        LOG.debug(f"Minting identifier {m}/{n}")
+    LOG.debug(f"finished minting ")
 
-        try:
-            with session.savepoint(f"identifier {m}"):
-                new_identifier = session.fetch_row("""
-                    insert into warehouse.identifier (identifier_set_id, generated)
-                        values (%s, now())
-                        returning uuid, barcode, generated
-                    """,
-                    (identifier_set.id,))
+    failure_count = 0
 
-                minted.append(new_identifier)
+    for notice in session.connection.notices:
+        if "failure_count:" in notice:
+            try:
+                failure_count = int(notice.split(':')[-1])
+            except:
+                pass
+        LOG.debug(f"{notice}")
 
-        except ExclusionViolation:
-            LOG.debug("Barcode excluded. Retrying.")
-            failures.setdefault(m, 0)
-            failures[m] += 1
 
     duration = datetime.now() - started
     per_second = n / duration.total_seconds()
     per_identifier = duration.total_seconds() / n
 
-    failure_counts = list(failures.values())
-
-    LOG.info(f"Minted {n} identifiers in {n + sum(failure_counts)} tries ({sum(failure_counts)} retries) over {duration} ({per_identifier:.2f} s/identifier = {per_second:.2f} identifiers/s)")
-
-    if failure_counts:
-        LOG.info(f"Failure distribution: max={max(failure_counts)} mode={mode(failure_counts)} median={median(failure_counts)}")
+    LOG.info(f"Minted {n} identifiers in {n + failure_count} tries ({failure_count} retries) over {duration} ({per_identifier:.2f} s/identifier = {per_second:.2f} identifiers/s)")
 
     return minted
 
