@@ -4,6 +4,7 @@ Database interfaces
 import logging
 import secrets
 import statistics
+import json
 from datetime import datetime
 from psycopg2 import IntegrityError
 from psycopg2.errors import ExclusionViolation
@@ -53,8 +54,6 @@ def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
         LOG.error(f"Identifier set «{name}» does not exist")
         raise IdentifierSetNotFoundError(name)
 
-    started = datetime.now()
-
     minted = session.fetch_all("""
         select uuid, barcode, identifier_set_id, generated
         from mint_identifiers(%s, %s)
@@ -62,22 +61,17 @@ def mint_identifiers(session: DatabaseSession, name: str, n: int) -> Any:
 
     LOG.debug(f"finished minting ")
 
-    failure_count = 0
-
+    # capture and log notice from postgres function that contains minting performance stats
     for notice in session.connection.notices:
-        if "failure_count:" in notice:
-            try:
-                failure_count = int(notice.split(':')[-1])
-            except:
-                pass
-        LOG.debug(f"{notice}")
+        if 'id3c_minting_performance::' in notice:
+            minting_stats = json.loads(notice.split('::')[-1])
 
+            duration = minting_stats['exec_time'] / 1000
+            per_second = n / duration
+            per_identifier = duration / n
 
-    duration = datetime.now() - started
-    per_second = n / duration.total_seconds()
-    per_identifier = duration.total_seconds() / n
-
-    LOG.info(f"Minted {n} identifiers in {n + failure_count} tries ({failure_count} retries) over {duration} ({per_identifier:.2f} s/identifier = {per_second:.2f} identifiers/s)")
+            LOG.info(f"Minted {minting_stats['count']} identifiers in {minting_stats['count'] + minting_stats['failures']} tries ({minting_stats['failures']} retries) over {duration:.2f} seconds ({per_identifier:.2f} s/identifier = {per_second:.2f} identifiers/s)")
+            LOG.info(f"Failure distribution: max={minting_stats['max']} mode={minting_stats['mode']} median={minting_stats['median']}")
 
     return minted
 
