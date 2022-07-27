@@ -214,15 +214,34 @@ def upsert_sample(db: DatabaseSession,
         "collection_identifier": collection_identifier,
         "collection_date": collection_date,
         "encounter_id": encounter_id,
-        "additional_details": Json(additional_details),
+        "additional_details": Json(additional_details) if additional_details else None,
     }
 
     # Look for existing sample(s)
     with db.cursor() as cursor:
         cursor.execute("""
-            select sample_id as id, identifier, collection_identifier, encounter_id
-              from warehouse.sample
-             where identifier = %(identifier)s
+            select
+                sample_id as id, identifier, collection_identifier, encounter_id, details,
+                row (
+                    identifier,
+                    collection_identifier
+                )::text !=
+                row (
+                    %(identifier)s,
+                    %(collection_identifier)s
+                )::text as identifiers_changed,
+                row(
+                    collected::timestamp,
+                    encounter_id,
+                    details
+                )::text !=
+                row(
+                    coalesce(%(collection_date)s, collected)::timestamp,
+                    coalesce(%(encounter_id)s::integer, encounter_id),
+                    coalesce(details, '{}'::jsonb) || coalesce(%(additional_details)s, '{}')::jsonb
+                )::text as metadata_changed
+            from warehouse.sample
+            where identifier = %(identifier)s
                 or collection_identifier = %(collection_identifier)s
                for update
             """, data)
@@ -250,6 +269,13 @@ def upsert_sample(db: DatabaseSession,
         sample = samples[0]
 
         LOG.info(f"Updating existing sample {sample.id}")
+        LOG.info(f"Sample.identifiers_changed is «{sample.identifiers_changed}» ")
+        LOG.info(f"Sample.metadata_changed is «{sample.metadata_changed}» ")
+
+        # can safely skip upsert if metadata is unchanged and not updating identifiers or if all data is unchanged
+        if sample.metadata_changed == False and (not update_identifiers or sample.identifiers_changed == False):
+            LOG.info(f"Skipping upsert for sample {sample.id} «{sample.identifier}» (no change).")
+            return sample, status
 
         # Log when critical fields are changed to a different value, for manual followup as needed
         if encounter_id and sample.encounter_id and encounter_id != sample.encounter_id:
@@ -260,6 +286,9 @@ def upsert_sample(db: DatabaseSession,
 
         if collection_identifier and sample.collection_identifier and collection_identifier != sample.collection_identifier:
             LOG.warning(f"upsert_sample: collection_identifier is changing on sample {sample.id} from {sample.collection_identifier} to {collection_identifier}")
+
+        if sample.identifiers_changed == False and update_identifiers:
+            LOG.warning(f"upsert_sample: updating identifiers on sample {sample.id} with only one provided. Incoming identifiers are collection_identifier: {collection_identifier}, sample_identifier: {identifier}")
 
         # Update identifier and collection_identifier if update_identifiers is True
         identifiers_update_composable = SQL("""
