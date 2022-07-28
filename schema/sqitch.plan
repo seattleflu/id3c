@@ -237,3 +237,9 @@ warehouse/identifier/indexes/identifier_set_id_btree 2021-07-06T22:33:41Z Dave R
 roles/sample-editor/create 2021-08-13T15:01:31Z Dave Reinhart <davidrr@uw.edu> # Add sample editor role
 roles/sample-editor/grants 2021-08-13T15:03:19Z Dave Reinhart <davidrr@uw.edu> # Grant permissions to sample-editor role
 @2021-08-13 2021-08-13T15:15:55Z Dave Reinhart <davidrr@uw.edu> # Schema as of 13 Aug 2021
+
+functions/mint_identifiers 2022-07-15T22:13:52Z Dave Reinhart <davidrr@uw.edu> # Adding mint_identifiers function to batch mint identifiers for a given set.
+@2022-07-25 2022-07-25T21:27:47Z Dave Reinhart <davidrr@uw.edu> # Schemas as of 25 July 2022
+
+roles/identifier-minter/grants [roles/identifier-minter/grants@2022-07-25] 2022-07-28T19:05:20Z Dave Reinhart <davidrr@uw.edu> # Add execute permissions on mint_identifiers function to identiifer-minter
+@2022-07-28 2022-07-28T19:20:25Z Dave Reinhart <davidrr@uw.edu> # Schema as of 28 July 2022
