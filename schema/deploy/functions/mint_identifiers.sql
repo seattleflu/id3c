@@ -21,22 +21,22 @@ create or replace function public.mint_identifiers(set_id integer, number_to_min
             start_ts := clock_timestamp();
 
             while counter < number_to_mint loop
-				begin
-					insert into warehouse.identifier (identifier_set_id) values (set_id)
-					returning uuid, barcode, identifier_set_id, generated into r;
+                begin
+                    insert into warehouse.identifier (identifier_set_id) values (set_id)
+                    returning uuid, barcode, identifier_set_id, generated into r;
 
                     raise notice 'Successfully minted identifier: %; barcode: %', r.uuid, r.barcode;
-					counter := counter + 1;
+                    counter := counter + 1;
                     failure_count_arr[counter] = failure_count;
                     failure_count := 0;
-					return next r;
+                    return next r;
 
-				exception
-					when others then
-						GET STACKED DIAGNOSTICS error_detail =  PG_EXCEPTION_DETAIL;
-						raise notice '%; %', SQLERRM, error_detail;
+                exception
+                    when others then
+                        GET STACKED DIAGNOSTICS error_detail =  PG_EXCEPTION_DETAIL;
+                        raise notice '%; %', SQLERRM, error_detail;
                         failure_count := failure_count + 1;
-				end;
+                end;
 
             end loop;
 
