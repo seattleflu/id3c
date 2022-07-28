@@ -6,11 +6,9 @@ select 1/pg_catalog.has_database_privilege('identifier-minter', :'DBNAME', 'conn
 select 1/pg_catalog.has_schema_privilege('identifier-minter', 'warehouse', 'usage')::int;
 select 1/pg_catalog.has_table_privilege('identifier-minter', 'warehouse.identifier', 'select,insert')::int;
 select 1/pg_catalog.has_table_privilege('identifier-minter', 'warehouse.identifier_set', 'select')::int;
-select 1/pg_catalog.has_function_privilege('identifier-minter', 'public.mint_identifiers(integer,integer)', 'execute')::int;
 
 select 1/(not pg_catalog.has_schema_privilege('identifier-minter', 'receiving', 'usage'))::int;
 select 1/(not pg_catalog.has_table_privilege('identifier-minter', 'warehouse.identifier', 'update,delete'))::int;
 select 1/(not pg_catalog.has_table_privilege('identifier-minter', 'warehouse.identifier_set', 'insert,update,delete'))::int;
-select 1/(not pg_catalog.has_function_privilege('public', 'public.mint_identifiers(integer,integer)', 'execute'))::int;
 
 rollback;

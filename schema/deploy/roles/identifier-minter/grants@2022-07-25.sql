@@ -21,12 +21,4 @@ grant select, insert
    on warehouse.identifier
    to "identifier-minter";
 
-revoke execute
-    on function public.mint_identifiers(integer, integer)
-from public;
-
-grant execute
-    on function public.mint_identifiers(integer, integer)
-    to "identifier-minter";
-
 commit;

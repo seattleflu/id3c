@@ -1,19 +1,28 @@
--- Revert seattleflu/schema:roles/identifier-minter/grants from pg
+-- Deploy seattleflu/schema:roles/identifier-minter/grants to pg
+-- requires: warehouse/identifier
+-- requires: roles/identifier-minter/create
 
 begin;
 
-revoke select, insert
-  on warehouse.identifier
-  from "identifier-minter";
+-- This change is designed to be sqitch rework-able to make it easier to update
+-- the grants for this role.
 
-revoke select
-  on warehouse.identifier_set
-  from "identifier-minter";
+grant connect on database :"DBNAME" to "identifier-minter";
 
-revoke usage
-    on schema warehouse
-  from "identifier-minter";
+grant usage
+   on schema warehouse
+   to "identifier-minter";
 
-revoke connect on database :"DBNAME" from "identifier-minter";
+grant select
+   on warehouse.identifier_set
+   to "identifier-minter";
+
+grant select, insert
+   on warehouse.identifier
+   to "identifier-minter";
+
+revoke execute
+    on function public.mint_identifiers(integer, integer)
+from "identifier-minter";
 
 commit;
