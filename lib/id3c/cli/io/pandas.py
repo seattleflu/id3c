@@ -42,7 +42,7 @@ def dump_ndjson(df: pd.DataFrame, file = None, columns_to_mask: List[str] = None
     if columns_to_mask:
         mask_values(df, columns_to_mask)
 
-    print(df.to_json(orient = "records", lines = True, date_format = "iso"), file = file)
+    print(df.to_json(orient = "records", lines = True, date_format = "iso").rstrip(), file = file)
 
 
 def load_file_as_dataframe(filename: str) -> pd.DataFrame:
