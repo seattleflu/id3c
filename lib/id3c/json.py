@@ -23,7 +23,7 @@ def load_json(value):
     messaging, compared to :exc:`json.JSONDecodeError`, when stringified.
     """
     try:
-        return json.loads(value)
+        return json.loads(value) if value else None
     except json.JSONDecodeError as e:
         raise JSONDecodeError(e) from e
 
@@ -40,7 +40,7 @@ def load_ndjson(file: Iterable[str]) -> Iterable:
     """
     Load newline-delimited JSON records from *file*.
     """
-    yield from (load_json(line) for line in file)
+    yield from (load_json(line.strip()) for line in file)
 
 
 class JsonEncoder(json.JSONEncoder):
