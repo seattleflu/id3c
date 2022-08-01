@@ -23,7 +23,7 @@ def load_json(value):
     messaging, compared to :exc:`json.JSONDecodeError`, when stringified.
     """
     try:
-        return json.loads(value) if value else None
+        return json.loads(value)
     except json.JSONDecodeError as e:
         raise JSONDecodeError(e) from e
 
@@ -36,11 +36,16 @@ def dump_ndjson(iterable: Iterable) -> None:
         print(as_json(item))
 
 
-def load_ndjson(file: Iterable[str]) -> Iterable:
+def load_ndjson(file: Iterable[str], ignore_empty_lines = True) -> Iterable:
     """
-    Load newline-delimited JSON records from *file*.
+    Load newline-delimited JSON records from *file*. Ignore empty lines
+    in the file by default.
     """
-    yield from (load_json(line.strip()) for line in file)
+    for line in file:
+        if ignore_empty_lines and line.strip():
+            yield load_json(line)
+        elif not ignore_empty_lines:
+            yield load_json(line)
 
 
 class JsonEncoder(json.JSONEncoder):
@@ -107,6 +112,11 @@ class JSONDecodeError(json.JSONDecodeError):
     Traceback (most recent call last):
         ...
     id3c.json.JSONDecodeError: Expecting value: line 2 column 1 (char 2): unexpected end of document: '[\\n'
+
+    >>> load_json("\\n")
+    Traceback (most recent call last):
+        ...
+    id3c.json.JSONDecodeError: Expecting value: line 2 column 1 (char 1): unexpected end of document: '\\n'
 
     >>> load_json('')
     Traceback (most recent call last):
