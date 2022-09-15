@@ -81,7 +81,7 @@ setup(
         "smartystreets-python-sdk >= 4.6.0, != 4.7.0, != 4.8.0",
         "types-python-dateutil",
         "typing_extensions >=3.7.4",
-        "xlrd <=1.2.0",
+        "xlrd",
 
         # We use pkg_resources, which (confusingly) is provided by setuptools.
         # setuptools is nearly ever-present, but it can be missing!
