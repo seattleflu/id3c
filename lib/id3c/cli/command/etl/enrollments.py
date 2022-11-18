@@ -1,4 +1,6 @@
 """
+Deprecated, data collection ended
+
 Process enrollment documents into the relational warehouse
 """
 import click

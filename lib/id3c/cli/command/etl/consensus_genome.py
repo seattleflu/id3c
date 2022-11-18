@@ -1,4 +1,6 @@
 """
+Deprecated, data collection ended
+
 Process consensus genome documents into the relational warehouse.
 
 Consensus genome documents are expected to be JSONs with the following format:
