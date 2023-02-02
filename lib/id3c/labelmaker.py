@@ -112,7 +112,34 @@ class LCRY2380DuplicateLayout(LabelLayout):
         return 1 if barcode_number > 1 and (barcode_number - 1) % 3 == 0 else 0
 
 
-class SamplesLayout(LCRY2380DuplicateLayout):
+class LCRY2380VariableLayout(LabelLayout):
+    sku = "LCRY-2380"
+    layouts = {'default', 'singlet'}
+
+    def __init__(self, barcodes, layout: str='default'):
+        self.layout = layout
+        self.copies_per_barcode = 1 if layout == 'singlet' else 2
+        super().__init__(barcodes)
+
+    def blanks_before(self, barcode_number):
+        """
+        Each barcode maps to 2 labels.  Each row is 7 labels wide, so for
+        better UX we want all labels in the 7th column to be blank.  We can
+        express this without using a mutable label sequence number by
+        inserting a blank label before every fourth barcode (e.g. the 4th
+        barcode normally would start filling in the 7th label; by inserting a
+        blank, it starts filling in from the 1st label of the next row).
+
+        We only need to insert blanks in this way when we are generating barcodes
+        in the duplicate format.
+        """
+        if self.layout == 'singlet':
+            return 0
+        else:
+            return 1 if barcode_number > 1 and (barcode_number - 1) % 3 == 0 else 0
+
+
+class SamplesLayout(LCRY2380VariableLayout):
     barcode_type = "SAMPLE"
     reference = "seattleflu.org"
 
