@@ -12,7 +12,7 @@ from typing import Iterable
 LOG = logging.getLogger(__name__)
 
 DEFAULT_LABEL_API = os.environ.get("LABEL_API") \
-                 or "https://backoffice.seattleflu.org/labels"
+                 or "https://lab-labels.seattleflu.org"
 
 
 class LabelLayout:
