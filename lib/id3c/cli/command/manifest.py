@@ -182,7 +182,7 @@ def parse_using_config(config_file):
 
     A YAML document can also contain a list of workbooks that share the same
     format:
-    
+
     \b
         ---
         workbooks:
@@ -198,7 +198,7 @@ def parse_using_config(config_file):
           accession_no: accession
           sample_origin: sample_origin
         ...
-    
+
     The sample_column entry specifies the name of the column
     containing the sample barcode. The collection_column entry specifies
     the name of the column containing the collection barcode. You must supply one
@@ -403,9 +403,14 @@ def _parse(*,
     metavar = "<manifest-b.ndjson>",
     type = LocalOrRemoteFile("r"))
 
+@click.option("--ignore-case",
+    metavar = "<ignore-case>",
+    help = "Ignore string cases when diffing.",
+    is_flag = True)
+
 @format_doc(PROVENANCE_KEY = PROVENANCE_KEY)
 
-def diff(manifest_a, manifest_b):
+def diff(manifest_a, manifest_b, ignore_case = False):
     """
     Compare two manifests and output new or changed records.
 
@@ -416,14 +421,17 @@ def diff(manifest_a, manifest_b):
     Records in <manifest-b.ndjson> which do not appear in <manifest-a.ndjson>
     will be output to stdout.  The internal provenance-tracking field,
     "{PROVENANCE_KEY}", is ignored for the purposes of comparison.
+
+    If the `--ignore-case` flag is passed, the diff will ignore string cases.
+    By default, this function is sensitive to mismatched string case.
     """
     manifest_a_hashes = {
-        deephash(record)
+        deephash(record, ignore_case)
             for record in load_ndjson(manifest_a) }
 
     new_or_changed = (
         record for record in load_ndjson(manifest_b)
-            if deephash(record) not in manifest_a_hashes )
+            if deephash(record, ignore_case) not in manifest_a_hashes )
 
     dump_ndjson(new_or_changed)
 
@@ -603,9 +611,9 @@ def deduplicate_barcodes(df: pandas.DataFrame, columns: Iterable) -> pandas.Data
     return deduplicated
 
 
-def deephash(record):
+def deephash(record, ignore_case = False):
     """
     Return a :class:`DeepHash` of the given manifest *record*, ignoring
     the provenance information.
     """
-    return DeepHash(record, exclude_paths = {f"root['{PROVENANCE_KEY}']"})[record]
+    return DeepHash(record, exclude_paths = {f"root['{PROVENANCE_KEY}']"}, ignore_string_case = ignore_case)[record]
