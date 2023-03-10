@@ -289,9 +289,10 @@ def geocode_address(address: dict) -> dict:
         LOG.warning("Geocoding in non-production environment")
         geocode_addresses = None
         while True:
-            geocode_addresses = input("Geocode Address? (yes/no/all/none)").lower()
+            LOG.warning("Geocode Address? (yes/no/all/none)")
+            geocode_addresses = input().lower()
             if geocode_addresses not in ['yes','no','y','n','all','none']:
-                print("Not a valid response")
+                LOG.warning("Not a valid response")
                 continue
             else:
                 break
