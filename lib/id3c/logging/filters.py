@@ -92,14 +92,18 @@ def attribute_matcher(name, value):
     if isinstance(value, dict) and {*value.keys()} == {"pattern"}:
         value = re.compile(value["pattern"])
 
+    value_matches_regex = None
     if isinstance(value, type(re.compile(""))):
-        value_matches = value.search
+        value_matches_regex = value.search
     else:
         value_matches = partial(operator.eq, value)
 
     def attribute_matches(record):
         try:
-            return bool(value_matches(getattr(record, name)))
+            if value_matches_regex is not None:
+                return bool(value_matches_regex(getattr(record, name)))
+            else:
+                return bool(value_matches(getattr(record, name)))
         except AttributeError:
             # record is missing the attribute, so can't match
             return False
