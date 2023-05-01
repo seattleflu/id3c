@@ -19,6 +19,7 @@ from id3c.cli import cli
 from id3c.cli.redcap import Project, completion_status_field, is_complete, det
 from id3c.db.session import DatabaseSession
 from id3c.db.datatypes import as_json
+from id3c.cli.command import with_redcap_project
 
 
 LOG = logging.getLogger(__name__)
@@ -31,27 +32,6 @@ def redcap_det():
 
 @redcap_det.command("generate")
 @click.argument("record-ids", nargs = -1)
-
-@click.option("--api-url",
-    metavar = "<url>",
-    help = "The API endpoint of the REDCap instance.",
-    required = True,
-    envvar = "REDCAP_API_URL",
-    show_envvar = True)
-
-@click.option("--project-id",
-    metavar = "<id>",
-    type = int,
-    help = "The project id from which to fetch records.  "
-           "Must match the project associated with the provided API token.",
-    required = True,
-    envvar = "REDCAP_PROJECT_ID",
-    show_envvar = True)
-
-@click.option("--token",
-    metavar = "<token-name>",
-    help = "The name of the environment variable that holds the API token.  "
-           "Defaults to a name based on the --api-url and --project-id values: REDCAP_API_TOKEN_{api_url_origin}_{project_id}.")
 
 @click.option("--since-date",
     metavar = "<since-date>",
@@ -78,7 +58,8 @@ def redcap_det():
     is_flag = True,
     flag_value = True)
 
-def generate(record_ids: List[str], api_url: str, project_id: int, token: str, since_date: str, until_date: str,
+@with_redcap_project
+def generate(project: Project, record_ids: List[str], since_date: str, until_date: str,
     instruments: List[str], events: List[str], include_incomplete: bool):
     """
     Generate DET notifications for REDCap records.
@@ -97,10 +78,6 @@ def generate(record_ids: List[str], api_url: str, project_id: int, token: str, s
     All DET notifications are output to stdout as newline-delimited JSON
     records.  You will likely want to redirect stdout to a file.
     """
-    api_token = os.environ[token] if token else None
-
-    project = Project(api_url, project_id, token = api_token)
-
     LOG.info(f"REDCap project #{project.id}: {project.title}")
 
     if bool(since_date or until_date) and bool(record_ids):
