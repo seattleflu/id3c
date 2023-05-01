@@ -312,3 +312,80 @@ def upsert_sample(db: DatabaseSession,
             LOG.info(f"Upserted sample {sample.id} with collection identifier «{sample.collection_identifier}»")
 
     return sample, status
+
+
+def delete_encounters(db: DatabaseSession, encounter_ids: List[int]):
+    """
+    Delete an encounter/s by `encounter_id`.
+    Will return the number of rows affected by this operation
+    """
+    with db.cursor() as cursor:
+        cursor.execute("DELETE FROM warehouse.encounter WHERE encounter_id = ANY (%s)", (encounter_ids,))
+
+    return cursor.rowcount
+
+
+def delete_encounter_locations_by_encounter(db: DatabaseSession, encounter_ids: List[int]):
+    """
+    Delete an encounter_location/s by `encounter_id`.
+    Will return the number of rows affected by this operation
+    """
+    with db.cursor() as cursor:
+        cursor.execute("DELETE FROM warehouse.encounter_location WHERE encounter_id = ANY (%s)", (encounter_ids,))
+
+    return cursor.rowcount
+
+
+def delete_individuals(db: DatabaseSession, individual_ids: List[int]):
+    """
+    Delete an individual/s by `individual_id`.
+    Will return the number of rows affected by this operation
+    """
+    with db.cursor() as cursor:
+        cursor.execute("DELETE FROM warehouse.individual WHERE individual_id = ANY (%s)", (individual_ids,))
+
+    return cursor.rowcount
+
+
+def delete_locations(db: DatabaseSession, location_ids: List[int]):
+    """
+    Delete a location/s by `location_id`.
+    Will return the number of rows affected by this operation
+    """
+    with db.cursor() as cursor:
+        cursor.execute("DELETE FROM warehouse.location WHERE location_id = ANY (%s)", (location_ids,))
+
+    return cursor.rowcount
+
+
+def delete_presence_absences(db: DatabaseSession, presence_absence_ids: List[int]):
+    """
+    Delete presence_absence record/s by `presence_absence_id`.
+    Will return the number of rows affected by this operation
+    """
+    with db.cursor() as cursor:
+        cursor.execute("DELETE FROM warehouse.presence_absence WHERE presence_absence_id = ANY (%s)", (presence_absence_ids,))
+
+    return cursor.rowcount
+
+
+def delete_presence_absences_by_sample(db: DatabaseSession, sample_ids: List[int]):
+    """
+    Delete presence_absence record/s by associated `sample_id`.
+    Will return the number of rows affected by this operation
+    """
+    with db.cursor() as cursor:
+        cursor.execute("DELETE FROM warehouse.presence_absence WHERE sample_id = ANY (%s)", (sample_ids,))
+
+    return cursor.rowcount
+
+
+def delete_samples(db: DatabaseSession, sample_ids: List[int]):
+    """
+    Delete sample record/s by `sample_id`.
+    Will return the number of rows affected by this operation
+    """
+    with db.cursor() as cursor:
+        cursor.execute("DELETE FROM warehouse.sample WHERE sample_id = ANY (%s)", (sample_ids,))
+
+    return cursor.rowcount
