@@ -54,7 +54,7 @@ class Url(SplitResult):
         if len(args) == 1:
             args = tuple(urlsplit(str(args[0])))
 
-        return super().__new__(cls, *args)
+        return super().__new__(cls, *args) #type: ignore
 
 
     def __str__(self) -> str:
