@@ -178,7 +178,7 @@ def delete(
 
     # Post any record deletion events to Slack to provide insight into
     # potential data deletions.
-    if post_to_slack:
+    if post_to_slack and deleted_redcap_record_identifiers:
         payload = {
             "text": "REDCap Logging API found records that may require deletion from ID3C",
             "blocks": [
