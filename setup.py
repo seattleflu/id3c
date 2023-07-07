@@ -61,7 +61,7 @@ setup(
 
     install_requires = [
         "cachetools",
-        "click >=7.0,<8.0",
+        "click >=8.0, <8.1.4",
         "colorama",
         "deepdiff",
         "fhir.resources <6.0",
@@ -73,8 +73,8 @@ setup(
         "more-itertools",
         "oauth2client >2.0.0,<4.0.0",
         "openpyxl",
-        "pandas",
-        "psycopg2 >=2.8,<3",
+        "pandas ==1.5.3",
+        "psycopg2-binary >=2.8,<3",
         "pyyaml",
         "requests",
         "s3fs",
