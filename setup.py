@@ -43,9 +43,8 @@ setup(
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
 
-        # Python ≥ 3.6 only; we've also tested with 3.9
+        # Prod uses Python 3.9
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.9",
     ],
 
@@ -57,7 +56,7 @@ setup(
         ],
     },
 
-    python_requires = ">=3.6",
+    python_requires = ">=3.8",
 
     install_requires = [
         "cachetools",
