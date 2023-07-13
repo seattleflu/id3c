@@ -43,9 +43,8 @@ setup(
         "Intended Audience :: Science/Research",
         "Topic :: Scientific/Engineering :: Bio-Informatics",
 
-        # Python ≥ 3.6 only; we've also tested with 3.9
+        # Prod uses Python 3.9
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.9",
     ],
 
@@ -57,11 +56,11 @@ setup(
         ],
     },
 
-    python_requires = ">=3.6",
+    python_requires = ">=3.8",
 
     install_requires = [
         "cachetools",
-        "click >=7.0,<8.0",
+        "click >=8.0, <8.1.4",
         "colorama",
         "deepdiff",
         "fhir.resources <6.0",
@@ -72,13 +71,13 @@ setup(
         "jsonschema",
         "more-itertools",
         "oauth2client >2.0.0,<4.0.0",
-        "openpyxl",
-        "pandas",
-        "psycopg2 >=2.8,<3",
+        "openpyxl ==3.0.10",
+        "pandas ==1.5.3",
+        "psycopg2-binary >=2.8,<3",
         "pyyaml",
         "requests",
-        "s3fs",
-        "smartystreets-python-sdk >= 4.6.0, != 4.7.0, != 4.8.0",
+        "s3fs ==0.4.2",
+        "smartystreets-python-sdk ==4.11.12",
         "types-python-dateutil",
         "typing_extensions >=3.7.4",
         "xlrd",

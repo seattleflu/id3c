@@ -91,6 +91,7 @@ def with_database_session(command=None, *, pass_action: bool = False):
             "action",
             help="Only go through the motions of changing the database (default)",
             flag_value=DatabaseSessionAction("rollback"),
+            type=DatabaseSessionAction,
             default=True,
         )
         @click.option(
@@ -98,12 +99,14 @@ def with_database_session(command=None, *, pass_action: bool = False):
             "action",
             help="Ask if changes to the database should be saved",
             flag_value=DatabaseSessionAction("prompt"),
+            type=DatabaseSessionAction,
         )
         @click.option(
             "--commit",
             "action",
             help="Save changes to the database",
             flag_value=DatabaseSessionAction("commit"),
+            type=DatabaseSessionAction,
         )
         @wraps(command)
         def decorated(*args, action, **kwargs):
