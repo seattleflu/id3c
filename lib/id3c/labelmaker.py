@@ -412,6 +412,10 @@ class CollectionsCascadiaTinySwabsHome(LCRY2380DuplicateLayout):
     barcode_type = 'CASCADIA'
     reference = "cascadiastudy.org"
 
+class CollectionsViralEvolutionLayout(LCRY2380DuplicateLayout):
+    barcode_type = 'VIRALEVO'
+    reference = "viralevo.org"
+
 LAYOUTS = {
     "samples": SamplesLayout,
     "collections-scan": CollectionsScanLayout,
@@ -451,7 +455,8 @@ LAYOUTS = {
     'collections-adult-family-home-outbreak-tiny-swabs': CollectionsAdultFamilyHomeOutbreakTinySwabsLayout,
     'collections-workplace-outbreak-tiny-swabs': CollectionsWorkplaceOutbreakTinySwabsLayout,
     'collections-airs': CollectionsAirsLayout,
-    'collections-cascadia-tiny-swabs-home': CollectionsCascadiaTinySwabsHome
+    'collections-cascadia-tiny-swabs-home': CollectionsCascadiaTinySwabsHome,
+    'collections-viral-evolution': CollectionsViralEvolutionLayout,
 }
 
 
