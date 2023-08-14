@@ -10,7 +10,7 @@
 !/Pipfile.lock
 !/pytest.ini
 !/setup.py
-!/sqitch.conf
+!/sqitch.template.conf
 !/wsgi.py
 
 # and these directories
