@@ -14,7 +14,7 @@ begin;
 -- there needs to be a lag between view development and consumers being
 -- updated, copy the view definition into v2 and make changes there.
 
-create or replace view shipping.presence_absence_result_v1 as
+create or replace view shipping.presence_absence_result_v1 with (security_invoker = true) as
 
     select sample.identifier as sample,
            target.identifier as target,
@@ -39,7 +39,7 @@ grant select
     to "incidence-modeler";
 
 
-create or replace view shipping.presence_absence_result_v2 as
+create or replace view shipping.presence_absence_result_v2 with (security_invoker = true) as
 
     select sample.identifier as sample,
            target.identifier as target,

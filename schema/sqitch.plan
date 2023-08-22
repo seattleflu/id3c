@@ -243,3 +243,15 @@ functions/mint_identifiers 2022-07-15T22:13:52Z Dave Reinhart <davidrr@uw.edu> #
 
 roles/identifier-minter/grants [roles/identifier-minter/grants@2022-07-25] 2022-07-28T19:05:20Z Dave Reinhart <davidrr@uw.edu> # Add execute permissions on mint_identifiers function to identiifer-minter
 @2022-07-28 2022-07-28T19:20:25Z Dave Reinhart <davidrr@uw.edu> # Schema as of 28 July 2022
+
+warehouse/sample/access-role-rls 2023-07-27T19:39:54Z Dave Reinhart <davidrr@uw.edu> # Add column to store role name; Implement row-level security on sample table
+warehouse/genomic-sequence/access-role-rls 2023-07-27T21:01:44Z Dave Reinhart <davidrr@uw.edu> # Add column to store role name; Implement row-level security on genomic_sequence table
+warehouse/consensus-genome/access-role-rls 2023-07-27T21:13:41Z Dave Reinhart <davidrr@uw.edu> # Add column to store role name; Implement row-level security on consensus_genome table
+warehouse/sequence-read-set/access-role-rls 2023-07-27T21:32:39Z Dave Reinhart <davidrr@uw.edu> # Add column to store role name; Implement row-level security on sequence_read_set table
+@2023-07-27 2023-07-27T21:44:39Z Dave Reinhart <davidrr@uw.edu> # Schema as of 27 July 2023
+shipping/views [shipping/views@2023-07-27] 2023-07-27T22:31:51Z Dave Reinhart <davidrr@uw.edu> # Add security invoker to shipping views for row-level security
+@2023-07-28 2023-07-27T22:41:52Z Dave Reinhart <davidrr@uw.edu> # Schema as of 28 July 2023
+
+roles/reporter/revoke-select-on-receiving-consensus-genome 2023-08-18T23:41:26Z Dave Reinhart <davidrr@uw.edu> # Revoke select permissions on receiving.consensus_genome from reporter.
+roles/reporter/revoke-select-on-receiving-sequence-read-set 2023-08-21T17:02:31Z Dave Reinhart <davidrr@uw.edu> # Revoke select permissions on receiving.sequence_read_set from reporter.
+@2023-08-21 2023-08-21T17:58:25Z Dave Reinhart <davidrr@uw.edu> # Schema as of 21 August 2023

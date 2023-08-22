@@ -38,30 +38,10 @@ grant select
     on shipping.presence_absence_result_v1
     to "incidence-modeler";
 
-
-create or replace view shipping.presence_absence_result_v2 as
-
-    select sample.identifier as sample,
-           target.identifier as target,
-           present,
-           organism.lineage as organism,
-           presence_absence.details as details
-
-    from warehouse.sample
-    join warehouse.presence_absence using (sample_id)
-    join warehouse.target using (target_id)
-    left join warehouse.organism using (organism_id)
-    where target.control = false;
-
-comment on view shipping.presence_absence_result_v2 is
-    'View of warehoused presence-absence results for modeling and viz teams';
-
 revoke all
     on shipping.presence_absence_result_v2
   from "incidence-modeler";
 
-grant select
-    on shipping.presence_absence_result_v2
-    to "incidence-modeler";
+drop view shipping.presence_absence_result_v2;
 
 commit;
