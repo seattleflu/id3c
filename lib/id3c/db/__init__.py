@@ -201,6 +201,7 @@ def upsert_sample(db: DatabaseSession,
         "collection_date": collection_date,
         "encounter_id": encounter_id,
         "additional_details": Json(additional_details) if additional_details else None,
+        "additional_details_without_prov": Json({k: additional_details[k] for k in additional_details if k != '_provenance'}) if additional_details else None,
         "access_role": access_role,
     }
 
@@ -225,7 +226,7 @@ def upsert_sample(db: DatabaseSession,
                 row(
                     coalesce(%(collection_date)s, collected)::timestamp,
                     coalesce(%(encounter_id)s::integer, encounter_id),
-                    coalesce(details, '{}'::jsonb) || coalesce(%(additional_details)s, '{}')::jsonb
+                    coalesce(details, '{}'::jsonb) || coalesce(%(additional_details_without_prov)s, '{}')::jsonb
                 )::text as metadata_changed,
                 row(access_role)::text != row(coalesce(%(access_role)s, access_role))::text as access_role_changed
             from warehouse.sample
