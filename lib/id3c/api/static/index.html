@@ -143,7 +143,14 @@
             "collection_matrix": "dry"
         }
         </pre>
-
+        <p>An "access_role" value is required for samples from specific projects to enable row-level security:
+          <pre>
+          {
+            ...
+            "access_role": "some_db_role"
+            ...
+          }
+        </pre>
     <h3 class="code">GET /v1/warehouse/identifier-set-uses</h3>
     <p>Retrieve metadata about all identifier set uses.
 
