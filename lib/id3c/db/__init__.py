@@ -186,7 +186,8 @@ def upsert_sample(db: DatabaseSession,
                   collection_identifier: Optional[str],
                   collection_date: Optional[str],
                   encounter_id: Optional[int],
-                  additional_details: dict) -> Tuple[Any, str]:
+                  additional_details: dict,
+                  access_role: Optional[str] = None) -> Tuple[Any, str]:
     """
     Upsert sample by its *identifier* and/or *collection_identifier*.
     An existing sample has its *identifier*, *collection_identifier*,
@@ -200,13 +201,15 @@ def upsert_sample(db: DatabaseSession,
         "collection_date": collection_date,
         "encounter_id": encounter_id,
         "additional_details": Json(additional_details) if additional_details else None,
+        "additional_details_without_prov": Json({k: additional_details[k] for k in additional_details if k != '_provenance'}) if additional_details else None,
+        "access_role": access_role,
     }
 
     # Look for existing sample(s)
     with db.cursor() as cursor:
         cursor.execute("""
             select
-                sample_id as id, identifier, collection_identifier, encounter_id, details,
+                sample_id as id, identifier, collection_identifier, encounter_id, details, access_role,
                 row (
                     identifier,
                     collection_identifier
@@ -223,8 +226,9 @@ def upsert_sample(db: DatabaseSession,
                 row(
                     coalesce(%(collection_date)s, collected)::timestamp,
                     coalesce(%(encounter_id)s::integer, encounter_id),
-                    coalesce(details, '{}'::jsonb) || coalesce(%(additional_details)s, '{}')::jsonb
-                )::text as metadata_changed
+                    coalesce(details, '{}'::jsonb) || coalesce(%(additional_details_without_prov)s, '{}')::jsonb
+                )::text as metadata_changed,
+                row(access_role)::text != row(coalesce(%(access_role)s, access_role))::text as access_role_changed
             from warehouse.sample
             where identifier = %(identifier)s
                 or collection_identifier = %(collection_identifier)s
@@ -239,12 +243,13 @@ def upsert_sample(db: DatabaseSession,
         status = 'created'
 
         sample = db.fetch_row("""
-            insert into warehouse.sample (identifier, collection_identifier, collected, encounter_id, details)
+            insert into warehouse.sample (identifier, collection_identifier, collected, encounter_id, details, access_role)
                 values (%(identifier)s,
                         %(collection_identifier)s,
                         date_or_null(%(collection_date)s),
                         %(encounter_id)s,
-                        %(additional_details)s)
+                        %(additional_details)s,
+                        %(access_role)s)
             returning sample_id as id, identifier, collection_identifier, encounter_id
             """, data)
 
@@ -256,9 +261,10 @@ def upsert_sample(db: DatabaseSession,
         LOG.info(f"Updating existing sample {sample.id}")
         LOG.info(f"Sample.identifiers_changed is «{sample.identifiers_changed}» ")
         LOG.info(f"Sample.metadata_changed is «{sample.metadata_changed}» ")
+        LOG.info(f"Sample.access_role_changed is «{sample.access_role_changed}» ")
 
         # can safely skip upsert if metadata is unchanged and not updating identifiers or if all data is unchanged
-        if sample.metadata_changed == False and (not update_identifiers or sample.identifiers_changed == False):
+        if sample.metadata_changed == False and sample.access_role_changed == False and (not update_identifiers or sample.identifiers_changed == False):
             LOG.info(f"Skipping upsert for sample {sample.id} «{sample.identifier}» (no change).")
             return sample, status
 
@@ -286,9 +292,14 @@ def upsert_sample(db: DatabaseSession,
                  if overwrite_collection_date else SQL("""
                     collected = coalesce(collected, date_or_null(%(collection_date)s)), """)
 
+        # Update access_role if value changed
+        access_role_update_composable = SQL("""
+             access_role = %(access_role)s, """) if sample.access_role_changed else SQL("")
+
         sample = db.fetch_row(SQL("""
             update warehouse.sample
                 set {}
+                    {}
                     {}
                     encounter_id = coalesce(%(encounter_id)s, encounter_id),
                     details = coalesce(details, {}) || %(additional_details)s
@@ -296,6 +307,7 @@ def upsert_sample(db: DatabaseSession,
             returning sample_id as id, identifier, collection_identifier, encounter_id
             """).format(identifiers_update_composable,
                 collected_update_composable,
+                access_role_update_composable,
                 Literal(Json({}))),
                 { **data, "sample_id": sample.id })
 

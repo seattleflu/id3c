@@ -90,7 +90,10 @@ POST_SAMPLE_SCHEMA = {
         },
         "notes": {
             "type": "string"
-        }
+        },
+        "access_role": {
+            "type": "string"
+        },
     },
     "anyOf": [
         { "required":

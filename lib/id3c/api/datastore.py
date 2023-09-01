@@ -468,6 +468,8 @@ def store_sample(session: DatabaseSession, sample: dict) -> Any:
         collection_barcode = sample.pop("collection_id", None)
         collection_identifier = find_identifier(session, collection_barcode) if collection_barcode else None
 
+        access_role = sample.pop("access_role", None)
+
         result = {
             "sample_barcode": sample_barcode,
             "collection_barcode": collection_barcode
@@ -517,7 +519,8 @@ def store_sample(session: DatabaseSession, sample: dict) -> Any:
                     collection_identifier       = collection_identifier.uuid if collection_identifier else None,
                     collection_date             = collected_date,
                     encounter_id                = None,
-                    additional_details          = sample)
+                    additional_details          = sample,
+                    access_role                 = access_role)
 
             result["sample"] = sample
             result["status"] = status
