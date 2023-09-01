@@ -11,9 +11,7 @@ Data logistics system enabling real-time genomic epidemiology. Built for the
 
 ## Database
 
-Currently [PostgreSQL 10](https://www.postgresql.org/about/news/1786/),
-eventually upgrading to
-[PostgreSQL 11](https://www.postgresql.org/about/news/1894/).
+Currently [PostgreSQL 15](https://www.postgresql.org/about/news/postgresql-15-released-2526/).
 
 Initially aims to provide:
 
