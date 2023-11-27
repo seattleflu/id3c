@@ -14,12 +14,14 @@ class IdentifierRecord(NamedTuple):
 class MinimalSampleRecord(NamedTuple):
     id: int
     identifier: str
+    access_role: Optional[str]
 
 class SampleRecord(NamedTuple):
     id: int
     identifier: str
     encounter_id: Optional[int]
     type: Optional[str]
+    access_role: Optional[str]
 
 class KitRecord(NamedTuple):
     id: int
@@ -36,12 +38,14 @@ class SequenceReadSetRecord(NamedTuple):
     id: int
     sample_id: int
     urls: Optional[List[str]]
+    access_role: Optional[str]
 
 class GenomeRecord(NamedTuple):
     id: int
     sample_id: int
     organism_id: int
     sequence_read_set_id: int
+    access_role: Optional[str]
 
 class MinimalLocationRecord(NamedTuple):
     id: int

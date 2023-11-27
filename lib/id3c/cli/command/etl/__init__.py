@@ -287,7 +287,7 @@ def update_sample(db: DatabaseSession,
         update warehouse.sample
             set encounter_id = %s
         where sample_id = %s
-        returning sample_id as id, identifier
+        returning sample_id as id, identifier, access_role
         """, (encounter_id, sample.id))
 
     assert sample.id, "Updating encounter_id affected no rows!"
@@ -341,7 +341,7 @@ def find_sample(db: DatabaseSession, identifier: str, for_update = True) -> Any:
         query_ending = "for update"
 
     sample = db.fetch_row("""
-        select sample_id as id, identifier, encounter_id
+        select sample_id as id, identifier, encounter_id, access_role
           from warehouse.sample
          where identifier = %s or
                collection_identifier = %s

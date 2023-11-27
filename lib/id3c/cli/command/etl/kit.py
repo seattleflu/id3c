@@ -339,7 +339,8 @@ def find_sample(db: DatabaseSession, identifier: str) -> Optional[SampleRecord]:
         select sample_id as id,
                identifier,
                encounter_id,
-               details ->> 'sample_type' as type
+               details ->> 'sample_type' as type,
+               access_role
            from warehouse.sample
           where sample.identifier = %s
         """, (identifier,))

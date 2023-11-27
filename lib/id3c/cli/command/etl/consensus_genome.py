@@ -138,7 +138,7 @@ def find_or_create_sequence_read_set(db: DatabaseSession, document: dict, sample
     """))
 
     sequence_read_set: SequenceReadSetRecord = db.fetch_row("""
-        select sequence_read_set_id as id, sample_id, urls
+        select sequence_read_set_id as id, sample_id, urls, access_role
           from warehouse.sequence_read_set
          where sample_id = %s
           and urls @> %s
@@ -147,6 +147,9 @@ def find_or_create_sequence_read_set(db: DatabaseSession, document: dict, sample
 
     if sequence_read_set:
         LOG.info(f"Found sequence read set {sequence_read_set.id}")
+        if sample.access_role:
+            assert sample.access_role == sequence_read_set.access_role, \
+                f"Access_role for sample id «{sample.id}» does not match sequence read set id «{sequence_read_set.id}» "
     else:
         LOG.debug(dedent(f"""
         Sequence read set not found for sample id «{sample.id}» and urls {urls}
@@ -154,13 +157,14 @@ def find_or_create_sequence_read_set(db: DatabaseSession, document: dict, sample
 
         data = {
             "sample_id": sample.id,
+            "access_role": sample.access_role,
             "urls": urls,
         }
 
         sequence_read_set = db.fetch_row("""
-            insert into warehouse.sequence_read_set (sample_id, urls)
-                values (%(sample_id)s, %(urls)s)
-            returning sequence_read_set_id as id, sample_id, urls
+            insert into warehouse.sequence_read_set (sample_id, urls, access_role)
+                values (%(sample_id)s, %(urls)s, %(access_role)s)
+            returning sequence_read_set_id as id, sample_id, urls, access_role
             """, data)
 
         LOG.info(f"Created sequence read set {sequence_read_set.id}")
@@ -254,19 +258,20 @@ def upsert_genome(db: DatabaseSession, sequence_read_set: SequenceReadSetRecord,
         "sample_id": sequence_read_set.sample_id,
         "organism_id": organism.id,
         "sequence_read_set_id": sequence_read_set.id,
-        "additional_details": Json(document['summary_stats'])
+        "additional_details": Json(document['summary_stats']),
+        "access_role": sequence_read_set.access_role
     }
 
     genome: GenomeRecord = db.fetch_row("""
         insert into warehouse.consensus_genome (sample_id, organism_id,
-            sequence_read_set_id, details)
+            sequence_read_set_id, details, access_role)
           values (%(sample_id)s, %(organism_id)s, %(sequence_read_set_id)s,
-                %(additional_details)s)
+                %(additional_details)s, %(access_role)s)
 
         on conflict (sample_id, organism_id, sequence_read_set_id) do update
-            set details = %(additional_details)s
+            set details = %(additional_details)s, access_role = %(access_role)s
 
-        returning consensus_genome_id as id, sample_id, organism_id, sequence_read_set_id
+        returning consensus_genome_id as id, sample_id, organism_id, sequence_read_set_id, access_role
         """, data)
 
     assert genome.id, "Upsert affected no rows!"
