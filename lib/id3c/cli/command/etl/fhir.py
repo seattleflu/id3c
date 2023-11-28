@@ -798,15 +798,17 @@ def process_locations(db: DatabaseSession, encounter_id: int, encounter: Encount
 def process_location(db: DatabaseSession, encounter_id: int, location: Location):
     """
     Process a FHIR *location* and attach it to an *encounter_id*.
+    First looks for a parent location's tract hierarchy;
+    if no parent location is available, assumes that the location entry itself
+    is a tract and looks for a tract hierarchy.
     """
-    # XXX FIXME: This function assumes we always have an address, and never
-    # just a tract.  It also assumes the scales tract and address and their
+    # XXX FIXME: This function assumes the scales tract and address and their
     # relationship in the hierarchy instead of being agnostic to the scale.
     #   -trs, 19 Dec 2019
 
-    def get_tract_hierarchy(location: Location) -> Optional[str]:
+    def get_tract(location: Location) -> Optional[Any]:
         """
-        Given a *location*, returns its tract hierarchy if it exists, else None.
+        Given a *location*, returns its tract location entry if it exists, else None.
         """
         scale = 'tract'
         tract_identifier = identifier(location, f"{INTERNAL_SYSTEM}/location/{scale}")
@@ -817,7 +819,7 @@ def process_location(db: DatabaseSession, encounter_id: int, location: Location)
         tract = find_location(db, scale, tract_identifier)
         assert tract, f"Tract «{tract_identifier}» is unknown"
 
-        return tract.hierarchy
+        return tract
 
     def process_address(location: Location, tract_hierarchy: str) -> Optional[Any]:
         """
@@ -844,12 +846,19 @@ def process_location(db: DatabaseSession, encounter_id: int, location: Location)
 
     try:
         parent_location = location.partOf.resolved(Location)
-        tract_hierarchy = get_tract_hierarchy(parent_location)  # TODO do we only want parent hierarchy?
+        tract_hierarchy = get_tract(parent_location).hierarchy  # TODO do we only want parent hierarchy?
 
     except AttributeError:
         LOG.info(f"No parent location found for Location with code «{code}», " + \
-            f"relation «{relation}».")
-        tract_hierarchy = None
+            f"relation «{relation}». " + \
+            "Assuming location is a tract.")
+        try: # handle encounter locations that are only tracts
+            tract = get_tract(location)
+            tract_hierarchy = tract.hierarchy
+        except (AttributeError, AssertionError):
+            LOG.info(f"No tract found for Location with code «{code}», " + \
+                f"relation «{relation}».")
+            tract_hierarchy = None
 
     address = process_address(location, tract_hierarchy)
 
@@ -860,7 +869,8 @@ def process_location(db: DatabaseSession, encounter_id: int, location: Location)
     upsert_encounter_location(db,
         encounter_id    = encounter_id,
         relation        = relation,
-        location_id     = address.id)
+        location_id     = address.id if address else tract.id)
+        # if there is an address, link encounter location to address; if only tract, link encounter location to tract
 
 
 def location_code(location: Location) -> str:
